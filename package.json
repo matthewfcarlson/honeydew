@@ -1,6 +1,6 @@
 {
   "name": "honeydew",
-  "description": "Recommended for your first Qwik app (comes with Qwik City)",
+  "description": "A simple app that tries to keep us on track for getting things done",
   "engines": {
     "node": ">=15.0.0"
   },
