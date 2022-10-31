@@ -6,10 +6,12 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "dev": "npx wrangler pages dev -- npm run serve"
+    "dev": "npx wrangler pages dev -k HONEYDEW -- npm run serve"
   },
   "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^2.1.2",
     "core-js": "^3.8.3",
+    "uuid": "^9.0.0",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3"
   },
@@ -20,6 +22,7 @@
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "axios": "^1.1.3",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "pinia": "^2.0.23",
