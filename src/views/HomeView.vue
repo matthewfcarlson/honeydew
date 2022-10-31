@@ -2,11 +2,17 @@
   <div class="home">
     <nav>
       <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+      <router-link to="/about">About</router-link> |
+      <router-link to="/signup">Signup</router-link> |
+      <router-link to="/login">Login</router-link> |
+      <a href="/magic_link">Magic Link</a>
     </nav>
-    <button @click="signup">signup</button>
+    <input type="text" v-model="name" placeholder="Your name"/>
+    <button @click="signup">signup as {{name}}</button>
     <button @click="signout">Signout</button>
-    <button @click="refresh">Refresh</button>
+    <button @click="refresh">Refresh {{count}}</button>
+    <button @click="count--">-</button>
+    <button @click="count++">+</button>
     {{ rick }}
     <hr />
     <img alt="Vue logo" src="../assets/logo.png" />
@@ -23,7 +29,9 @@ export default {
   name: 'HomeView',
   data() {
     return {
-      rick: "Loading"
+      name: "Matthew",
+      rick: "Loading",
+      count:0,
     }
   },
   components: {
@@ -38,13 +46,15 @@ export default {
       await this.refresh();
     },
     signup: async function () {
-      await axios.get("/api/signup");
+      const data = {
+        name: this.name
+      }
+      await axios.post("/api/signup", data);
       await this.refresh();
     },
     refresh: async function () {
-      this.rick = "TBF";
       try{
-        const { data } = await axios.get("/api/rm/1");
+        const { data } = await axios.get("/api/rm/"+this.count);
         
         if (data != null && data['name'] != undefined) {
           this.rick = data["name"];

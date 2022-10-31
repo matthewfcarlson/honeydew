@@ -11,8 +11,12 @@ export async function onRequestGet(context) {
     return new Response('{"msg": "Invalid Token"}', { status: 403 })
   }
   console.log(context.data.jwt);
-  const res = await fetch(`https://rickandmortyapi.com/api/character/${params.id}`);
-  const api_result = await res.json();
-  const info = JSON.stringify(api_result, null, 2);
+
+  const id = Number(params.id);
+  const names = ["Rick", "morty", "Beth", "Jerry", "Summer", "Snowball"]
+  if (id < 0 || id >= names.length) {
+    return new Response('{"msg": "Invalid id"}', { status: 400 })
+  }
+  const info = JSON.stringify({name: names[id]}, null, 2);
   return new Response(info);
 }

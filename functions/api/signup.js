@@ -18,7 +18,36 @@ async function generateNewUserUUID(env) {
     return userId
 }
 
-export async function onRequestGet(context) {
+/**
+ * readRequestBody reads in the incoming request body
+ * Use await readRequestBody(..) in an async function to get the string
+ * @param {Request} request the incoming request to read from
+ */
+ async function readRequestBody(request) {
+    const { headers } = request;
+    const contentType = headers.get('content-type') || '';
+  
+    if (contentType.includes('application/json')) {
+      return await request.json();
+    } else if (contentType.includes('application/text')) {
+      return request.text();
+    } else if (contentType.includes('text/html')) {
+      return request.text();
+    } else if (contentType.includes('form')) {
+      const formData = await request.formData();
+      const body = {};
+      for (const entry of formData.entries()) {
+        body[entry[0]] = entry[1];
+      }
+      return body;
+    } else {
+      // Perhaps some other type of data was submitted in the form
+      // like an image, or some other binary data.
+      return null;
+    }
+  }
+
+export async function onRequestPost(context) {
     const {
       request, // same as existing Worker API
       env, // same as existing Worker API
@@ -29,6 +58,16 @@ export async function onRequestGet(context) {
     } = context;
 
     console.log(request.url)
+
+    const body = await readRequestBody(request);
+    console.log(body);
+    console.log(body["name"]);
+
+    if (body == null || body["name"] == undefined) {
+        return new Response('{"msg": "Missing Signup Data"}', { status: 400 })
+    }
+
+    const name = body['name'];
 
     if (data.authorized != undefined && context.data.authorized == true) {
         return new Response('{"msg": "Already logged in"}', { status: 400 })
@@ -42,24 +81,23 @@ export async function onRequestGet(context) {
 
     const secret = 'SECRET HERE';
     // Creating a token
+    const db_data = {household_id:null, name, current_task: null}
     const token = await jwt.sign({
         id: userId,
-        name: 'John Doe',
-        email: 'john.doe@gmail.com',
-        nbf: Math.floor(Date.now() / 1000) + (60 * 60),      // Not before: Now + 1h
+        ...db_data,
         exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)) // Expires: Now + 12h
     }, secret);
 
-    const db_data = JSON.stringify({household_id:null, name: "John Doe", current_task: null})
+    const db_data_str = JSON.stringify(db_data)
 
-    const info = JSON.stringify("Created New Account", null, 2);
+    const info = JSON.stringify({msg:"Created New Account", user:db_data}, null, 2);
     const newCookie = `Device-Token=${token}; HttpOnly; SameSite=Strict`
     const response = new Response(info, {
     headers: { "Content-Type": "application/json" },
     })
     response.headers.set("Set-Cookie", newCookie)
 
-    await env.HONEYDEW.put(dbId, db_data)
+    await env.HONEYDEW.put(dbId, db_data_str)
 
     return response;
 }

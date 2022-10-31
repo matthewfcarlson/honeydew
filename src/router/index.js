@@ -29,6 +29,11 @@ const routes = [
     component: SignupView,
   },
   {
+    path: '/error',
+    name: '400',
+    component: () => import(/* webpackChunkName: "error" */ '../views/400View.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: '404',
     component: NotFoundView,
