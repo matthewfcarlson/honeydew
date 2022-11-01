@@ -12,21 +12,25 @@
     "@tsndr/cloudflare-worker-jwt": "^2.1.2",
     "core-js": "^3.8.3",
     "uuid": "^9.0.0",
-    "vue": "^3.2.13",
-    "vue-router": "^4.0.3"
+    "@cloudflare/workers-types": "^3.18.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
+    "vue": "^3.2.13",
     "@babel/eslint-parser": "^7.12.16",
-    "@cloudflare/workers-types": "^3.18.0",
+    "@typescript-eslint/eslint-plugin": "^5.4.0",
+    "@typescript-eslint/parser": "^5.4.0",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-router": "~5.0.0",
+    "@vue/cli-plugin-typescript": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "@vue/eslint-config-typescript": "^9.1.0",
     "axios": "^1.1.3",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "pinia": "^2.0.23",
+    "typescript": "~4.5.5",
     "vue-router": "^4.1.6",
     "wrangler": "^2.1.13"
   },
@@ -37,10 +41,11 @@
     },
     "extends": [
       "plugin:vue/vue3-essential",
-      "eslint:recommended"
+      "eslint:recommended",
+      "@vue/typescript"
     ],
     "parserOptions": {
-      "parser": "@babel/eslint-parser"
+      "parser": "@typescript-eslint/parser"
     },
     "rules": {}
   },

@@ -20,22 +20,25 @@
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import axios from "axios";
-import HelloWorld from '@/components/HelloWorld.vue'
+<script lang="ts">
 
-export default {
+import axios from "axios";
+import { defineComponent } from 'vue';
+import HelloWorld from '@/components/HelloWorld.vue'; // @ is an alias to /src
+
+
+export default defineComponent({
   name: 'HomeView',
+  components: {
+    HelloWorld,
+  },
   data() {
     return {
       name: "Matthew",
       rick: "Loading",
       count:0,
     }
-  },
-  components: {
-    HelloWorld
+
   },
   mounted () {
     this.refresh()
@@ -65,5 +68,5 @@ export default {
       }
     },
   }
-}
+});
 </script>
