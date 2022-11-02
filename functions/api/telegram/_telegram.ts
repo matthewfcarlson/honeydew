@@ -265,7 +265,7 @@ export default class TelegramAPI {
         const data = {
             chat_id,
             message_id,
-            reply_markup: []
+            reply_markup: [[]]
         };
         const results = await this.requestPost('editMessageReplyMarkup', data);
         if (results == false) return false;
