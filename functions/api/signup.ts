@@ -57,8 +57,6 @@ export const onRequestPort: HoneydewPagesFunction = async function (context) {
       data, // arbitrary space for passing data between middlewares
     } = context;
 
-    console.log(request.url)
-
     const body = await readRequestBody(request);
     console.log(body);
     console.log(body["name"]);
@@ -70,7 +68,7 @@ export const onRequestPort: HoneydewPagesFunction = async function (context) {
     const name = body['name'];
 
     if (data.authorized != undefined && context.data.authorized == true) {
-        return new Response('{"msg": "Already logged in"}', { status: 400 })
+        return new Response('{"msg": "Already logged in"}', { status: 401 })
     }
 
     const userId = await generateNewUserUUID(env)

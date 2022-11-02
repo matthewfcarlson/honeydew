@@ -1,7 +1,8 @@
 type HoneydewPagesFunction<
   Env = {
-    TELEGRAM:string;
-    JWT_SECRET: string;
+    TELEGRAM:string; // the telegram API key
+    JWT_SECRET: string; // the JWT secret for signing 
+    TELEGRAM_WH:string; // the secret key for the webhook
     HONEYDEW: KVNamespace;
   },
   Params extends string = any,
