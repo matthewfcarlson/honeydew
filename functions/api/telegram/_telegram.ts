@@ -243,4 +243,14 @@ export default class TelegramAPI {
         if (!isTelegramMessage(results.result)) return false;
         return results.result;
     }
+
+    public async setWebhook(url:string, secret_token?:string) {
+        const data = {
+            url,
+            secret_token
+        };
+        const results = await this.requestPost('setWebhook', data);
+        if (results == false) return false;
+        return true;
+    }
 }
