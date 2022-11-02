@@ -261,6 +261,17 @@ export default class TelegramAPI {
         return results.result;
     }
 
+    public async clearMessageReplyMarkup(chat_id:number|string, message_id: number) {
+        const data = {
+            chat_id,
+            message_id,
+            reply_markup: []
+        };
+        const results = await this.requestPost('editMessageReplyMarkup', data);
+        if (results == false) return false;
+        return true;
+    }
+
     public async setWebhook(url: string, secret_token?: string) {
         const data = {
             url,

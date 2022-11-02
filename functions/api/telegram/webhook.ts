@@ -67,8 +67,14 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
             const value = await context.env.HONEYDEW.get(key)
             console.error("querying", key);
             const kv_data = JSON.parse(value);
+            if (kv_data != null) {
+                const results = await Promise.all([
+                    ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id),
+                    ta.clearMessageReplyMarkup(kv_data.chat_id, kv_data.message_id)
+                ]);
+                if (results[0] == false || results[1] == false) console.error("callback promises", results);
+            }
             console.error("KV DATA: ", key, kv_data);
-            await ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id);
         }
         else {
             console.error("TelegramUpdateCallbackQuery", "no message id")
