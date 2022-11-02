@@ -44,6 +44,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
             ]]
         };
         const message = await ta.sendTextMessage(chat.id, response, x.message.message_id, keyboard);
+        console.error("sent message", message);
         if (message != false) {
             // inline response: 
             const kv_data = {
