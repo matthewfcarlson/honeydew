@@ -7,8 +7,9 @@ export const onRequest: HoneydewPagesFunction = async function onRequestPost(con
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
     if (secret == null || secret == "") {
         return ResponseJsonMethodNotAllowed();
-    } 
+    }
     const data = {
+        timestamp: Date.now().toString(),
         body,
         secret
     }
