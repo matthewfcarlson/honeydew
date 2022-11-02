@@ -47,7 +47,9 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         console.error("sent message", message);
         if (message != false) {
             const kv_data = {
-                task
+                task,
+                chat_id:chat.id,
+                message_id:message.message_id
             }
             // TODO: wrap this all in a nice API with types and everything!
             context.env.HONEYDEW.put(`inlinereply:${uuid}`, JSON.stringify(kv_data));
@@ -63,6 +65,9 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         if (uuid != null) {
             const value = await context.env.HONEYDEW.get(`inlinereply:${uuid}`)
             console.error(value);
+            const kv_data = JSON.parse(value);
+            console.error(kv_data);
+            await ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id);
         }
         else {
             console.error("TelegramUpdateCallbackQuery", "no message id")
