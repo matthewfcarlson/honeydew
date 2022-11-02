@@ -23,20 +23,14 @@ async function isValidJwt(secret:string, token: string) {
   if (token == null) return false;
 
   try {
-    jwt.verify(token, secret);
+    return await jwt.verify(token, secret);
     // Token is good!
-    return true;
   } catch (err) {
-    console.error(err);
+    console.log("isValidJwt", err);
     // If the JWT verification fails, an exception will be thrown and we'll end up in here
     return false
   }
 
-}
-
-function log(content) {
-  // If you want to log JWT rejections, add code in here to send the message to your preferred cloud based logging framework
-  console.error(content);
 }
 
 const jwtHandler: HoneydewPagesFunction = async (context) => {
@@ -44,7 +38,6 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
   const secret = context.env.JWT_SECRET;
   const token = (cookieString != null) ? getCookie(cookieString, 'Device-Token') : null;
   const isValid = await isValidJwt(secret, token)
-
 
   if (!isValid || token == null) {
     const ip = context.request.headers.get('cf-connecting-ip') || '';
@@ -54,7 +47,7 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
     const safeToken = token || '';
 
     // Log all JWT failures
-    log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]" )
+    console.log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]" )
 
     // Invalid JWT - reject request
     context.data.authorized = false;
@@ -73,17 +66,11 @@ async function topLevelErrorHandler(context) {
   let res = null;
   try {
     // register the console handler
-    const _log = console.log;
     const _error = console.error;
-    console.error = (err) =>{
+    console.error = (...data) =>{
       const key = `err:${Date.now().toString()}`;
-      context.env.HONEYDEW.put(key, JSON.stringify(err));
-      _error("ERR", err);
-    }
-    console.log = (err) =>{
-      const key = `log:${Date.now().toString()}`;
-      context.env.HONEYDEW.put(key, JSON.stringify(err));
-      _log("LOG", err);
+      context.env.HONEYDEW.put(key, JSON.stringify(data));
+      _error("ERROR", ...data);
     }
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
