@@ -207,7 +207,7 @@ export default class TelegramAPI {
         const response = await fetch(url, init); 
         const results = await this.gatherResponse(response);
         if (response.status != 200) {
-            console.error(response, results);
+            console.error(`REQUEST ${method}`, response, results);
             return false;
         }
         if (!isTelegramAPIResponse(results)) return false;
@@ -226,7 +226,7 @@ export default class TelegramAPI {
         const response = await fetch(url, init);
         const results = await this.gatherResponse(response);
         if (response.status != 200) {
-            console.error(response, results);
+            console.error(`REQUESTPOST ${method}`, response, results);
             return false;
         }
         if (!isTelegramAPIResponse(results)) return false;

@@ -63,10 +63,11 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         context.env.HONEYDEW.put("telegram_callback", JSON.stringify(message));
         const uuid = message.callback_query.data;
         if (uuid != null) {
-            const value = await context.env.HONEYDEW.get(`inlinereply:${uuid}`)
-            console.error(value);
+            const key = `inlinereply:${uuid}`;
+            const value = await context.env.HONEYDEW.get(key)
+            console.error("querying", key);
             const kv_data = JSON.parse(value);
-            console.error(kv_data);
+            console.error("KV DATA: ", key, kv_data);
             await ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id);
         }
         else {

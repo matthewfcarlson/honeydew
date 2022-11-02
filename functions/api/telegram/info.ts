@@ -1,3 +1,4 @@
+import { HoneydewPagesFunction } from "../../types";
 import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonDebugOnly } from "../../_utils";
 import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
 
@@ -6,6 +7,5 @@ export const onRequest: HoneydewPagesFunction = async function onRequestPost(con
     const ta = new TelegramAPI(context.env.TELEGRAM);
     const results = await ta.getWebhookInfo();
     console.log(results);
-    console.error("testing");
     return new Response("TEST");
 }

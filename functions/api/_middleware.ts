@@ -70,10 +70,10 @@ async function topLevelErrorHandler(context) {
     // register the console handler
     const _error = console.error;
     const message_hours_lifetime = 12; // messages last 12 hours
-    console.error = (...data) =>{
+    console.error = function (...data) {
       const key = `err:${Date.now().toString()}`;
       context.env.HONEYDEW.put(key, JSON.stringify(data), {expirationTtl: 60*60*message_hours_lifetime}); 
-      _error("ERROR", ...data);
+      _error(...data);
     }
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
