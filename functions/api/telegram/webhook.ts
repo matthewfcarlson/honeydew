@@ -21,7 +21,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
 
     if (isTelegramUpdateMessage(body)) {
         const x = body;
-        context.env.HONEYDEW.put("telegram_message", JSON.stringify(x));
+        await context.env.HONEYDEW.put("telegram_message", JSON.stringify(x));
         if (x.message == undefined || x.message == null) return;
         if (x.message.from == undefined || x.message.from == null) return;
         //if (x.message.from.is_bot) return;
@@ -29,7 +29,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         const chat = x.message.chat;
         const text = x.message.text || "Unknown text"
         const task = (uuidv4().toString() as string);
-        const uuid = (uuidv4().toString() as string).substring(0,64);
+        const uuid = (uuidv4().toString() as string).substring(0, 64);
         const response = `Reply to ${to} : "${text}". Task ${task}. UUID ${uuid}`
         if (chat.title != null) return;
         console.log(response, chat.title || `Chat:${chat.id}`);
@@ -48,11 +48,11 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         if (message != false) {
             const kv_data = {
                 task,
-                chat_id:chat.id,
-                message_id:message.message_id
+                chat_id: chat.id,
+                message_id: message.message_id
             }
             // TODO: wrap this all in a nice API with types and everything!
-            context.env.HONEYDEW.put(`inlinereply:${uuid}`, JSON.stringify(kv_data));
+            await context.env.HONEYDEW.put(`inlinereply:${uuid}`, JSON.stringify(kv_data));
         }
         else {
             console.error("Telegram Update Message", "message is null");
@@ -60,7 +60,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
     if (isTelegramUpdateCallbackQuery(body)) {
         const message = body;
-        context.env.HONEYDEW.put("telegram_callback", JSON.stringify(message));
+        await context.env.HONEYDEW.put("telegram_callback", JSON.stringify(message));
         const uuid = message.callback_query.data;
         if (uuid != null) {
             const key = `inlinereply:${uuid}`;

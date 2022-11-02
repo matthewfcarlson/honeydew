@@ -7,7 +7,7 @@ import { HoneydewPagesFunction } from '../types';
  * @param {String} key - The name of the cookie we are reading from the cookie string
  * @returns {(String|null)} Returns the value of the cookie OR null if nothing was found.
  */
- function getCookie(cookieString, key) {
+function getCookie(cookieString, key) {
   if (cookieString) {
     const allCookies = cookieString.split("; ")
     const targetCookie = allCookies.find(cookie => cookie.includes(key))
@@ -19,7 +19,7 @@ import { HoneydewPagesFunction } from '../types';
   return null
 }
 
-async function isValidJwt(secret:string, token: string) {
+async function isValidJwt(secret: string, token: string) {
 
   if (token == null) return false;
 
@@ -49,14 +49,14 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
     const safeToken = token || '';
 
     // Log all JWT failures
-    console.log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]" )
+    console.log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]")
 
     // Invalid JWT - reject request
     context.data.authorized = false;
-    
+
   }
   else {
-    const {payload} = jwt.decode(token);
+    const { payload } = jwt.decode(token);
     context.data.jwt = payload;
     context.data.authorized = true;
   }
@@ -69,10 +69,10 @@ async function topLevelHandler(context) {
   try {
     // register the console handler
     const _error = console.error;
-    const message_hours_lifetime = 12; // messages last 12 hours
+    const message_hours_lifetime = 2; // messages last 12 hours
     console.error = function (...data) {
       const key = `err:${Date.now().toString()}`;
-      context.env.HONEYDEW.put(key, JSON.stringify(data), {expirationTtl: 60*60*message_hours_lifetime}); 
+      context.env.HONEYDEW.put(key, JSON.stringify(data), { expirationTtl: 60 * 60 * message_hours_lifetime });
       _error(...data);
     }
     // Time stamp and then go the next handler
