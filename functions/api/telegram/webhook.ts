@@ -30,7 +30,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         const text = x.message.text || "Unknown text"
         const task = (uuidv4().toString() as string);
         const uuid = (uuidv4().toString() as string).substring(0,64);
-        const response = `Reply to ${to} : "${text}. Task ${task}"`
+        const response = `Reply to ${to} : "${text}". Task ${task}. UUID ${uuid}`
         if (chat.title != null) return;
         console.log(response, chat.title || `Chat:${chat.id}`);
         const keyboard: TelegramInlineKeyboardMarkup = {

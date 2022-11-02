@@ -64,7 +64,7 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
   return await context.next();
 }
 
-async function topLevelErrorHandler(context) {
+async function topLevelHandler(context) {
   let res = null;
   try {
     // register the console handler
@@ -77,6 +77,7 @@ async function topLevelErrorHandler(context) {
     }
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
+    // Put the KV ORM layer into context data
     res = await context.next();
   }
   catch (thrown) {
@@ -94,4 +95,4 @@ async function topLevelErrorHandler(context) {
 }
 
 
-export const onRequest: HoneydewPagesFunction[] = [topLevelErrorHandler, jwtHandler]
+export const onRequest: HoneydewPagesFunction[] = [topLevelHandler, jwtHandler]
