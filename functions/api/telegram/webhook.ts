@@ -46,12 +46,11 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         const message = await ta.sendTextMessage(chat.id, response, x.message.message_id, keyboard);
         console.error("sent message", message);
         if (message != false) {
-            // inline response: 
             const kv_data = {
-                task,
-                secret: uuid
+                task
             }
-            context.env.HONEYDEW.put(`inlinereply:${message.message_id}`, JSON.stringify(kv_data));
+            // TODO: wrap this all in a nice API with types and everything!
+            context.env.HONEYDEW.put(`inlinereply:${uuid}`, JSON.stringify(kv_data));
         }
         else {
             console.error("Telegram Update Message", "message is null");
@@ -60,9 +59,9 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     if (isTelegramUpdateCallbackQuery(body)) {
         const message = body;
         context.env.HONEYDEW.put("telegram_callback", JSON.stringify(message));
-        const message_id = message.callback_query.inline_message_id;
-        if (message_id != null) {
-            const value = await context.env.HONEYDEW.get(`inlinereply:${message_id}`)
+        const uuid = message.callback_query.data;
+        if (uuid != null) {
+            const value = await context.env.HONEYDEW.get(`inlinereply:${uuid}`)
             console.error(value);
         }
         else {
