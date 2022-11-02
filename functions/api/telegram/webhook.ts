@@ -34,8 +34,8 @@ export const onRequest: HoneydewPagesFunction = async function onRequestPost(con
                 {
                     text: "Completed Task",
                     callback_data: "complete4",
-                    url: "https://honeydew.matthewc.dev/api/todo/1/complete",
-                    login_url: {url: "https://honeydew.matthewc.dev/api/magic_link/54023423432423"},
+                    //url: "https://honeydew.matthewc.dev/api/todo/1/complete",
+                    //login_url: {url: "https://honeydew.matthewc.dev/api/magic_link/54023423432423"},
                 }
             ]]
         };
