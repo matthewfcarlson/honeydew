@@ -4,11 +4,24 @@ export const ResponseJsonBadRequest = () : Response => {
     }), { status : 400});
 };
 
+export const ResponseJsonMissingData = (param?:string) : Response => {
+  return new Response(JSON.stringify({
+    message: `400 Missing Data\n${param}`
+  }), { status : 400});
+};
+
 export const ResponseJsonNotFound = () : Response => {
     return new Response(JSON.stringify({
       message: "404 Not Found"
     }), { status : 404});
 };
+
+export const ResponseJsonDebugOnly = () : Response => {
+  return new Response(JSON.stringify({
+    message: "404 Not Found in Prod"
+  }), { status : 404});
+};
+
 
 export const ResponseJsonMethodNotAllowed = () : Response => {
     return new Response(JSON.stringify({

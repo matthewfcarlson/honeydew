@@ -153,6 +153,20 @@ export interface TelegramInlineKeyboardMarkup {
     inline_keyboard: TelegramInlineKeyboardButtonRow[];
 }
 
+export interface TelegramWebhookInfo {
+    url: string;
+    has_custom_certificate: boolean;
+    pending_update_count: number;
+    last_error_date?: string;
+    last_error_message?: string;
+}
+function isTelegramWebhookInfo(x: unknown): x is TelegramWebhookInfo {
+    if ((x as TelegramWebhookInfo).url === undefined) return false;
+    if ((x as TelegramWebhookInfo).has_custom_certificate === undefined) return false;
+    if ((x as TelegramWebhookInfo).pending_update_count === undefined) return false;
+    return true;
+}
+
 export default class TelegramAPI {
     private key: string;
 
@@ -258,5 +272,12 @@ export default class TelegramAPI {
         const results = await this.request('deleteWebhook');
         if (results == false) return false;
         return true;
+    }
+
+    public async getWebhookInfo() {
+        const results = await this.request('getWebhookInfo');
+        if (results == false) return false;
+        if (!isTelegramWebhookInfo(results.result)) return false;
+        return results.result;
     }
 }
