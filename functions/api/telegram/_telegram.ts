@@ -265,9 +265,18 @@ export default class TelegramAPI {
         const data = {
             chat_id,
             message_id,
-            reply_markup: [[]]
+            reply_markup: {inline_keyboard: []},
         };
         const results = await this.requestPost('editMessageReplyMarkup', data);
+        if (results == false) return false;
+        return true;
+    }
+    public async deleteMessage(chat_id:number|string, message_id: number) {
+        const data = {
+            chat_id,
+            message_id
+        };
+        const results = await this.requestPost('deleteMessage', data);
         if (results == false) return false;
         return true;
     }
