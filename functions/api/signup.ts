@@ -47,7 +47,7 @@ async function generateNewUserUUID(env) {
     }
   }
 
-export async function onRequestPost(context) {
+export const onRequestPort: HoneydewPagesFunction = async function (context) {
     const {
       request, // same as existing Worker API
       env, // same as existing Worker API
@@ -79,7 +79,7 @@ export async function onRequestPost(context) {
     console.log("user", user, userId, dbId);
 
 
-    const secret = 'SECRET HERE';
+    const secret = env.JWT_SECRET;
     // Creating a token
     const db_data = {household_id:null, name, current_task: null}
     const token = await jwt.sign({

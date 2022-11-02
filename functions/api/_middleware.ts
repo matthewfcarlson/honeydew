@@ -18,13 +18,12 @@ import jwt from '@tsndr/cloudflare-worker-jwt';
   return null
 }
 
-async function isValidJwt(token) {
-  const secret = 'SECRET HERE'
+async function isValidJwt(secret:string, token: string) {
 
   if (token == null) return false;
 
   try {
-    jwt.verify(token, secret, { 'ignoreExpiration': false });
+    jwt.verify(token, secret);
     // Token is good!
     return true;
   } catch (err) {
@@ -40,18 +39,19 @@ function log(content) {
   console.error(content);
 }
 
-async function jwtHandler(context) {
-  let cookieString = context.request.headers.get("Cookie");
+const jwtHandler: HoneydewPagesFunction = async (context) => {
+  const cookieString = context.request.headers.get("Cookie");
+  const secret = context.env.JWT_SECRET;
   const token = (cookieString != null) ? getCookie(cookieString, 'Device-Token') : null;
-  let isValid = await isValidJwt(token)
+  const isValid = await isValidJwt(secret, token)
 
 
   if (!isValid || token == null) {
-    var ip = context.request.headers.get('cf-connecting-ip') || '';
-    var userAgent = context.request.headers.get('User-Agent') || '';
-    var requestMethod = context.request.method || '';
-    var requestUrl = context.request.url || '';
-    var safeToken = token || '';
+    const ip = context.request.headers.get('cf-connecting-ip') || '';
+    const userAgent = context.request.headers.get('User-Agent') || '';
+    const requestMethod = context.request.method || '';
+    const requestUrl = context.request.url || '';
+    const safeToken = token || '';
 
     // Log all JWT failures
     log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]" )
@@ -83,11 +83,11 @@ async function topLevelErrorHandler(context) {
     console.error(thrown.stack);
   }
   finally {
-    let delta = Date.now() - context.data.timestamp;
+    const delta = Date.now() - context.data.timestamp;
     res.headers.set('x-response-timing', delta);
   }
   return res;
 }
 
 
-export const onRequest = [topLevelErrorHandler, jwtHandler]
+export const onRequest: HoneydewPagesFunction[] = [topLevelErrorHandler, jwtHandler]
