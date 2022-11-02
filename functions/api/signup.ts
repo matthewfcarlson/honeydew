@@ -3,6 +3,7 @@ import jwt from '@tsndr/cloudflare-worker-jwt'
 import {readRequestBody, ResponseJsonMissingData} from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
+import { HoneydewPagesFunction } from '../types';
 
 function formatUserDbId(userId) {
     return `user:${userId}`;

@@ -1,4 +1,5 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
+import { HoneydewPagesFunction } from '../types';
 
 /**
  * Takes a cookie string
@@ -38,6 +39,7 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
   const secret = context.env.JWT_SECRET;
   const token = (cookieString != null) ? getCookie(cookieString, 'Device-Token') : null;
   const isValid = await isValidJwt(secret, token)
+  context.data.jwt_raw = token;
 
   if (!isValid || token == null) {
     const ip = context.request.headers.get('cf-connecting-ip') || '';
@@ -51,7 +53,7 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
 
     // Invalid JWT - reject request
     context.data.authorized = false;
-    context.data.jwt_raw = token;
+    
   }
   else {
     const {payload} = jwt.decode(token);

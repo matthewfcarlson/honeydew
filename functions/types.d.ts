@@ -1,3 +1,5 @@
+import { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
+
 type HoneydewPagesFunction<
   Env = {
     TELEGRAM:string; // the telegram API key
@@ -7,5 +9,10 @@ type HoneydewPagesFunction<
     HONEYDEW: KVNamespace;
   },
   Params extends string = any,
-  Data extends Record<string, unknown> = Record<string, unknown>
+  Data = {
+    authorized:boolean;
+    jwt_raw: string;
+    jwt?:JwtPayload;
+
+  }
 > = (context: EventContext<Env, Params, Data>) => Response | Promise<Response>;
