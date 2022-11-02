@@ -38,8 +38,10 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
                 {
                     text: "Completed Task",
                     callback_data: uuid,
-                    //url: "https://honeydew.matthewc.dev/api/todo/1/complete",
-                    //login_url: {url: "https://honeydew.matthewc.dev/api/magic_link/54023423432423"},
+                },
+                {
+                    text: "Ignore",
+                    callback_data: uuid, // todo: create a new UUID to keep track of
                 }
             ]]
         };
