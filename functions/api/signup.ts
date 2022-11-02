@@ -1,6 +1,6 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import {readRequestBody} from "../_utils";
+import {readRequestBody, ResponseJsonMissingData} from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,9 +18,7 @@ async function generateNewUserUUID(env) {
     return userId
 }
 
-
-
-export const onRequestPort: HoneydewPagesFunction = async function (context) {
+export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const {
       request, // same as existing Worker API
       env, // same as existing Worker API
@@ -35,7 +33,7 @@ export const onRequestPort: HoneydewPagesFunction = async function (context) {
     console.log(body["name"]);
 
     if (body == null || body["name"] == undefined) {
-        return new Response('{"msg": "Missing Signup Data"}', { status: 400 })
+        return ResponseJsonMissingData("Name");
     }
 
     const name = body['name'];
@@ -64,7 +62,8 @@ export const onRequestPort: HoneydewPagesFunction = async function (context) {
     const info = JSON.stringify({msg:"Created New Account", user:db_data}, null, 2);
     const newCookie = `Device-Token=${token}; HttpOnly; SameSite=Strict`
     const response = new Response(info, {
-    headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
+        status:200,
     })
     response.headers.set("Set-Cookie", newCookie)
 

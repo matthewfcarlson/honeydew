@@ -72,6 +72,20 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
 async function topLevelErrorHandler(context) {
   let res = null;
   try {
+    // register the console handler
+    const _log = console.log;
+    const _error = console.error;
+    console.error = (err) =>{
+      const key = `err:${Date.now().toString()}`;
+      context.env.HONEYDEW.put(key, JSON.stringify(err));
+      _error("ERR", err);
+    }
+    console.log = (err) =>{
+      const key = `log:${Date.now().toString()}`;
+      context.env.HONEYDEW.put(key, JSON.stringify(err));
+      _log("LOG", err);
+    }
+    // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
     res = await context.next();
   }

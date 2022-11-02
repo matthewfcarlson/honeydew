@@ -22,7 +22,6 @@ export const ResponseJsonDebugOnly = () : Response => {
   }), { status : 404});
 };
 
-
 export const ResponseJsonMethodNotAllowed = () : Response => {
     return new Response(JSON.stringify({
       message: "405 Method Not Allowed"

@@ -204,9 +204,12 @@ export default class TelegramAPI {
                 'content-type': 'text/html;charset=UTF-8',
             },
         };
-        const response = await fetch(url, init);
-        if (response.status != 200) return false;
+        const response = await fetch(url, init); 
         const results = await this.gatherResponse(response);
+        if (response.status != 200) {
+            console.error(response, results);
+            return false;
+        }
         if (!isTelegramAPIResponse(results)) return false;
         return results;
     }

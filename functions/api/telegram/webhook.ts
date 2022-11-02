@@ -1,7 +1,7 @@
 import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonBadRequest, ResponseJsonMissingData } from "../../_utils";
 import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
 
-export const onRequest: HoneydewPagesFunction = async function onRequestPost(context) {
+export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const ta = new TelegramAPI(context.env.TELEGRAM);
     const body = await readRequestBody(context.request);
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
