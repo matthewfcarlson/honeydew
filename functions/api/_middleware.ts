@@ -1,5 +1,7 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
 import { HoneydewPagesFunction } from '../types';
+import Database from '../_db';
+import TelegramAPI from './telegram/_telegram';
 
 /**
  * Takes a cookie string
@@ -40,8 +42,16 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
   const token = (cookieString != null) ? getCookie(cookieString, 'Device-Token') : null;
   const isValid = await isValidJwt(secret, token)
   context.data.jwt_raw = token;
+  context.data.authorized = false;
+  context.data.userid = null;
 
-  if (!isValid || token == null) {
+  if (isValid) {
+    const { payload } = jwt.decode(token);
+    context.data.jwt = payload;
+    context.data.authorized = true;
+    context.data.userid = payload.id || null;
+  }
+  else if (token != null && token != ''){
     const ip = context.request.headers.get('cf-connecting-ip') || '';
     const userAgent = context.request.headers.get('User-Agent') || '';
     const requestMethod = context.request.method || '';
@@ -52,13 +62,6 @@ const jwtHandler: HoneydewPagesFunction = async (context) => {
     console.log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]")
 
     // Invalid JWT - reject request
-    context.data.authorized = false;
-
-  }
-  else {
-    const { payload } = jwt.decode(token);
-    context.data.jwt = payload;
-    context.data.authorized = true;
   }
 
   return await context.next();
@@ -78,6 +81,8 @@ async function topLevelHandler(context) {
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
     // Put the KV ORM layer into context data
+    context.data.db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM));
+    // pass to the next handler
     res = await context.next();
   }
   catch (thrown) {

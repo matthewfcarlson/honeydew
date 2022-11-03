@@ -1,31 +1,40 @@
-export const ResponseJsonBadRequest = () : Response => {
-    return new Response(JSON.stringify({
-      message: "400 Bad Request"
-    }), { status : 400});
+import { UUID } from "./_db";
+
+export const ResponseJsonBadRequest = (): Response => {
+  return new Response(JSON.stringify({
+    message: "400 Bad Request"
+  }), { status: 400 });
 };
 
-export const ResponseJsonMissingData = (param?:string) : Response => {
+export const ResponseJsonMissingData = (param?: string): Response => {
   return new Response(JSON.stringify({
     message: `400 Missing Data\n${param}`
-  }), { status : 400});
+  }), { status: 400 });
 };
 
-export const ResponseJsonNotFound = () : Response => {
-    return new Response(JSON.stringify({
-      message: "404 Not Found"
-    }), { status : 404});
+export const ResponseJsonNotFound = (): Response => {
+  return new Response(JSON.stringify({
+    message: "404 Not Found"
+  }), { status: 404 });
 };
 
-export const ResponseJsonDebugOnly = () : Response => {
+export const ResponseJsonAccessDenied = (): Response => {
+  return new Response(JSON.stringify({
+    message: "403 Access Denied"
+  }), { status: 403 });
+};
+
+export const ResponseJsonDebugOnly = (): Response => {
   return new Response(JSON.stringify({
     message: "404 Not Found in Prod"
-  }), { status : 404});
+  }), { status: 404 });
 };
 
-export const ResponseJsonMethodNotAllowed = () : Response => {
-    return new Response(JSON.stringify({
-      message: "405 Method Not Allowed"
-    }), { status : 405});
+
+export const ResponseJsonMethodNotAllowed = (): Response => {
+  return new Response(JSON.stringify({
+    message: "405 Method Not Allowed"
+  }), { status: 405 });
 };
 
 /**
@@ -55,4 +64,22 @@ export async function readRequestBody(request) {
     // like an image, or some other binary data.
     return null;
   }
+}
+
+export function setCookie(response, key: string, value: string) {
+  const newCookie = `${key}=${value}; HttpOnly; SameSite=Strict`
+  response.headers.set("Set-Cookie", newCookie);
+}
+export function deleteCookie(response, key: string) {
+  const newCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  response.headers.set("Set-Cookie", newCookie);
+}
+const testChars = str => /^[a-f-0-9]+$/.test(str);
+export function ConvertToUUID(x:any): UUID {
+  if (typeof x === 'string' || x instanceof String) {
+    x = x.substring(0,72).toLowerCase(); // make sure it's only 72 chars long
+    if (testChars(x) == false) return '';
+    return x;
+  }
+  return '';
 }

@@ -1,4 +1,5 @@
 import { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
+import Database, { HOUSEID, USERID } from "./_db";
 
 type HoneydewPagesFunction<
   Env = {
@@ -10,9 +11,10 @@ type HoneydewPagesFunction<
   },
   Params extends string = any,
   Data = {
+    db:Database;
     authorized:boolean;
     jwt_raw: string;
     jwt?:JwtPayload;
-
+    userid:USERID|null;
   }
 > = (context: EventContext<Env, Params, Data>) => Response | Promise<Response>;

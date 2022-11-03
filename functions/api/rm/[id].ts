@@ -10,7 +10,6 @@ export async function onRequestGet(context) {
   if (data.authorized == undefined || context.data.authorized == false) {
     return new Response('{"msg": "Invalid Token"}', { status: 403 })
   }
-  console.log(context.data.jwt);
 
   const id = Number(params.id);
   const names = ["Rick", "morty", "Beth", "Jerry", "Summer", "Snowball"]

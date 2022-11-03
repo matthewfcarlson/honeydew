@@ -1,9 +1,10 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import {readRequestBody, ResponseJsonMissingData} from "../_utils";
+import {ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, setCookie} from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from '../types';
+import { DbHousehold } from '../_db';
 
 function formatUserDbId(userId) {
     return `user:${userId}`;
@@ -30,45 +31,55 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     } = context;
 
     const body = await readRequestBody(request);
-    console.log(body);
-    console.log(body["name"]);
 
     if (body == null || body["name"] == undefined) {
         return ResponseJsonMissingData("Name");
     }
-
+    
     const name = body['name'];
+    
+    const household = ConvertToUUID(body['household']) || '';
+    const housekey = ConvertToUUID(body['housekey']) || '';
 
     if (data.authorized != undefined && context.data.authorized == true) {
+        console.log("Already logged in, don't sign them in again");
         return new Response('{"msg": "Already logged in"}', { status: 401 })
     }
 
-    const userId = await generateNewUserUUID(env)
-    const dbId = formatUserDbId(userId);
-    const user = await env.HONEYDEW.get(dbId)
-    console.log("user", user, userId, dbId);
+    const db = data.db;
+    const user = await db.UserCreate(name, "bob");
 
+    // Check if household exists
+    let house: null|DbHousehold = null;
+    if (household != '' && housekey != '') {
+        house = await db.HouseholdGet(household);
+        console.log("HOUSE UNLOCK", house);
+        if (house == null) return ResponseJsonMissingData("Bad houseid");
+        if (house.housekey != housekey) return ResponseJsonMissingData("Bad Housekey");
+        await db.UserSetHousehold(user.id, house.id, user, house);
+    }
 
     const secret = env.JWT_SECRET;
     // Creating a token
-    const db_data = {household_id:null, name, current_task: null}
     const token = await jwt.sign({
-        id: userId,
-        ...db_data,
+        id: user.id,
+        first_name: user.firstname,
+        last_name: user.lastname,
         exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)) // Expires: Now + 12h
     }, secret);
 
-    const db_data_str = JSON.stringify(db_data)
+    if (house == null) {
+        house = await db.HouseholdCreate(`${user.firstname}'s House`, user.id);
+    }
 
-    const info = JSON.stringify({msg:"Created New Account", user:db_data}, null, 2);
-    const newCookie = `Device-Token=${token}; HttpOnly; SameSite=Strict`
+    const household_id = (house != null) ? house.id : null;
+
+    const info = JSON.stringify({msg:"Signed up", user:user.id, household:household_id}, null, 2);
     const response = new Response(info, {
         headers: { "Content-Type": "application/json" },
         status:200,
     })
-    response.headers.set("Set-Cookie", newCookie)
-
-    await env.HONEYDEW.put(dbId, db_data_str)
+    setCookie(response, "Device-Token", token);
 
     return response;
 }

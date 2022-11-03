@@ -14,6 +14,7 @@
     <button @click="count--">-</button>
     <button @click="count++">+</button>
     {{ rick }}
+    <pre>{{jwt}}</pre>
     <hr />
     <img alt="Vue logo" src="../assets/logo.png" />
     <HelloWorld msg="Welcome to Your Vue.js App" />
@@ -26,7 +27,6 @@ import axios from "axios";
 import { defineComponent } from 'vue';
 import HelloWorld from '@/components/HelloWorld.vue'; // @ is an alias to /src
 
-
 export default defineComponent({
   name: 'HomeView',
   components: {
@@ -37,6 +37,7 @@ export default defineComponent({
       name: "Matthew",
       rick: "Loading",
       count:0,
+      jwt:""
     }
 
   },
@@ -50,13 +51,17 @@ export default defineComponent({
     },
     signup: async function () {
       const data = {
-        name: this.name
+        name: this.name,
+        household:"b86eab0a-e4c0-4d1f-9b56-d2cb5cfd9649",
+        housekey:"8ed3f853-2b5d-48d6-9305-a81accbad87f",
       }
       await axios.post("/api/signup", data);
       await this.refresh();
     },
     refresh: async function () {
       try{
+        const me = await axios.get("/api/me");
+        this.jwt = JSON.stringify(me.data);
         const { data } = await axios.get("/api/rm/"+this.count);
         
         if (data != null && data['name'] != undefined) {
