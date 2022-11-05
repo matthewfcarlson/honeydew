@@ -1,4 +1,5 @@
 import TelegramAPI from "./api/telegram/_telegram";
+import { z } from "zod";
 
 enum RecipeType {
     PASTA,
@@ -13,16 +14,27 @@ export type USERID = UUID;
 export type RECIPEID = UUID;
 export type HOUSEID = UUID;
 
-// stored at R:{RECIPEID}
-export interface DbRecipe {
-    id: RECIPEID; // uuid
-    url: string;
-    picture_url: string | null;
-    ingredients: string[];
-    last_made: number; // timestamp
-    category: RecipeType;
-    household: HOUSEID; // the household this belongs to
-}
+const DbRecipeZ = z.object({
+    id: z.string().uuid(),
+    url: z.string().min(5),
+    picture_url: z.string().min(5).or(z.null()),
+    ingredients: z.set(z.string()),
+    last_made: z.number().positive(),
+    category: z.nativeEnum(RecipeType),
+    household: z.string().uuid(),
+});
+export type DbRecipe = z.infer<typeof DbRecipeZ>;
+
+// // stored at R:{RECIPEID}
+// export interface DbRecipe {
+//     id: RECIPEID; // uuid
+//     url: string;
+//     picture_url: string | null;
+//     ingredients: string[];
+//     last_made: number; // timestamp
+//     category: RecipeType;
+//     household: HOUSEID; // the household this belongs to
+// }
 const DbRecipeKey = (id: RECIPEID) => `R:${id}`;
 
 // stored at H>R:{HOUSEID}:{RECIPEID}
@@ -58,14 +70,26 @@ export interface DbHousehold {
     id: HOUSEID;
     name: string;
     members: USERID[];
-    housekey: string;
 }
 const DbHouseholdKey = (id: HOUSEID) => `H:${id}`;
 function isDbHousehold(x: unknown): x is DbHousehold {
     const y = (x as DbHousehold);
     if (y.members === undefined) return false;
     if (y.name === undefined) return false;
-    if (y.housekey === undefined) return false;
+    if (y.id === undefined) return false;
+    return true;
+}
+
+export interface DbHouseKey {
+    id: UUID;
+    house: HOUSEID;
+    generated_by:USERID;
+}
+const DbHouseKeyKey = (id: UUID) => `HK:${id}`;
+function isDbHouseKey(x: unknown): x is DbHouseKey {
+    const y = (x as DbHouseKey);
+    if (y.house === undefined) return false;
+    if (y.generated_by === undefined) return false;
     if (y.id === undefined) return false;
     return true;
 }
@@ -105,8 +129,8 @@ export default class Database {
         return results;
     }
 
-    private async setDBJson(x:DbUser|DbHousehold) {
-        const key = (isDbUser(x)) ? DbUserKey(x.id) : isDbHousehold(x) ? DbHouseholdKey(x.id) : null;
+    private async setDBJson(x:DbUser|DbHousehold|DbHouseKey, expirationTtl = 0) {
+        const key = (isDbUser(x)) ? DbUserKey(x.id) : isDbHousehold(x) ? DbHouseholdKey(x.id) : isDbHouseKey(x) ? DbHouseKeyKey(x.id) : null;
         // TODO: remove this once prototyping is done
         await this._kv.put(key, JSON.stringify(x),{expirationTtl: 60*60*6}); // all keys created expire in 6 hours
     }
@@ -187,12 +211,37 @@ export default class Database {
         const house: DbHousehold = {
             id,
             name,
-            members: [creator],
-            housekey: uuidv4()
+            members: [creator]
         }
         await this.setDBJson(house);
         await this.UserSetHousehold(creator, id, null, house);
         return house;
+    }
+
+    async HouseKeyExists(id:UUID) {
+        const key = DbHouseKeyKey(id);
+        const existing = await this.queryDBRaw(key);
+        if (existing != null) return true;
+        return false;
+    }
+
+    async HouseKeyCreate(house:HOUSEID, creator:USERID) {
+        const id = uuidv4();
+        if (await this.HouseKeyExists(id)) return "error";
+        const housekey: DbHouseKey = {
+            id,
+            house,
+            generated_by:creator
+        }
+        await this.setDBJson(housekey);
+        return housekey;
+    }
+
+    async HouseKeyGet(id:HOUSEID) {
+        const key = DbHouseKeyKey(id);
+        const results = await this.queryDBJson(key);
+        if (results == null || !isDbHouseKey(results)) return null;
+        return results;
     }
 
 }

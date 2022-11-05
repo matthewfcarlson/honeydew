@@ -30,6 +30,14 @@ export const ResponseJsonDebugOnly = (): Response => {
   }), { status: 404 });
 };
 
+export const ResponseRedirect = (request:Request, url:string, status:number=307): Response => {
+  const request_url = new URL(request.url);
+  const base_url= request_url.origin;
+  const redirect_url = base_url+url;
+  console.log("redirect_url", redirect_url)
+  return Response.redirect(redirect_url, status);
+}
+
 
 export const ResponseJsonMethodNotAllowed = (): Response => {
   return new Response(JSON.stringify({
@@ -82,4 +90,44 @@ export function ConvertToUUID(x:any): UUID {
     return x;
   }
   return '';
+}
+
+export function ArrayBufferToHexString(buffer:ArrayBufferLike) {
+  return [...new Uint8Array(buffer)]
+  .map(x => x.toString(16).padStart(2, '0'))
+  .join('');
+}
+
+/**
+ * Convert a hex string to an ArrayBuffer.
+ *
+ * @param {string} hexString - hex representation of bytes
+ * @return {ArrayBuffer} - The bytes in an ArrayBuffer.
+ */
+export function hexStringToArrayBuffer(hexString) {
+  // remove the leading 0x
+  hexString = hexString.replace(/^0x/, '');
+
+  // ensure even number of characters
+  if (hexString.length % 2 != 0) {
+      console.log('WARNING: expecting an even number of characters in the hexString');
+  }
+
+  // check for some non-hex characters
+  const bad = hexString.match(/[G-Z\s]/i);
+  if (bad) {
+      console.log('WARNING: found non-hex characters', bad);
+  }
+
+  // split the string into pairs of octets
+  const pairs = hexString.match(/[\dA-F]{2}/gi);
+
+  // convert the octets to integers
+  const integers = pairs.map(function(s) {
+      return parseInt(s, 16);
+  });
+
+  const array = new Uint8Array(integers);
+
+  return array.buffer;
 }
