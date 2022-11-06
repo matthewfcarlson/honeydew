@@ -1,33 +1,51 @@
 import { UUID } from "./_db";
 
-export const ResponseJsonBadRequest = (): Response => {
+export const ResponseJsonBadRequest = (message?:string): Response => {
+  const status = 400;
   return new Response(JSON.stringify({
-    message: "400 Bad Request"
-  }), { status: 400 });
+    status,
+    message: message || "Bad Request"
+  }), { status });
 };
 
 export const ResponseJsonMissingData = (param?: string): Response => {
+  const status = 400;
   return new Response(JSON.stringify({
-    message: `400 Missing Data\n${param}`
-  }), { status: 400 });
+    status,
+    message: `Missing Data: ${param}`
+  }), { status });
 };
 
 export const ResponseJsonNotFound = (): Response => {
+  const status = 400;
   return new Response(JSON.stringify({
-    message: "404 Not Found"
-  }), { status: 404 });
+    message: "Not Found"
+  }), { status });
 };
 
 export const ResponseJsonAccessDenied = (): Response => {
+  const status = 403;
   return new Response(JSON.stringify({
-    message: "403 Access Denied"
-  }), { status: 403 });
+    status,
+    message: "Access Denied"
+  }), { status });
 };
 
 export const ResponseJsonDebugOnly = (): Response => {
+  const status = 404;
   return new Response(JSON.stringify({
-    message: "404 Not Found in Prod"
-  }), { status: 404 });
+    status,
+    message: "Not Found in Prod"
+  }), { status });
+};
+
+export const ResponseJsonNotImplementedYet = (): Response => {
+  const fn_name = new Error().stack.split("\n")[1].trim();
+  const status = 500;
+  return new Response(JSON.stringify({
+    status,
+    message: `Not Implemented Yet ${fn_name}`
+  }), { status });
 };
 
 export const ResponseRedirect = (request:Request, url:string, status:number=307): Response => {

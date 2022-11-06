@@ -1,6 +1,6 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import {ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, setCookie} from "../_utils";
+import {ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie} from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from '../types';
@@ -37,25 +37,33 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
     
     const name = body['name'];
+
+    if (name.length < 2) {
+        return ResponseJsonMissingData("name");
+    }
     
     const household = ConvertToUUID(body['household']) || '';
     const housekey = ConvertToUUID(body['housekey']) || '';
 
     if (data.authorized != undefined && context.data.authorized == true) {
         console.log("Already logged in, don't sign them in again");
-        return new Response('{"msg": "Already logged in"}', { status: 401 })
+        return ResponseJsonBadRequest("Already logged in")
     }
 
     const db = data.db;
     const user = await db.UserCreate(name, "bob");
 
+    
+    
     // Check if household exists
     let house: null|DbHousehold = null;
     if (household != '' && housekey != '') {
         house = await db.HouseholdGet(household);
         console.log("HOUSE UNLOCK", house);
+        // TODO: revamp this for new approach using housekey with hash
+        return ResponseJsonNotImplementedYet();
         if (house == null) return ResponseJsonMissingData("Bad houseid");
-        if (house.housekey != housekey) return ResponseJsonMissingData("Bad Housekey");
+        //if (house.housekey != housekey) return ResponseJsonMissingData("Bad Housekey");
         await db.UserSetHousehold(user.id, house.id, user, house);
     }
 
