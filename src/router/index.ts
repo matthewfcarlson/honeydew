@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import IndexView from '../views/IndexView.vue';
-import LoginView from '../views/LoginView.vue'
+import SignoutView from '../views/SignoutView.vue'
 import SignupView from '../views/SignupView.vue'
 import NotFoundView from '../views/404View.vue'
 
@@ -19,9 +19,9 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
   {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
+    path: '/signout',
+    name: 'signout',
+    component: SignoutView,
   },
   {
     path: '/signup',

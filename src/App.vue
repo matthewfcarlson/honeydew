@@ -50,68 +50,66 @@ nav a.router-link-exact-active {
 // Sailwind (Tailwind in SASS)
 $sailwind_sizes: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18,
   20,24, 32, 40, 42, 50, 56;
-
-@each $size in $sailwind_sizes {
-  .m-#{$size} {
-    margin: #{$size}rem;
+$sides: 'top', 'right', 'bottom', 'left';
+@each $space in $sailwind_sizes {
+  .m-#{$space} {
+    margin: #{$space/4}rem;
   }
 
-  .mx-#{$size} {
-    margin-left: #{$size}rem;
-    margin-right: #{$size}rem;
+  .mx-#{$space} {
+    margin-left: #{$space/4}rem;
+    margin-right: #{$space/4}rem;
   }
 
-  .my-#{$size} {
-    margin-top: #{$size}rem;
-    margin-bottom: #{$size}rem;
+  .my-#{$space} {
+    margin-top: #{$space/4}rem;
+    margin-bottom: #{$space/4}rem;
   }
 
-  .mt-#{$size} {
-    margin-top: #{$size}rem;
+  .px-#{$space} {
+    padding-left: #{$space/4}rem;
+    padding-right: #{$space/4}rem;
   }
 
-  .mr-#{$size} {
-    margin-right: #{$size}rem;
+  .py-#{$space} {
+    padding-top: #{$space/4}rem;
+    padding-bottom: #{$space/4}rem;
   }
 
-  .mb-#{$size} {
-    margin-bottom: #{$size}rem;
+  .p-#{$space} {
+    padding: #{$space/4}rem;
   }
 
-  .ml-#{$size} {
-    margin-left: #{$size}rem;
-  }
+  @each $side in $sides {
+    .m#{str-slice($side, 0, 1)}-#{$space} {
+      margin-#{$side}: #{$space/4}rem;
+    }
 
-  .p-#{$size} {
-    padding: #{$size}rem;
+    .p#{str-slice($side, 0, 1)}-#{$space} {
+      padding-#{$side}: #{$space/4}rem;
+    }
   }
+}
 
-  .px-#{$size} {
-    padding-left: #{$size}rem;
-    padding-right: #{$size}rem;
+$sailwind_colors: (
+  'gray-100' #f7fafc,
+  'gray-200' #edf2f7,
+  'gray-300' #e2e8f0,
+  'gray-400' #cbd5e0,
+  'gray-500' #a0aec0,
+  'gray-600' #718096,
+  'gray-700' #4a5568,
+  'gray-800' #2d3748,
+  'gray-900' #1a202c
+);
+
+@each $name, $hex in $sailwind_colors {
+  .text-#{$name} {
+    color: $hex;
   }
-
-  .py-#{$size} {
-    padding-top: #{$size}rem;
-    padding-bottom: #{$size}rem;
+  .bg-#{$name} {
+    background-color: $hex;
   }
-
-  .pt-#{$size} {
-    padding-top: #{$size}rem;
-  }
-
-  .pr-#{$size} {
-    padding-right: #{$size}rem;
-  }
-
-  .pb-#{$size} {
-    padding-bottom: #{$size}rem;
-  }
-
-  .pl-#{$size} {
-    padding-left: #{$size}rem;
-  }
-
 }
 
 // // Set your brand colors

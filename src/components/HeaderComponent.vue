@@ -15,49 +15,56 @@
 
         <div id="navbarBasicExample" class="navbar-menu">
             <div class="navbar-start">
-                <a class="navbar-item">
-                    Home
-                </a>
 
-                <a class="navbar-item">
-                    Documentation
-                </a>
+                <router-link to="meals" class="navbar-item" >
+                    Meals
+                </router-link>
 
-                <div class="navbar-item has-dropdown is-hoverable">
-                    <a class="navbar-link">
-                        More
-                    </a>
+                <router-link to="chores" class="navbar-item" >
+                    Chores
+                </router-link>
 
-                    <div class="navbar-dropdown">
-                        <a class="navbar-item">
-                            About
-                        </a>
-                        <a class="navbar-item">
-                            Jobs
-                        </a>
-                        <a class="navbar-item">
-                            Contact
-                        </a>
-                        <hr class="navbar-divider">
-                        <a class="navbar-item">
-                            Report an issue
-                        </a>
-                    </div>
-                </div>
+                <router-link to="projects" class="navbar-item" >
+                    Projects
+                </router-link>
+
             </div>
 
             <div class="navbar-end">
                 <div class="navbar-item">
                     <div class="buttons">
-                        <a class="button is-primary">
+                        <router-link to="signup" class="button is-primary" v-if="!isLoggedIn">
                             <strong>Sign up</strong>
-                        </a>
-                        <a class="button is-light">
-                            Log in
-                        </a>
+                        </router-link>
+                        <router-link to="signout" class="button is-warning" v-else>
+                            <strong>Logout</strong>
+                        </router-link>
                     </div>
                 </div>
             </div>
         </div>
     </nav>
 </template>
+
+<script lang="ts">
+
+import { useUserStore } from "@/store";
+import { mapState } from "pinia";
+import { defineComponent } from 'vue';
+
+export default defineComponent({
+  name: 'HeaderComponent',
+  data() {
+    return {
+    }
+
+  },
+  computed: {
+    ...mapState(useUserStore, ["isLoggedIn"])
+  },
+  methods: {
+  }
+
+});
+
+</script>

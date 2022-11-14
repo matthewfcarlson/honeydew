@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <section class="section is-large">
+    <section class="section">
       <p class="title">Signup</p>
       <p class="subtitle">Create a new account</p>
     </section>
@@ -17,15 +17,17 @@
                 </span>
               </div>
               <div class="control">
-                <a :disabled="thinking" @click="press_signup" class="button is-primary">
-                  Search
+                <a disabled v-if="thinking" class="button is-primary">
+                  Thinking
+                </a>
+                <a v-else @click="press_signup" class="button is-primary">
+                  Create
                 </a>
               </div>
             </div>
           </div>
           <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
         </div>
-
         <div v-if="invite_data.length == 0">
           <p>We'll create a new household for you that can invite as many people as you'd like.</p>
         </div>
