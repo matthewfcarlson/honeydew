@@ -2,20 +2,6 @@ import { HoneydewPagesFunction } from "../types";
 import { HOUSEID, USERID } from "../_db";
 import { ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
 
-export interface ApiHousehold {
-    name:string;
-    id:HOUSEID;
-    members:{userid:USERID, firstname:string, lastname:string}[];
-}
-
-export interface ApiUser {
-    first_name:string;
-    last_name:string;
-    id:USERID;
-    household:ApiHousehold|null;
-    task:any;
-}
-
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const url = new URL(context.request.url)
     const jsonp = url.searchParams.has("json")
@@ -36,8 +22,6 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         name: household.name,
         members: await (await Promise.all(household.members.map(x=>db.GetUser(x)))).map(x=>{return {userid:x.id, firstname:x.firstname, lastname:x.lastname}}),
     };
-   
-    console.log("jsonp",jsonp, url.searchParams);
    // console.log("User/Household: ", user, household);
     const results:ApiUser = {
         first_name: user.firstname,

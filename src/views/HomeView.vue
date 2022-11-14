@@ -1,11 +1,6 @@
 <template>
   <div class="home">
-    <nav>
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link> |
-      <router-link to="/signup">Signup</router-link> |
-      <router-link to="/login">Login</router-link>
-    </nav>
+    
     <button @click="signout">Signout</button>
     <button @click="refresh">Refresh {{count}}</button>
     <button @click="count--">-</button>
@@ -26,6 +21,7 @@
 import axios from "axios";
 import { defineComponent } from 'vue';
 import HelloWorld from '@/components/HelloWorld.vue'; // @ is an alias to /src
+import { useUserStore } from "@/store";
 
 export default defineComponent({
   name: 'HomeView',
@@ -39,6 +35,7 @@ export default defineComponent({
       count:0,
       jwt:"",
       invite_link: "",
+      error:"",
     }
 
   },
@@ -47,9 +44,11 @@ export default defineComponent({
   },
   methods: {
     signout: async function () {
-      await axios.get("/api/logout");
-      await this.refresh();
-      this.invite_link = "";
+      const store = useUserStore()
+      const result = await store.signOut();
+      if (result.status == 'error') {
+        this.error = result.message;
+      }
     },
     get_invite: async function () {
       const invite = await axios.get("/api/household/invite");

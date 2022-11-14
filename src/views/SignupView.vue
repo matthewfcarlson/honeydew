@@ -1,29 +1,52 @@
 <template>
-  <div class="signup">
-    <h1>This is an signup page</h1>
-    <div v-if="signed_up == false">
-      <input :disabled="thinking" type="text" v-model="name" placeholder="Your name" />
-      <button :disabled="thinking" @click="signup">signup as {{ name }}</button>
-      <div class="text-red" v-if="error.length != 0">{{error}}</div>
-      <div v-if="invite_data.length == 0">
-        <p>We'll create a new household for you that can invite as many people as you'd like.</p>
+  <div class="container">
+    <section class="section is-large">
+      <p class="title">Signup</p>
+      <p class="subtitle">Create a new account</p>
+    </section>
+    <section class="hero">
+      <div v-if="isLoggedIn == false">
+        <div class="field m-1">
+          <label class="label">Your Name</label>
+          <div class="field-body">
+            <div class="field has-addons">
+              <div class="control has-icons-left is-expanded">
+                <input :disabled="thinking" type="text" v-model="name" placeholder="Your name" class="input" />
+                <span class="icon is-small is-left">
+                  <i class="fa-regular fa-user"></i>
+                </span>
+              </div>
+              <div class="control">
+                <a :disabled="thinking" @click="press_signup" class="button is-primary">
+                  Search
+                </a>
+              </div>
+            </div>
+          </div>
+          <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
+        </div>
+
+        <div v-if="invite_data.length == 0">
+          <p>We'll create a new household for you that can invite as many people as you'd like.</p>
+        </div>
+        <div v-else>
+          <p><b>You'll be joining an existing household since you are coming from an invite link</b></p>
+        </div>
+        <p>Already have an account? Go to a device you're signed in on and generate a magic key.</p>
       </div>
       <div v-else>
-        <p><b>You'll be joining an existing household since you are coming from an invite link</b></p>
+        Welcome to Honeydew!
+        You're already signed in!
+        <a href="/">Go Home</a>
       </div>
-      <p>Already have an account? Go to a device you're signed in on and generate a magic key.</p>
-    </div>
-    <div v-else>
-      Welcome to Honeydew!
-    </div>
-    <router-link to="/">Home</router-link>
-    <a href="/api/logout">Signout</a>
+    </section>
   </div>
 </template>
 
 <script lang="ts">
 
-import axios from "axios";
+import { useUserStore } from "@/store";
+import { mapActions, mapState } from "pinia";
 import { defineComponent } from 'vue';
 
 export default defineComponent({
@@ -34,25 +57,21 @@ export default defineComponent({
       error: "",
       invite_data: new URLSearchParams(window.location.search).get('k') || '',
       thinking: false,
-      signed_up:((window as any).logged_in||false),
     }
 
   },
+  computed: {
+    ...mapState(useUserStore, ["isLoggedIn"])
+  },
   methods: {
-    signup: async function () {
-      try {
-        this.thinking = true;
-        const data = {
-          name: this.name,
-          //household:"b86eab0a-e4c0-4d1f-9b56-d2cb5cfd9649",
-          //housekey:"8ed3f853-2b5d-48d6-9305-a81accbad87f",
-        }
-        await axios.post("/api/signup", data);
-        this.signed_up = true;
-      }
-      catch(err) {
-        console.error(err.response.data);
-        this.error = err.response.data.message || "Unknown error occurerd";
+    ...mapActions(useUserStore, ["signUp"]),
+    press_signup: async function () {
+      this.thinking = true;
+      this.error = "";
+      const result = await this.signUp(this.name, this.invite_data);
+      console.log(result);
+      if (result.status == "error") {
+        this.error = result.message;
       }
       this.thinking = false;
     },

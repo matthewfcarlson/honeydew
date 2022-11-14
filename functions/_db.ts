@@ -50,8 +50,8 @@ export interface DbUser {
     firstname: string;
     lastname:string;
     household: HOUSEID;
-    passkey: string;
-    chat_id: string | null;
+    _recoverykey:string; // a magic key to recovery your account
+    _chat_id: string | null;
 }
 const DbUserKey = (id: USERID) => `U:${id}`;
 function isDbUser(x: unknown): x is DbUser {
@@ -59,8 +59,8 @@ function isDbUser(x: unknown): x is DbUser {
     if (y.household === undefined) return false;
     if (y.firstname === undefined) return false;
     if (y.lastname === undefined) return false;
-    if (y.passkey === undefined) return false;
-    if (y.chat_id === undefined) return false;
+    if (y._recoverykey === undefined) return false;
+    if (y._chat_id === undefined) return false;
     if (y.id === undefined) return false;
     return true;
 }
@@ -151,14 +151,15 @@ export default class Database {
 
     async UserCreate(firstname: string, lastname:string) {
         const id = uuidv4();
+        const recovery_key = uuidv4();
         if (await this.UserExists(id)) return null;
         const user: DbUser = {
             firstname,
             lastname,
             id,
             household: null,
-            passkey: null,
-            chat_id: null
+            _recoverykey: recovery_key,
+            _chat_id: null
         }
         await this.setDBJson(user);
         return user;
