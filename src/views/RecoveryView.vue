@@ -59,7 +59,7 @@
         error: "",
         invite_data: new URLSearchParams(window.location.search).get('k') || '',
         thinking: false,
-        recovery_code: 
+        recovery_code: "",
       }
   
     },
