@@ -2,7 +2,7 @@
     <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
             <a class="navbar-item" href="/">
-                <img src="https://bulma.io/images/bulma-logo.png" width="112" height="28">
+                <img src="/text_logo.png" width="112" height="28">
             </a>
 
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
@@ -15,17 +15,22 @@
 
         <div id="navbarBasicExample" class="navbar-menu">
             <div class="navbar-start">
+                <template v-if="isLoggedIn">
 
-                <router-link to="meals" class="navbar-item" >
-                    Meals
-                </router-link>
+                    <router-link to="meals" class="navbar-item">
+                        Meals
+                    </router-link>
 
-                <router-link to="chores" class="navbar-item" >
-                    Chores
-                </router-link>
+                    <router-link to="chores" class="navbar-item">
+                        Chores
+                    </router-link>
 
-                <router-link to="projects" class="navbar-item" >
-                    Projects
+                    <router-link to="projects" class="navbar-item">
+                        Projects
+                    </router-link>
+                </template>
+                <router-link to="about" class="navbar-item">
+                    About
                 </router-link>
 
             </div>
@@ -53,17 +58,17 @@ import { mapState } from "pinia";
 import { defineComponent } from 'vue';
 
 export default defineComponent({
-  name: 'HeaderComponent',
-  data() {
-    return {
-    }
+    name: 'HeaderComponent',
+    data() {
+        return {
+        }
 
-  },
-  computed: {
-    ...mapState(useUserStore, ["isLoggedIn"])
-  },
-  methods: {
-  }
+    },
+    computed: {
+        ...mapState(useUserStore, ["isLoggedIn"])
+    },
+    methods: {
+    }
 
 });
 

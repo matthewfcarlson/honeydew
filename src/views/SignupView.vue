@@ -5,7 +5,8 @@
       <p class="subtitle">Create a new account</p>
     </section>
     <section class="hero">
-      <div v-if="isLoggedIn == false">
+      <div v-if="recovery_code">Recovery code: {{recovery_code}}</div>
+      <div v-else-if="isLoggedIn == false">
         <div class="field m-1">
           <label class="label">Your Name</label>
           <div class="field-body">
@@ -59,6 +60,7 @@ export default defineComponent({
       error: "",
       invite_data: new URLSearchParams(window.location.search).get('k') || '',
       thinking: false,
+      recovery_code: "",
     }
 
   },
@@ -74,6 +76,9 @@ export default defineComponent({
       console.log(result);
       if (result.status == "error") {
         this.error = result.message;
+      }
+      else {
+        this.recovery_code = result.data.recovery_key;
       }
       this.thinking = false;
     },
