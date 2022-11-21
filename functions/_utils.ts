@@ -1,4 +1,6 @@
-import { UUID } from "./_db";
+import TelegramAPI from "./api/telegram/_telegram";
+import { HoneydewPageEnv } from "./types";
+import Database, { UUID } from "./_db";
 
 export const ResponseJsonBadRequest = (message?:string): Response => {
   const status = 400;
@@ -92,13 +94,17 @@ export async function readRequestBody(request) {
   }
 }
 
-export function setCookie(response, key: string, value: string) {
-  const newCookie = `${key}=${value}; HttpOnly; SameSite=Strict`
-  response.headers.set("Set-Cookie", newCookie);
+export function setCookie(response:Response, key: string, value: string, http_only:boolean = true, expires:string="Fri, 31 Dec 9999 23:59:59 GMT") {
+  const http = (http_only) ? "HttpOnly;" : ""; 
+  const newCookie = `${key}=${value}; SameSite=Strict;Path=/;${http};expires=${expires};`
+  response.headers.append("Set-Cookie", newCookie);
 }
 export function deleteCookie(response, key: string) {
-  const newCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-  response.headers.set("Set-Cookie", newCookie);
+ 
+  const delCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;SameSite=Strict;`
+  const delHttpCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;HttpOnly;SameSite=Strict;`
+  response.headers.append("Set-Cookie", delCookie);
+  response.headers.append("Set-Cookie", delHttpCookie);
 }
 const testChars = str => /^[a-f-0-9]+$/.test(str);
 export function ConvertToUUID(x:any): UUID {
@@ -148,4 +154,47 @@ export function hexStringToArrayBuffer(hexString) {
   const array = new Uint8Array(integers);
 
   return array.buffer;
+}
+
+export const user_colors = [
+  "#76C4AE",
+  "#9FC2BA",
+  "#BEE9E4",
+  "#7CE0F9",
+  "#CAECCF",
+  "#D3D2B5",
+  "#CABD80",
+  "#E1CEB1",
+  "#DDB0A0",
+  "#D86C70",
+]
+
+export const user_icons = [
+  "fa-bicycle",
+  "fa-bone",
+  "fa-apple-whole",
+  "fa-carrot",
+  "fa-leaf",
+  "fa-lemon",
+  "fa-pepper-hot",
+  "fa-seedling",
+  "fa-ice-cream",
+  "fa-mug-saucer",
+  "fa-shrimp",
+  "fa-socks",
+  "fa-glasses",
+  "fa-couch",
+  "fa-shower",
+  "fa-spoon",
+  "fa-hotdog",
+  "fa-pizza-slice",
+  //"fa-",
+]
+
+export function getRandomValueFromArray<T>(list: T[]): T {
+  return list[0];
+}
+
+export function pickRandomUserIconAndColor() {
+  return [getRandomValueFromArray(user_icons), getRandomValueFromArray(user_colors)]
 }

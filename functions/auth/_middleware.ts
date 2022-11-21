@@ -1,7 +1,9 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import { HoneydewPagesFunction } from './types';
-import Database from './_db';
-import TelegramAPI from './api/telegram/_telegram';
+import { HoneydewPagesFunction } from '../types';
+import Database from '../_db';
+import TelegramAPI from '../api/telegram/_telegram';
+import { DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
+import { GiveNewTemporaryCookie } from './signup';
 
 /**
  * Takes a cookie string
@@ -36,38 +38,64 @@ async function isValidJwt(secret: string, token: string) {
 
 }
 
-const jwtHandler: HoneydewPagesFunction = async (context) => {
+export const jwtHandler: HoneydewPagesFunction = async (context) => {
   const cookieString = context.request.headers.get("Cookie");
   const secret = context.env.JWT_SECRET;
-  const token = (cookieString != null) ? getCookie(cookieString, 'Device-Token') : null;
+  const token = (cookieString != null) ? getCookie(cookieString, TEMP_TOKEN) : null;
   const isValid = await isValidJwt(secret, token)
   context.data.jwt_raw = token;
   context.data.authorized = false;
   context.data.userid = null;
+  context.data.user = null;
 
   if (isValid) {
     const { payload } = jwt.decode(token);
     context.data.jwt = payload;
-    context.data.authorized = true;
     context.data.userid = payload.id || null;
+    return await context.next();
   }
-  else if (token != null && token != ''){
-    const ip = context.request.headers.get('cf-connecting-ip') || '';
-    const userAgent = context.request.headers.get('User-Agent') || '';
-    const requestMethod = context.request.method || '';
-    const requestUrl = context.request.url || '';
-    const safeToken = token || '';
-
-    // Log all JWT failures
-    console.log("FAIL [" + ip + "] " + requestMethod + " " + requestUrl + " [UA: " + userAgent + "] [JWT: " + safeToken + "]")
-
-    // Invalid JWT - reject request
+  // this system might be stupid
+  // I could probably get by just fine with one cookie
+  const refresh_token = (cookieString != null) ? getCookie(cookieString, DEVICE_TOKEN) : null;
+  const isRefreshValid = await isValidJwt(secret, refresh_token);
+  if (isRefreshValid){
+    const { payload } = jwt.decode(refresh_token);
+    context.data.jwt = payload;
+    context.data.userid = payload.id || null;
+    console.log("Falling back to device token");
+    const db = context.data.db as Database;
+    const user = await db.GetUser(context.data.userid);
+    context.data.user = user;
   }
+  if (context.data.user != null) {
+    console.log("Creating a new cookie", context.data.user);
+    context.data.authorized = true;
+    const response = await context.next();
+    await GiveNewTemporaryCookie(context.env, response, context.data.user);
+    return response;
+  }
+
+  console.log(context.data);
 
   return await context.next();
 }
 
-async function topLevelHandler(context) {
+export const userAuthHandler: HoneydewPagesFunction = async (context)=> {
+  
+  if (context.data.userid == null || context.data.user != null) {
+    return await context.next();
+  }
+  const db = context.data.db as Database;
+  const user = await db.GetUser(context.data.userid);
+  context.data.user = user;
+
+  if (user != null) {
+    context.data.authorized = true;
+  }
+  return await context.next();
+}
+
+export async function topLevelHandler(context) {
   let res = null;
   try {
     // register the console handler
@@ -100,4 +128,4 @@ async function topLevelHandler(context) {
 }
 
 
-export const onRequest: HoneydewPagesFunction[] = [topLevelHandler, jwtHandler]
+export const onRequest: HoneydewPagesFunction[] = [topLevelHandler, jwtHandler, userAuthHandler]

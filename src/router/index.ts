@@ -39,6 +39,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "error" */ '../views/400View.vue')
   },
   {
+    path: "/household",
+    name: "Household",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/HouseholdView.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: '404',
     component: NotFoundView,

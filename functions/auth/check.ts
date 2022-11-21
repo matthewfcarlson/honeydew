@@ -1,37 +1,35 @@
 import { HoneydewPagesFunction } from "../types";
-import { HOUSEID, USERID } from "../_db";
-import { ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
+import Database, { HOUSEID, USERID } from "../_db";
+import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
+import { AuthHousehold, TEMP_TOKEN } from "./auth_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
-    
 
-    if (context.data.userid == null){
-    return new Response("window.logged_in = false; // USER ID IS NULL", {headers: { "Content-Type": "application/javascript" }},);
+    if (context.data.userid == null) {
+        return new Response("window.logged_in = false; // USER ID IS NULL", { headers: { "Content-Type": "application/javascript" } },);
     }
-    const db = context.data.db;
-    const user = await db.GetUser(context.data.userid);
+    const db = context.data.db as Database;
+    const user = context.data.user;
     if (user == null) {
-        const newCookie = `Device-Token=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-        const response = new Response("window.logged_in = false; // User not found", {headers: { "Content-Type": "application/javascript" }},);
-        response.headers.set("Set-Cookie", newCookie)
+        const response = new Response("window.logged_in = false; // User not found", { headers: { "Content-Type": "application/javascript" } },);
+        deleteCookie(response, TEMP_TOKEN);
         return response;
     }
     const household = await db.HouseholdGet(user.household);
-    const apihouse= (household == null) ? null: {
+    const apihouse: AuthHousehold | null = (household == null) ? null : {
         id: household.id,
         name: household.name,
-        members: await (await Promise.all(household.members.map(x=>db.GetUser(x)))).map(x=>{return {userid:x.id, firstname:x.firstname, lastname:x.lastname}}),
+        members: await (await Promise.all(household.members.map(x => db.GetUser(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
     };
-   // console.log("User/Household: ", user, household);
+    // console.log("User/Household: ", user, household);
     const results = {
-        first_name: user.firstname,
-        last_name:user.lastname,
-        household:apihouse,
-        id:user.id,
+        name: user.name,
+        household: apihouse,
+        id: user.id,
         // TODO: get current task
-        task:null
+        task: null
     }
     const result_json = JSON.stringify(results);
     // Should we provide information 
-    return new Response("window.logged_in = true; window.user_data = "+result_json, {headers: { "Content-Type": "application/javascript" }},)
+    return new Response("window.logged_in = true; window.user_data = " + result_json, { headers: { "Content-Type": "application/javascript" } },)
 }

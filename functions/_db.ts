@@ -1,5 +1,7 @@
 import TelegramAPI from "./api/telegram/_telegram";
 import { z } from "zod";
+import { pickRandomUserIconAndColor } from "./_utils";
+import { DbUser, DbUserKey, isDbUser } from "./data_types";
 
 enum RecipeType {
     PASTA,
@@ -43,27 +45,6 @@ interface DbHouseRecipeLink {
 }
 const DbHouseRecipeLinkKey = (hid: HOUSEID, rid: RECIPEID) => `${DbHouseRecipeLinkPrefix(hid)}:${rid}`;
 const DbHouseRecipeLinkPrefix = (hid: HOUSEID) => `H>R:${hid}`;
-
-// stored at U:{USERID}
-export interface DbUser {
-    id: USERID;
-    firstname: string;
-    lastname:string;
-    household: HOUSEID;
-    _recoverykey:string; // a magic key to recovery your account
-    _chat_id: string | null;
-}
-const DbUserKey = (id: USERID) => `U:${id}`;
-function isDbUser(x: unknown): x is DbUser {
-    const y = (x as DbUser);
-    if (y.household === undefined) return false;
-    if (y.firstname === undefined) return false;
-    if (y.lastname === undefined) return false;
-    if (y._recoverykey === undefined) return false;
-    if (y._chat_id === undefined) return false;
-    if (y.id === undefined) return false;
-    return true;
-}
 
 // stored at H:{HOUSEID}
 export interface DbHousehold {
@@ -149,15 +130,17 @@ export default class Database {
         return false;
     }
 
-    async UserCreate(firstname: string, lastname:string) {
+    async UserCreate(name: string) {
         const id = uuidv4();
+        const [icon, color] = pickRandomUserIconAndColor();
         const recovery_key = uuidv4();
         if (await this.UserExists(id)) return null;
         const user: DbUser = {
-            firstname,
-            lastname,
+            name,
             id,
             household: null,
+            color,
+            icon,
             _recoverykey: recovery_key,
             _chat_id: null
         }

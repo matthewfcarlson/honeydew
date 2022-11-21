@@ -3,9 +3,10 @@ import jwt from '@tsndr/cloudflare-worker-jwt'
 import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
-import { HoneydewPagesFunction } from '../types';
-import { DbHousehold } from '../_db';
-import { AuthSignupResponse } from './auth_types';
+import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
+import Database, { DbHousehold } from '../_db';
+import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
+import { DbUser } from '../data_types';
 
 function formatUserDbId(userId) {
     return `user:${userId}`;
@@ -19,6 +20,18 @@ async function generateNewUserUUID(env) {
         data = await env.HONEYDEW.get(formatUserDbId(userId));
     }
     return userId
+}
+
+export async function GiveNewTemporaryCookie(env: HoneydewPageEnv, response:Response, user:DbUser) {
+     // Creating a more secure token?
+     const secret = env.JWT_SECRET;
+     const generic_token = await jwt.sign({
+        id: user.id,
+        name: user.name,
+        exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
+    }, secret);
+
+    setCookie(response, TEMP_TOKEN, generic_token, false);
 }
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
@@ -50,10 +63,8 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         return ResponseJsonBadRequest("Already logged in")
     }
 
-    const db = data.db;
-    const user = await db.UserCreate(name, "bob");
-
-
+    const db = data.db as Database;
+    const user = await db.UserCreate(name);
 
     // Check if household exists
     let house: null | DbHousehold = null;
@@ -68,18 +79,17 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
 
     const secret = env.JWT_SECRET;
-    // Creating a token
-    const token = await jwt.sign({
+    
+    // Creating a more secure token?
+    const refresh_token = await jwt.sign({
         id: user.id,
-        first_name: user.firstname,
-        last_name: user.lastname,
-        //exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)) // Expires: Now + 12h
+        // tokens do not expire just because why not?
     }, secret);
-
+    
     if (house == null) {
-        house = await db.HouseholdCreate(`${user.firstname}'s House`, user.id);
+        house = await db.HouseholdCreate(`${user.name}'s House`, user.id);
     }
-
+    
     const household_id = (house != null) ? house.id : null;
     const result: AuthSignupResponse = {
         user_id: user.id, recovery_key: user._recoverykey, household: household_id
@@ -89,7 +99,9 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         headers: { "Content-Type": "application/json" },
         status: 200,
     })
-    setCookie(response, "Device-Token", token);
+    // Give the generic cookie
+    await GiveNewTemporaryCookie(env, response, user);
+    setCookie(response, DEVICE_TOKEN, refresh_token);
 
     return response;
 }

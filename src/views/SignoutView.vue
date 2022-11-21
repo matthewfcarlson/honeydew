@@ -33,7 +33,7 @@ export default defineComponent({
     signout: async function () {
       const store = useUserStore()
       const result = await store.signOut();
-      if (result.status == 'error') {
+      if (result.success == false) {
         this.error = result.message;
       }
     },

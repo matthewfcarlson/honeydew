@@ -2,15 +2,15 @@ import { defineStore } from 'pinia';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
-import {AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ} from "../../functions/auth/auth_types";
+import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { ZodError } from 'zod';
 
 interface APIResultSuccess<T> {
-    status: "ok";
+    success: true;
     data: T;
 }
 interface APIResultError {
-    status: "error";
+    success: false;
     message: string;
     code?: number;
 }
@@ -18,21 +18,28 @@ interface APIResultError {
 const client = createTRPCProxyClient<AppRouter>({
     links: [
         // TODO: figure out current url
-      httpBatchLink({
-        url: '/api',
-      }),
+        httpBatchLink({
+            url: '/api',
+            fetch(url, options) {
+                console.log("FETCHING URL", url);
+                return fetch(url, {
+                    ...options,
+                    credentials: 'same-origin',
+                });
+            },
+        }),
     ],
-  });
+});
 
 export type APIResult<T> = Promise<APIResultSuccess<T> | APIResultError>;
 
-type Query<T> = ()=>Promise<T>;
+type Query<T> = () => Promise<T>;
 
 async function QueryAPI<R>(query: Query<R>): APIResult<R> {
     try {
         const result = await query();
         return {
-            status: "ok",
+            success: true,
             data: result
         }
     }
@@ -46,52 +53,80 @@ async function QueryAPI<R>(query: Query<R>): APIResult<R> {
         //     }
         // }
         return {
-            status: "error",
+            success: false,
             message: `Unknown error ${err}`
         }
     }
 }
 
+interface UserStoreState {
+    _loggedIn: boolean;
+    _user: null | AuthCheck;
+}
+
 export const useUserStore = defineStore("user", {
-    state: () => ({
-        _loggedIn: (window as any).logged_in || false,
-        _userDataCurrent: false,
-    }),
+    state: () => {
+        let _user = null;
+        if ((window as any).user_data != undefined) {
+            const raw_data = (window as any).user_data;
+            const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
+            if (user_data.success) _user = user_data.data;
+            else console.error("Failed to parse: ", raw_data, user_data.error);
+        }
+        const state: UserStoreState = {
+            _loggedIn: (window as any).logged_in || false,
+            _user
+        }
+        return state;
+    },
     getters: {
         isLoggedIn: (state) => state._loggedIn,
+        userName: (state) => {
+            if (!state._loggedIn) return "NOT LOGGED IN";
+            if (state._user == null) return "";
+            return state._user.name;
+        },
+        household: (state) => {
+            if (!state._loggedIn) return null;
+            if (state._user == null) return null;
+            return state._user.household;
+        }
     },
     actions: {
-        async fetchUser(): APIResult<any> {
+        async fetchUser(): APIResult<AuthCheck> {
             // TODO: use cached information
-            //if (this._userDataCurrent) return ;
-            const hello = await client.hello.query();
-            console.log(hello);
+            if (this._user != null) return {
+                success: true,
+                data: this._user
+            }
+            const user = await QueryAPI(client.me.get.query);
+            console.log(user);
             return {
-                status: "error",
+                success: false,
                 message: "TBI"
             }
-            // const result = await QueryAPI(API_ME);
-            // if (result.status == 'error') return result;
-            // return result;
+        },
+        async getInviteLink(): APIResult<string> {
+            return await QueryAPI(client.household.invite.query);
         },
         async signOut(): APIResult<string> {
             try {
                 await axios.get("/auth/signout");
                 window.location.reload();
                 return {
-                    status: "ok",
+                    success: true,
                     data: "Signed Out"
                 }
             }
             catch (err) {
                 return {
-                    status: "error",
+                    success: false,
                     message: "TBI"
                 }
             }
         },
         async signUp(name: string, key?: string): APIResult<AuthSignupResponse> {
-            const raw_body:AuthSignupRequest = {
+            const raw_body: AuthSignupRequest = {
                 name,
                 key,
             }
@@ -100,27 +135,28 @@ export const useUserStore = defineStore("user", {
                 const result = await axios.post("/auth/signup", post_body);
                 const data = AuthSignupResponseZ.parse(result.data);
                 this._loggedIn = true;
+                this.fetchUser();
                 return {
-                    status: "ok",
+                    success: true,
                     data
                 }
             }
             catch (err) {
                 if (err instanceof AxiosError) {
                     return {
-                        status: "error",
+                        success: false,
                         message: "Server says no"
                     }
                 }
                 if (err instanceof ZodError) {
                     console.error("Zod error", err);
                     return {
-                        status: "error",
+                        success: false,
                         message: err.message
                     }
                 }
                 return {
-                    status: "error",
+                    success: false,
                     message: "Unknown error occurred"
                 }
             }

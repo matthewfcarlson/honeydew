@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <section class="section maxh-25vh">
+    <section class="section maxh-25vh" v-if="!isLoggedIn">
       <p class="title">Signup</p>
       <p class="subtitle">Create a new account</p>
     </section>
@@ -92,11 +92,11 @@ export default defineComponent({
       this.error = "";
       const result = await this.signUp(this.name, this.invite_data);
       console.log(result);
-      if (result.status == "error") {
-        this.error = result.message;
+      if (result.success) {
+        this.recovery_code = result.data.recovery_key;
       }
       else {
-        this.recovery_code = result.data.recovery_key;
+        this.error = result.message;
       }
       this.thinking = false;
     },
