@@ -58,8 +58,8 @@ export default defineComponent({
     },
     refresh: async function () {
       try{
-        const me = await axios.get("/api/me");
-        this.jwt = JSON.stringify(me.data);
+        const me = (window as any).user_data || null;
+        console.log(me);
         const { data } = await axios.get("/api/rm/"+this.count);
         
         if (data != null && data['name'] != undefined) {

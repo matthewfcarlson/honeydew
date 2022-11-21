@@ -1,3 +1,5 @@
+import { HoneydewPagesFunction } from "../../../types";
+
 export const onRequest: HoneydewPagesFunction = async function onRequestGet(context) {
     const {
       request, // same as existing Worker API

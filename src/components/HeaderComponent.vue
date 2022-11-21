@@ -38,12 +38,28 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                     <div class="buttons">
-                        <router-link to="signup" class="button is-primary" v-if="!isLoggedIn">
-                            <strong>Sign up</strong>
-                        </router-link>
-                        <router-link to="signout" class="button is-warning" v-else>
-                            <strong>Logout</strong>
-                        </router-link>
+                        <template v-if="isLoggedIn">
+                            <router-link to="household" class="button is-link is-outlined">
+                                <span class="icon is-small">
+                                    <i class="fas fa-people-roof"></i>
+                                </span>
+                                <strong>Profile</strong>
+                            </router-link>
+                            <router-link to="signout" class="button is-warning">
+                                <span class="icon is-small">
+                                    <i class="fas fa-arrow-right-from-bracket"></i>
+                                </span>
+                                <strong>Logout</strong>
+                            </router-link>
+                        </template>
+                        <template v-else>
+                            <router-link to="signup" class="button is-primary">
+                                <span class="icon is-small">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </span>
+                                <strong>Sign up</strong>
+                            </router-link>
+                        </template>
                     </div>
                 </div>
             </div>

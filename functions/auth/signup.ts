@@ -1,10 +1,11 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import {ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie} from "../_utils";
+import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
 
 import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from '../types';
 import { DbHousehold } from '../_db';
+import { AuthSignupResponse } from './auth_types';
 
 function formatUserDbId(userId) {
     return `user:${userId}`;
@@ -22,12 +23,12 @@ async function generateNewUserUUID(env) {
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const {
-      request, // same as existing Worker API
-      env, // same as existing Worker API
-      params, // if filename includes [id] or [[path]]
-      waitUntil, // same as ctx.waitUntil in existing Worker API
-      next, // used for middleware or to fetch assets
-      data, // arbitrary space for passing data between middlewares
+        request, // same as existing Worker API
+        env, // same as existing Worker API
+        params, // if filename includes [id] or [[path]]
+        waitUntil, // same as ctx.waitUntil in existing Worker API
+        next, // used for middleware or to fetch assets
+        data, // arbitrary space for passing data between middlewares
     } = context;
 
     const body = await readRequestBody(request);
@@ -35,13 +36,13 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     if (body == null || body["name"] == undefined) {
         return ResponseJsonMissingData("Name");
     }
-    
+
     const name = body['name'];
 
     if (name.length < 2) {
         return ResponseJsonMissingData("name");
     }
-    
+
     const housekey_data = body['key'] || '';
 
     if (data.authorized != undefined && context.data.authorized == true) {
@@ -52,10 +53,10 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const db = data.db;
     const user = await db.UserCreate(name, "bob");
 
-    
-    
+
+
     // Check if household exists
-    let house: null|DbHousehold = null;
+    let house: null | DbHousehold = null;
     if (housekey_data != '') {
         // house = await db.HouseholdGet(household);
         console.log("HOUSE UNLOCK", house);
@@ -80,11 +81,13 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
 
     const household_id = (house != null) ? house.id : null;
-
-    const info = JSON.stringify({msg:"Signed up", user:user.id, recovery_key: user._recoverykey, household:household_id}, null, 2);
+    const result: AuthSignupResponse = {
+        user_id: user.id, recovery_key: user._recoverykey, household: household_id
+    }
+    const info = JSON.stringify(result, null, 2);
     const response = new Response(info, {
         headers: { "Content-Type": "application/json" },
-        status:200,
+        status: 200,
     })
     setCookie(response, "Device-Token", token);
 

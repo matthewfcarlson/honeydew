@@ -1,7 +1,7 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import { HoneydewPagesFunction } from '../types';
-import Database from '../_db';
-import TelegramAPI from './telegram/_telegram';
+import { HoneydewPagesFunction } from './types';
+import Database from './_db';
+import TelegramAPI from './api/telegram/_telegram';
 
 /**
  * Takes a cookie string

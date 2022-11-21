@@ -1,7 +1,7 @@
 // Generates an invite linkimport { HoneydewPagesFunction } from "../types";
-import { HoneydewPagesFunction } from "../../types";
-import { HOUSEID, USERID } from "../../_db";
-import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound } from "../../_utils";
+import { HoneydewPagesFunction } from "..././../types";
+import { HOUSEID, USERID } from "../../../_db";
+import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound } from "../../../_utils";
 
 function bufferToBase64(buffer:ArrayBufferLike) {
     const binary = String.fromCharCode.apply(null, buffer);

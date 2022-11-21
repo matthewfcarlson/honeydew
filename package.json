@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^3.18.0",
+    "@trpc/server": "^10.0.0-rc.8",
     "@tsndr/cloudflare-worker-jwt": "^2.1.2",
     "core-js": "^3.8.3",
     "uuid": "^9.0.0",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@trpc/client": "^10.0.0-rc.8",
     "@types/node": "^18.11.9",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",

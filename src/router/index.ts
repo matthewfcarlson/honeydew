@@ -29,6 +29,11 @@ const routes = [
     component: SignupView,
   },
   {
+    path: '/recover',
+    name: 'recover',
+    component: () => import(/* webpackChunkName: "recovery" */ '../views/RecoveryView.vue'),
+  },
+  {
     path: '/error',
     name: '400',
     component: () => import(/* webpackChunkName: "error" */ '../views/400View.vue')

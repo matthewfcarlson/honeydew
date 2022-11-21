@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
+import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
-import { z } from 'zod';
+import {AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ} from "../../functions/auth/auth_types";
+import { ZodError } from 'zod';
 
 interface APIResultSuccess<T> {
     status: "ok";
@@ -12,35 +15,36 @@ interface APIResultError {
     code?: number;
 }
 
+const client = createTRPCProxyClient<AppRouter>({
+    links: [
+        // TODO: figure out current url
+      httpBatchLink({
+        url: '/api',
+      }),
+    ],
+  });
+
 export type APIResult<T> = Promise<APIResultSuccess<T> | APIResultError>;
 
-async function QueryAPI(endpoint: any, post_data?: any): APIResult<any> {
+type Query<T> = ()=>Promise<T>;
+
+async function QueryAPI<R>(query: Query<R>): APIResult<R> {
     try {
-        const route = `/api/${endpoint.path}`;
-        // TODO: handle param checking
-        // if (endpoint.method == 'get' && "params" in endpoint) {
-        //     route += `/` 
-        // }
-        if (post_data == null && endpoint.method == 'post') {
-            return {
-                status: 'error',
-                message: 'POST data is needed'
-            }
-        }
-        const result = (post_data != null) ? await axios.post(route, post_data) : await axios.get(route);
-        const data = endpoint.parser(result.data);
+        const result = await query();
         return {
             status: "ok",
-            data,
+            data: result
         }
     }
     catch (err) {
-        if (err instanceof AxiosError) {
-            return {
-                status: "error",
-                message: err.response?.data.message || "Error querying API",
-            }
-        }
+        console.log(err);
+        console.log(typeof err);
+        // if (err instanceof TRPCError) {
+        //     return {
+        //         status: "error",
+        //         message: err.response?.data.message || "Error querying API",
+        //     }
+        // }
         return {
             status: "error",
             message: `Unknown error ${err}`
@@ -60,6 +64,8 @@ export const useUserStore = defineStore("user", {
         async fetchUser(): APIResult<any> {
             // TODO: use cached information
             //if (this._userDataCurrent) return ;
+            const hello = await client.hello.query();
+            console.log(hello);
             return {
                 status: "error",
                 message: "TBI"
@@ -68,43 +74,56 @@ export const useUserStore = defineStore("user", {
             // if (result.status == 'error') return result;
             // return result;
         },
-        async signOut(): APIResult<any> {
-            // this._loggedIn = false;
-            // this._userDataCurrent = false;
-            // const result = await QueryAPI(API_SIGNOUT);
-            // return result;
-            return {
-                status: "error",
-                message: "TBI"
+        async signOut(): APIResult<string> {
+            try {
+                await axios.get("/auth/signout");
+                window.location.reload();
+                return {
+                    status: "ok",
+                    data: "Signed Out"
+                }
+            }
+            catch (err) {
+                return {
+                    status: "error",
+                    message: "TBI"
+                }
             }
         },
-        async signUp(name: string, key: string): APIResult<any> {
-            return {
-                status: "error",
-                message: "TBI"
+        async signUp(name: string, key?: string): APIResult<AuthSignupResponse> {
+            const raw_body:AuthSignupRequest = {
+                name,
+                key,
             }
-            // const data = {
-            //     name,
-            //     key,
-            // }
-            // const result = await QueryAPI(API_SIGNUP, data);
-            // console.log(result);
-            // if (result.status == 'error') {
-            //     return result;
-            // }
-            // const parsed = ApiSignupResultZ.safeParse(result.data);
-            // if (!parsed.success) {
-            //     return {
-            //         status: "error",
-            //         message: parsed.error.toString()
-            //     }
-            // }
-            // this._loggedIn = true;
-            // this._userDataCurrent = false;
-            // return {
-            //     status: "ok",
-            //     data: parsed.data
-            // }
+            try {
+                const post_body = AuthSignupRequestZ.parse(raw_body);
+                const result = await axios.post("/auth/signup", post_body);
+                const data = AuthSignupResponseZ.parse(result.data);
+                this._loggedIn = true;
+                return {
+                    status: "ok",
+                    data
+                }
+            }
+            catch (err) {
+                if (err instanceof AxiosError) {
+                    return {
+                        status: "error",
+                        message: "Server says no"
+                    }
+                }
+                if (err instanceof ZodError) {
+                    console.error("Zod error", err);
+                    return {
+                        status: "error",
+                        message: err.message
+                    }
+                }
+                return {
+                    status: "error",
+                    message: "Unknown error occurred"
+                }
+            }
         }
     },
 })

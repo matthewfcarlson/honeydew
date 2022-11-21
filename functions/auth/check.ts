@@ -3,18 +3,16 @@ import { HOUSEID, USERID } from "../_db";
 import { ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
-    const url = new URL(context.request.url)
-    const jsonp = url.searchParams.has("json")
+    
 
     if (context.data.userid == null){
-        if (!jsonp) return ResponseJsonAccessDenied();
-        else return new Response("window.logged_in = false; // USER ID IS NULL", {headers: { "Content-Type": "application/javascript" }},);
+    return new Response("window.logged_in = false; // USER ID IS NULL", {headers: { "Content-Type": "application/javascript" }},);
     }
     const db = context.data.db;
     const user = await db.GetUser(context.data.userid);
     if (user == null) {
         const newCookie = `Device-Token=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-        const response = (!jsonp) ? ResponseJsonNotFound() : new Response("window.logged_in = false; // User not found", {headers: { "Content-Type": "application/javascript" }},);
+        const response = new Response("window.logged_in = false; // User not found", {headers: { "Content-Type": "application/javascript" }},);
         response.headers.set("Set-Cookie", newCookie)
         return response;
     }
@@ -33,8 +31,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         // TODO: get current task
         task:null
     }
-    if (!jsonp){
-        return new Response(JSON.stringify(results));
-    }
-    return new Response("window.logged_in = true;", {headers: { "Content-Type": "application/javascript" }},)
+    const result_json = JSON.stringify(results);
+    // Should we provide information 
+    return new Response("window.logged_in = true; window.user_data = "+result_json, {headers: { "Content-Type": "application/javascript" }},)
 }

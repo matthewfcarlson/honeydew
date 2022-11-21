@@ -1,6 +1,6 @@
-import { HoneydewPagesFunction } from "../../../types";
-import { HOUSEID, USERID } from "../../../_db";
-import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../../_utils";
+import { HoneydewPagesFunction } from "../../../../types";
+import { HOUSEID, USERID } from "../../../../_db";
+import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../../../_utils";
 
 export interface ApiHousehold {
     name:string;

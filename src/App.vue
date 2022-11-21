@@ -111,7 +111,9 @@ $sailwind_colors: (
     background-color: $hex;
   }
 }
-
+.maxh-25vh {
+  max-height:25vh;
+}
 // // Set your brand colors
 // $green-light: #e9edc9;
 // $green-dark: #ccd5ae;

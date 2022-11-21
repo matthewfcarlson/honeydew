@@ -1,13 +1,22 @@
 <template>
   <div class="container">
-    <section class="section">
+    <section class="section maxh-25vh">
       <p class="title">Signup</p>
       <p class="subtitle">Create a new account</p>
     </section>
     <section class="hero">
-      <div v-if="recovery_code">Recovery code: {{recovery_code}}</div>
+      <div v-if="recovery_code">
+        <p>Please write down this recovery code as it is the only way to get back into your account if you lose access
+          to it</p>
+        <div class="box">
+          <p class="title">Recovery code: {{ recovery_code }}</p>
+          <button @click=copyRecoveryCode class="button is-primary">Click To Copy To Clipboard</button>
+          <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
+        </div>
+        <a href="/">Go Home</a>
+      </div>
       <div v-else-if="isLoggedIn == false">
-        <div class="field m-1">
+        <div class="field m-3">
           <label class="label">Your Name</label>
           <div class="field-body">
             <div class="field has-addons">
@@ -36,6 +45,7 @@
           <p><b>You'll be joining an existing household since you are coming from an invite link</b></p>
         </div>
         <p>Already have an account? Go to a device you're signed in on and generate a magic key.</p>
+        <p>Or if you are trying to recover your account, you <a href="/recover">can do that here</a>.</p>
       </div>
       <div v-else>
         Welcome to Honeydew!
@@ -69,6 +79,14 @@ export default defineComponent({
   },
   methods: {
     ...mapActions(useUserStore, ["signUp"]),
+    copyRecoveryCode: async function () {
+      try {
+        await navigator.clipboard.writeText(this.recovery_code);
+      }
+      catch {
+        this.error = "Could not copy to clipboard";
+      }
+    },
     press_signup: async function () {
       this.thinking = true;
       this.error = "";
