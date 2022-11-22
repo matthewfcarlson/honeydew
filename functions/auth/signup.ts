@@ -7,6 +7,7 @@ import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
 import Database, { DbHousehold } from '../_db';
 import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
 import { DbUser } from '../data_types';
+import { VerifyHouseKeyCode } from './join/[id]';
 
 function formatUserDbId(userId) {
     return `user:${userId}`;
@@ -59,7 +60,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const housekey_data = body['key'] || '';
 
     if (data.authorized != undefined && context.data.authorized == true) {
-        console.log("Already logged in, don't sign them in again");
+        console.error("Already logged in, don't sign them in again");
         return ResponseJsonBadRequest("Already logged in")
     }
 
@@ -69,12 +70,12 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     // Check if household exists
     let house: null | DbHousehold = null;
     if (housekey_data != '') {
-        // house = await db.HouseholdGet(household);
-        console.log("HOUSE UNLOCK", house);
-        // TODO: revamp this for new approach using housekey with hash
-        return ResponseJsonNotImplementedYet();
+        const key = await VerifyHouseKeyCode(housekey_data, db, env.JWT_SECRET);
+        if (key == false) {
+            return ResponseJsonAccessDenied();
+        }
+        house = await db.HouseholdGet(key.house);
         if (house == null) return ResponseJsonMissingData("Bad houseid");
-        //if (house.housekey != housekey) return ResponseJsonMissingData("Bad Housekey");
         await db.UserSetHousehold(user.id, house.id, user, house);
     }
 

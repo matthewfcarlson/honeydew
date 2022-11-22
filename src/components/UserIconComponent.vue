@@ -33,7 +33,6 @@ export default defineComponent({
             let icon = this.icon;
             if (icon == "") {
                 const data = useUserStore().userIconColor;
-                console.log(data)
                 if (data != null) icon = data[0];
                 else icon = "fa-carrot"
             }
@@ -43,7 +42,6 @@ export default defineComponent({
             let color = this.color;
             if (color == "") {
                 const data = useUserStore().userIconColor;
-                console.log(data)
                 if (data != null) color = data[1];
                 else color = "#003366"
             }

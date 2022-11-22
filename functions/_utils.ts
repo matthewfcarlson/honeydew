@@ -54,7 +54,6 @@ export const ResponseRedirect = (request:Request, url:string, status:number=307)
   const request_url = new URL(request.url);
   const base_url= request_url.origin;
   const redirect_url = base_url+url;
-  console.log("redirect_url", redirect_url)
   return Response.redirect(redirect_url, status);
 }
 
@@ -134,13 +133,13 @@ export function hexStringToArrayBuffer(hexString:string) {
 
   // ensure even number of characters
   if (hexString.length % 2 != 0) {
-      console.log('WARNING: expecting an even number of characters in the hexString');
+      console.warn('WARNING: expecting an even number of characters in the hexString');
   }
 
   // check for some non-hex characters
   const bad = hexString.match(/[G-Z\s]/i);
   if (bad) {
-      console.log('WARNING: found non-hex characters', bad);
+      console.warn('WARNING: found non-hex characters', bad);
   }
 
   // split the string into pairs of octets

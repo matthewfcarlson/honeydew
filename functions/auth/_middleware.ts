@@ -32,7 +32,7 @@ async function isValidJwt(secret: string, token: string) {
     return await jwt.verify(token, secret);
     // Token is good!
   } catch (err) {
-    console.log("isValidJwt", err);
+    console.error("isValidJwt", err);
     // If the JWT verification fails, an exception will be thrown and we'll end up in here
     return false
   }
@@ -69,7 +69,6 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     const { payload } = jwt.decode(refresh_token);
     context.data.jwt = payload;
     context.data.userid = payload.id || null;
-    console.log("Falling back to device token");
     const db = context.data.db as Database;
     const user = await db.GetUser(context.data.userid);
     context.data.user = user;
@@ -81,7 +80,6 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     }
   }
   if (context.data.user != null) {
-    console.log("Creating a new cookie", context.data.user);
     context.data.authorized = true;
     const response = await context.next();
     await GiveNewTemporaryCookie(context.env, response, context.data.user);

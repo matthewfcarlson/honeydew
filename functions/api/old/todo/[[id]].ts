@@ -12,7 +12,6 @@ export const onRequest: HoneydewPagesFunction = async function onRequestGet(cont
     if (data.authorized == undefined || context.data.authorized == false) {
       return new Response('{"msg": "Invalid Token"}', { status: 403 })
     }
-    console.log(params.id);
   
     const id = Number(params.id[0]);
     const names = ["Rick", "morty", "Beth", "Jerry", "Summer", "Snowball"]

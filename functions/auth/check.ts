@@ -21,7 +21,6 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         name: household.name,
         members: await (await Promise.all(household.members.map(x => db.GetUser(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
     };
-    // console.log("User/Household: ", user, household);
     const results: AuthCheck = {
         name: user.name,
         household: apihouse,

@@ -21,7 +21,6 @@ const client = createTRPCProxyClient<AppRouter>({
         httpBatchLink({
             url: '/api',
             fetch(url, options) {
-                console.log("FETCHING URL", url);
                 return fetch(url, {
                     ...options,
                     credentials: 'same-origin',
@@ -44,8 +43,8 @@ async function QueryAPI<R>(query: Query<R>): APIResult<R> {
         }
     }
     catch (err) {
-        console.log(err);
-        console.log(typeof err);
+        console.error(err);
+        console.error(typeof err);
         // if (err instanceof TRPCError) {
         //     return {
         //         status: "error",

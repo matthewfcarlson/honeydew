@@ -4,6 +4,10 @@
       <p class="title">Signup</p>
       <p class="subtitle">Create a new account</p>
     </section>
+    <section class="section" v-else>
+      <p class="title">Welcome, {{userName}}!</p>
+      <p class="subtitle">To Honeydew</p>
+    </section>
     <section class="hero">
       <div v-if="recovery_code">
         <p>Please write down this recovery code as it is the only way to get back into your account if you lose access
@@ -48,7 +52,6 @@
         <p>Or if you are trying to recover your account, you <a href="/recover">can do that here</a>.</p>
       </div>
       <div v-else>
-        Welcome to Honeydew!
         You're already signed in!
         <a href="/">Go Home</a>
       </div>
@@ -75,7 +78,7 @@ export default defineComponent({
 
   },
   computed: {
-    ...mapState(useUserStore, ["isLoggedIn"])
+    ...mapState(useUserStore, ["isLoggedIn", "userName"])
   },
   methods: {
     ...mapActions(useUserStore, ["signUp"]),
@@ -91,7 +94,6 @@ export default defineComponent({
       this.thinking = true;
       this.error = "";
       const result = await this.signUp(this.name, this.invite_data);
-      console.log(result);
       if (result.success) {
         this.recovery_code = result.data.recovery_key;
       }
