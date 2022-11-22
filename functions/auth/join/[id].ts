@@ -1,6 +1,6 @@
-import { HoneydewPagesFunction } from "../../../../types";
-import { HOUSEID, USERID } from "../../../../_db";
-import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../../../_utils";
+import { HoneydewPagesFunction } from "../../types";
+import Database, { HOUSEID, USERID } from "../../_db";
+import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
 
 export interface ApiHousehold {
     name:string;
@@ -22,8 +22,8 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     if (context.data.userid == null) {
         return ResponseRedirect(context.request, "/signup?k="+id)
     }
-    const db = context.data.db;
-    const user = await db.GetUser(context.data.userid);
+    const db = context.data.db as Database;
+    const user = context.data.user
     if (user == null) return ResponseJsonNotFound();
     if (Array.isArray(id)) {
         console.log("ID IS ARRAY", id);
@@ -51,7 +51,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     const results = await db.UserSetHousehold(user.id, key.house, user);
     if (!results) {
-        console.log("FAI:ED");
+        console.log("FAILED");
     }
 
     // const db = context.data.db;
@@ -73,5 +73,5 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     //     task:null
     // }
 
-    return new Response("OK");
+    return ResponseRedirect(context.request,"/household");
 }

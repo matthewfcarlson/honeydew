@@ -1,18 +1,46 @@
 <template>
-    <div class="home">
-        <h1>{{userName}}</h1>
-        <pre>{{ invite_link }}</pre>
-        <pre>{{household}}</pre>
+    <div class="home container">
         <div v-if="household != null">
-            <UserIcon v-for="user in household.members" :key="user.userid"/>
+            <p v-if="error.length != 0">{{ error }}</p>
+            <article class="panel is-info">
+                <p class="panel-heading">
+                    {{ household.name }}
+                </p>
+                <a class="panel-block is-active" v-for="member in household.members" :key="member.userid">
+                    <UserIcon class="panel-icon" :color="member.color" :icon="member.icon" />
+                    {{ member.name }}
+                </a>
+                <div class="panel-block" v-if="invite_link.length == 0">
+                    <button @click="get_invite" class="button is-success is-outlined is-fullwidth">
+                        <span class="icon is-left">
+                            <i class="fas fa-plus" aria-hidden="true"></i>
+                        </span>
+                        <span>Generate Invite Link</span>
+                    </button>
+                </div>
+                <div class="panel-block" v-else>
+                    <div class="has-text-justified is-flex-direction-column is-align-items-center">
+                        <div class="has-text-justified">{{ invite_link }}</div>
+                        <div>
+                            <button class="button is-round" @click="copyInviteLink">Copy to Clipboard</button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
         </div>
-        <p v-if="error.length > 0"> {{error}} </p>
-        <button @click="get_invite">No invite link</button>
         <hr />
+        <router-link to="signout" class="button is-warning is-rounded is-large">
+            <span class="icon is-small">
+                <i class="fas fa-arrow-right-from-bracket"></i>
+            </span>
+            <span>Signout</span>
+        </router-link>
     </div>
 </template>
   
 <script lang="ts">
+
 import { defineComponent } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
@@ -34,6 +62,14 @@ export default defineComponent({
         ...mapState(useUserStore, ["userName", "household"])
     },
     methods: {
+        copyInviteLink: async function () {
+            try {
+                await navigator.clipboard.writeText(this.invite_link);
+            }
+            catch {
+                this.error = "Could not copy to clipboard";
+            }
+        },
         get_invite: async function () {
             this.invite_link = "";
             this.error = "";

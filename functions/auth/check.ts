@@ -1,7 +1,7 @@
 import { HoneydewPagesFunction } from "../types";
 import Database, { HOUSEID, USERID } from "../_db";
 import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
-import { AuthHousehold, TEMP_TOKEN } from "./auth_types";
+import { AuthCheck, AuthHousehold, TEMP_TOKEN } from "./auth_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
@@ -22,10 +22,12 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         members: await (await Promise.all(household.members.map(x => db.GetUser(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
     };
     // console.log("User/Household: ", user, household);
-    const results = {
+    const results: AuthCheck = {
         name: user.name,
         household: apihouse,
         id: user.id,
+        color: user.color,
+        icon: user.icon,
         // TODO: get current task
         task: null
     }

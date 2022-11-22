@@ -42,7 +42,7 @@ export const ResponseJsonDebugOnly = (): Response => {
 };
 
 export const ResponseJsonNotImplementedYet = (): Response => {
-  const fn_name = new Error().stack.split("\n")[1].trim();
+  const fn_name = new Error().stack?.split("\n")[1].trim();
   const status = 500;
   return new Response(JSON.stringify({
     status,
@@ -70,7 +70,7 @@ export const ResponseJsonMethodNotAllowed = (): Response => {
  * Use await readRequestBody(..) in an async function to get the string
  * @param {Request} request the incoming request to read from
  */
-export async function readRequestBody(request) {
+export async function readRequestBody(request: Request) {
   const { headers } = request;
   const contentType = headers.get('content-type') || '';
 
@@ -82,7 +82,7 @@ export async function readRequestBody(request) {
     return request.text();
   } else if (contentType.includes('form')) {
     const formData = await request.formData();
-    const body = {};
+    const body:Record<string, string|File> = {};
     for (const entry of formData.entries()) {
       body[entry[0]] = entry[1];
     }
@@ -99,14 +99,14 @@ export function setCookie(response:Response, key: string, value: string, http_on
   const newCookie = `${key}=${value}; SameSite=Strict;Path=/;${http};expires=${expires};`
   response.headers.append("Set-Cookie", newCookie);
 }
-export function deleteCookie(response, key: string) {
+export function deleteCookie(response:Response, key: string) {
  
   const delCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;SameSite=Strict;`
   const delHttpCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;HttpOnly;SameSite=Strict;`
   response.headers.append("Set-Cookie", delCookie);
   response.headers.append("Set-Cookie", delHttpCookie);
 }
-const testChars = str => /^[a-f-0-9]+$/.test(str);
+const testChars = (str:string) => /^[a-f-0-9]+$/.test(str);
 export function ConvertToUUID(x:any): UUID {
   if (typeof x === 'string' || x instanceof String) {
     x = x.substring(0,72).toLowerCase(); // make sure it's only 72 chars long
@@ -128,7 +128,7 @@ export function ArrayBufferToHexString(buffer:ArrayBufferLike) {
  * @param {string} hexString - hex representation of bytes
  * @return {ArrayBuffer} - The bytes in an ArrayBuffer.
  */
-export function hexStringToArrayBuffer(hexString) {
+export function hexStringToArrayBuffer(hexString:string) {
   // remove the leading 0x
   hexString = hexString.replace(/^0x/, '');
 
@@ -146,8 +146,12 @@ export function hexStringToArrayBuffer(hexString) {
   // split the string into pairs of octets
   const pairs = hexString.match(/[\dA-F]{2}/gi);
 
+  if (pairs == null) {
+    return 0;
+  }
+
   // convert the octets to integers
-  const integers = pairs.map(function(s) {
+  const integers = pairs.map(function(s:string) {
       return parseInt(s, 16);
   });
 
@@ -192,7 +196,7 @@ export const user_icons = [
 ]
 
 export function getRandomValueFromArray<T>(list: T[]): T {
-  return list[0];
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 export function pickRandomUserIconAndColor() {

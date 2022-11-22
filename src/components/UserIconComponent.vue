@@ -1,20 +1,55 @@
 <template>
-    <div class="hello">
-        User Icon goes here
-    </div>
+    <span class="icon is-large" :style="{height: height}">
+        <span class="fa-stack fa-lg">
+            <i :style=styles class="fas fa-circle fa-stack-2x"></i>
+            <i :class=classes></i>
+        </span>
+    </span>
 </template>
   
 <script lang="ts">
 //import type { AuthHouseholdMember } from 'functions/auth/auth_types';
+import { useUserStore } from '@/store';
 import { defineComponent } from 'vue';
 
 export default defineComponent({
     name: 'UserIcon',
     props: {
-        user: {
+        color: {
             type: String,
+            default: "",
+        },
+        icon: {
+            type: String,
+            default:""
+        },
+        height: {
+            type: String,
+            default: "2.5em",
         }
     },
+    computed: {
+        classes: function () {
+            let icon = this.icon;
+            if (icon == "") {
+                const data = useUserStore().userIconColor;
+                console.log(data)
+                if (data != null) icon = data[0];
+                else icon = "fa-carrot"
+            }
+            return [icon, "fas", "fa-stack-1x", "fa-inverse"]
+        },
+        styles: function () {
+            let color = this.color;
+            if (color == "") {
+                const data = useUserStore().userIconColor;
+                console.log(data)
+                if (data != null) color = data[1];
+                else color = "#003366"
+            }
+            return {color}
+        },
+    }
 });
 </script>
   

@@ -4,6 +4,7 @@ import Database from '../_db';
 import TelegramAPI from '../api/telegram/_telegram';
 import { DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
 import { GiveNewTemporaryCookie } from './signup';
+import { deleteCookie } from '../_utils';
 
 /**
  * Takes a cookie string
@@ -54,6 +55,12 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     context.data.userid = payload.id || null;
     return await context.next();
   }
+  // If we're dealing with an auth endpoint, don't issue a new token
+  const url = new URL(context.request.url);
+  if (url.pathname == "/auth/signout") {
+    console.error("Don't bother");
+    return await context.next();
+  }
   // this system might be stupid
   // I could probably get by just fine with one cookie
   const refresh_token = (cookieString != null) ? getCookie(cookieString, DEVICE_TOKEN) : null;
@@ -66,6 +73,12 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     const db = context.data.db as Database;
     const user = await db.GetUser(context.data.userid);
     context.data.user = user;
+    if (context.data.user == null) {
+      console.error("We cannot find this user");
+      const response = await context.next();
+      deleteCookie(response, DEVICE_TOKEN);
+      return response;
+    }
   }
   if (context.data.user != null) {
     console.log("Creating a new cookie", context.data.user);
@@ -74,8 +87,6 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     await GiveNewTemporaryCookie(context.env, response, context.data.user);
     return response;
   }
-
-  console.log(context.data);
 
   return await context.next();
 }

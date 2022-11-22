@@ -64,7 +64,7 @@ function isDbHousehold(x: unknown): x is DbHousehold {
 export interface DbHouseKey {
     id: UUID;
     house: HOUSEID;
-    generated_by:USERID;
+    generated_by: USERID;
 }
 const DbHouseKeyKey = (id: UUID) => `HK:${id}`;
 function isDbHouseKey(x: unknown): x is DbHouseKey {
@@ -85,7 +85,7 @@ export interface DbMealPlan {
 }
 const DbMealPlanKey = (id: HOUSEID) => `MP:${id}`;
 
-const uuidv4 = () => crypto.randomUUID();
+const uuidv4 = () => (crypto as any).randomUUID();
 
 export default class Database {
     private _kv: KVNamespace;
@@ -95,25 +95,26 @@ export default class Database {
         this._t = telegram;
     }
 
-    private async queryDBRaw(key) {
+    private async queryDBRaw(key: string) {
         const results = await this._kv.get(key);
         return results;
     }
 
-    private async queryDBJson(key) {
+    private async queryDBJson(key: string) {
         const results = await this._kv.get(key, { type: 'json' });
         return results;
     }
 
-    private async queryDBMeta(key) {
+    private async queryDBMeta(key: string) {
         const results = await this._kv.getWithMetadata(key);
         return results;
     }
 
-    private async setDBJson(x:DbUser|DbHousehold|DbHouseKey, expirationTtl = 0) {
+    private async setDBJson(x: DbUser | DbHousehold | DbHouseKey, expirationTtl = 0) {
         const key = (isDbUser(x)) ? DbUserKey(x.id) : isDbHousehold(x) ? DbHouseholdKey(x.id) : isDbHouseKey(x) ? DbHouseKeyKey(x.id) : null;
         // TODO: remove this once prototyping is done
-        await this._kv.put(key, JSON.stringify(x),{expirationTtl: 60*60*6}); // all keys created expire in 6 hours
+        if (key == null) return;
+        await this._kv.put(key, JSON.stringify(x), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
     }
 
     async GetUser(id: UUID) {
@@ -133,7 +134,9 @@ export default class Database {
     async UserCreate(name: string) {
         const id = uuidv4();
         const [icon, color] = pickRandomUserIconAndColor();
-        const recovery_key = uuidv4();
+        // I need to come up a better-mechanism, I need at least 128 bits
+        // base-64 of crypto.getRandomValues()?
+        const recovery_key = uuidv4(); // https://neilmadden.blog/2018/08/30/moving-away-from-uuids/
         if (await this.UserExists(id)) return null;
         const user: DbUser = {
             name,
@@ -148,9 +151,13 @@ export default class Database {
         return user;
     }
 
-    async UserSetHousehold(id: USERID, household: HOUSEID, user?: DbUser, house?:DbHousehold) {
-        if (user == null) {
+    async UserSetHousehold(id: USERID, household: HOUSEID, user?: DbUser | null, house?: DbHousehold | null) {
+        if (user == null || user == undefined) {
             user = await this.GetUser(id);
+        }
+        if (user == null) {
+            console.error("Could not find this USER", id);
+            return false;
         }
         if (user.household != null) {
             console.error("UserSetHousehold", "need to implement joining a new household")
@@ -161,8 +168,12 @@ export default class Database {
         user.household = household;
         const promises = [this.setDBJson(user),];
 
-        if (house == null) {
+        if (house == null || house == undefined) {
             house = await this.HouseholdGet(household);
+        }
+        if (house == null) {
+            console.error("Could not find this house", household);
+            return false;
         }
         // make sure there is only one of the user, add it to list of members
         if (house.members.indexOf(id) == -1) {
@@ -182,7 +193,7 @@ export default class Database {
         return false;
     }
 
-    async HouseholdGet(id:HOUSEID) {
+    async HouseholdGet(id: HOUSEID) {
         const key = DbHouseholdKey(id);
         const results = await this.queryDBJson(key);
         if (results == null || !isDbHousehold(results)) return null;
@@ -202,26 +213,26 @@ export default class Database {
         return house;
     }
 
-    async HouseKeyExists(id:UUID) {
+    async HouseKeyExists(id: UUID) {
         const key = DbHouseKeyKey(id);
         const existing = await this.queryDBRaw(key);
         if (existing != null) return true;
         return false;
     }
 
-    async HouseKeyCreate(house:HOUSEID, creator:USERID) {
+    async HouseKeyCreate(house: HOUSEID, creator: USERID) {
         const id = uuidv4();
         if (await this.HouseKeyExists(id)) return "error";
         const housekey: DbHouseKey = {
             id,
             house,
-            generated_by:creator
+            generated_by: creator
         }
         await this.setDBJson(housekey);
         return housekey;
     }
 
-    async HouseKeyGet(id:HOUSEID) {
+    async HouseKeyGet(id: HOUSEID) {
         const key = DbHouseKeyKey(id);
         const results = await this.queryDBJson(key);
         if (results == null || !isDbHouseKey(results)) return null;

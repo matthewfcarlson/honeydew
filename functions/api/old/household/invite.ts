@@ -1,6 +1,6 @@
-// Generates an invite linkimport { HoneydewPagesFunction } from "../types";
-import { HoneydewPagesFunction } from "..././../types";
-import { HOUSEID, USERID } from "../../../_db";
+// Generates an invite link
+import { HoneydewPagesFunction } from "../../../types";
+import Database, { HOUSEID, USERID } from "../../../_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound } from "../../../_utils";
 
 function bufferToBase64(buffer:ArrayBufferLike) {
@@ -13,7 +13,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     if (context.data.authorized == undefined || context.data.authorized == false) {
         return new Response('{"msg": "Invalid Token"}', { status: 403 })
     }
-    const db = context.data.db;
+    const db = context.data.db as Database;
     const user = await db.GetUser(context.data.userid);
     if (user == null) return ResponseJsonNotFound();
     if (user.household == "") return ResponseJsonBadRequest();

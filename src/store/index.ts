@@ -84,12 +84,18 @@ export const useUserStore = defineStore("user", {
         userName: (state) => {
             if (!state._loggedIn) return "NOT LOGGED IN";
             if (state._user == null) return "";
-            return state._user.name;
+            if (state._user.name.indexOf(" ") == -1) return state._user.name;
+            return state._user.name.substring(0, state._user.name.indexOf(" "));
         },
         household: (state) => {
             if (!state._loggedIn) return null;
             if (state._user == null) return null;
             return state._user.household;
+        },
+        userIconColor: (state)=> {
+            if (!state._loggedIn) return null;
+            if (state._user == null) return null;
+            return [state._user.icon, state._user.color]
         }
     },
     actions: {

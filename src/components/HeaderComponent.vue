@@ -37,19 +37,10 @@
 
             <div class="navbar-end">
                 <div class="navbar-item">
-                    <div class="buttons">
                         <template v-if="isLoggedIn">
-                            <router-link to="household" class="button is-link is-outlined">
-                                <span class="icon is-small">
-                                    <i class="fas fa-people-roof"></i>
-                                </span>
-                                <strong>Profile</strong>
-                            </router-link>
-                            <router-link to="signout" class="button is-warning">
-                                <span class="icon is-small">
-                                    <i class="fas fa-arrow-right-from-bracket"></i>
-                                </span>
-                                <strong>Logout</strong>
+                            <router-link to="household" class="is-flex is-align-items-center button-spacing">
+                                <span>{{ userName }}</span>
+                                <UserIcon height="2.5em" />
                             </router-link>
                         </template>
                         <template v-else>
@@ -60,7 +51,6 @@
                                 <strong>Sign up</strong>
                             </router-link>
                         </template>
-                    </div>
                 </div>
             </div>
         </div>
@@ -72,16 +62,20 @@
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
 import { defineComponent } from 'vue';
+import UserIcon from "./UserIconComponent.vue";
 
 export default defineComponent({
     name: 'HeaderComponent',
+    components: {
+        UserIcon
+    },
     data() {
         return {
         }
 
     },
     computed: {
-        ...mapState(useUserStore, ["isLoggedIn"])
+        ...mapState(useUserStore, ["isLoggedIn", "userName"])
     },
     methods: {
     }
@@ -89,3 +83,19 @@ export default defineComponent({
 });
 
 </script>
+
+  
+  <!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+.button-spacing {
+    cursor: pointer;
+    justify-content: center;
+    padding-bottom: calc(0.5em - 1px);
+    padding-left: 1em;
+    padding-right: 1em;
+    padding-top: calc(0.5em - 1px);
+    text-align: center;
+    white-space: nowrap;
+    margin-bottom: 0.5rem;
+}
+</style>

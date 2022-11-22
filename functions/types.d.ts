@@ -1,5 +1,6 @@
 import { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
 import { DbUser } from "./data_types";
+import type Database from "./_db";
 
 // These are the types used by every honeydew page function
 
@@ -12,7 +13,7 @@ export type HoneydewPageEnv = {
 }
 
 export type HoneydewPageData = {
-  db:unknown;
+  db:Database;
   user: DbUser|null;
   authorized:boolean;
   jwt_raw: string;

@@ -8,7 +8,7 @@ export type HOUSEID = UUID;
 export interface DbUser {
     id: USERID;
     name: string;
-    household: HOUSEID;
+    household: HOUSEID|null;
     color:string; // css color
     icon:string; // fas string
     _recoverykey:string; // a magic key to recovery your account
