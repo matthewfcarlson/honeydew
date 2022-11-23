@@ -92,7 +92,8 @@ export default defineComponent({
   <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .user-name-item strong{
-    color:black;
+    color:#363636;
+    font-size:1.2rem;
 }
 nav {
     margin-bottom: 1rem;
