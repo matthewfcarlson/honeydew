@@ -1,0 +1,24 @@
+$sailwind_colors: (
+  'gray-100': #f7fafc,
+  'gray-200': #edf2f7,
+  'gray-300': #e2e8f0,
+  'gray-400': #cbd5e0,
+  'gray-500': #a0aec0,
+  'gray-600': #718096,
+  'gray-700': #4a5568,
+  'gray-800': #2d3748,
+  'gray-900': #1a202c,
+  'success': hsl(170, 53%, 53%),
+  'primary': hsl(171, 100%, 41%),
+  'info': hsl(207, 61%, 53%),
+  'warning': hsl(44, 100%, 77%),
+  'danger': hsl(348, 86%, 61%),
+  'link': hsl(229, 53%, 53%),
+);
+$sailwind_sizes: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18,
+  20,24, 32, 40, 42, 50, 56;
+$sailwind_weights: 100, 200, 300, 400, 500, 600, 700, 800, 900;
+$sailwind_percents: 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100;
+$sides: 'top', 'right', 'bottom', 'left';
+$sailwind_types: 'success', 'info', 'link', 'warning', 'danger';
+

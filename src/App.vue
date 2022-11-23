@@ -19,7 +19,7 @@ export default defineComponent({
 </script>
 
 <style>
-#app {
+/* #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -34,24 +34,18 @@ nav {
 nav a {
   font-weight: bold;
   color: #2c3e50;
-}
+} */
 
-nav a.router-link-exact-active {
+/* nav a.router-link-exact-active {
   color: #42b983;
-}
+} */
 </style>
 
 <style lang="scss">
 @charset "utf-8";
-// Import a Google Font
-@import url('https://fonts.googleapis.com/css?family=Nunito:400,700');
-@import "../node_modules/bulma/bulma.sass";
+@import "./assets/variables.scss";
 
 // Sailwind (Tailwind in SASS)
-$sailwind_sizes: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18,
-  20,24, 32, 40, 42, 50, 56;
-$sailwind_weights: 100, 200, 300, 400, 500, 600, 700, 800, 900;
-$sides: 'top', 'right', 'bottom', 'left';
 @each $space in $sailwind_sizes {
   .m-#{$space} {
     margin: #{$space/4}rem;
@@ -92,18 +86,6 @@ $sides: 'top', 'right', 'bottom', 'left';
   }
 }
 
-$sailwind_colors: (
-  'gray-100' #f7fafc,
-  'gray-200' #edf2f7,
-  'gray-300' #e2e8f0,
-  'gray-400' #cbd5e0,
-  'gray-500' #a0aec0,
-  'gray-600' #718096,
-  'gray-700' #4a5568,
-  'gray-800' #2d3748,
-  'gray-900' #1a202c
-);
-
 @each $name, $hex in $sailwind_colors {
   .text-#{$name} {
     color: $hex;
@@ -112,24 +94,30 @@ $sailwind_colors: (
     background-color: $hex;
   }
 }
-.maxh-25vh {
-  max-height:25vh;
-}
 
 @each $weight in $sailwind_weights {
   .fw-#{$weight} {
     font-weight: $weight !important;
   }
 }
-// // Set your brand colors
-// $green-light: #e9edc9;
-// $green-dark: #ccd5ae;
-// $beige: #f0ead2;
-// $brown-light: #faedcd;
-// $brown-dark: #d4a373;
 
+@each $perc in $sailwind_percents {
+  .maxh-#{$perc}vh {
+    max-height: #{$perc}vh;
+  }
+  .maxw-#{$perc}vw {
+    max-width: #{$perc}vw;
+  }
+}
+
+$primary: map-get($map: $sailwind_colors, $key: 'primary');
+$success: map-get($map: $sailwind_colors, $key: 'success');
+$info: map-get($map: $sailwind_colors, $key: 'info');
+$link: map-get($map: $sailwind_colors, $key: 'link');
+$warning: map-get($map: $sailwind_colors, $key: 'warning');
+$danger: map-get($map: $sailwind_colors, $key: 'danger');
 // // Update Bulma's global variables
-// $family-sans-serif: "Nunito", sans-serif;
+$family-sans-serif: "Nunito", BlinkMacSystemFont, -apple-system, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 // // $background: $beige;
 // // Text color
 // $grey-dark: $brown-dark;
@@ -157,4 +145,7 @@ $sailwind_colors: (
 // @import "../node_modules/bulma/sass/components/navbar.sass";
 // @import "../node_modules/bulma/sass/layout/hero.sass";
 // @import "../node_modules/bulma/sass/layout/section.sass";
+// Import a Google Font
+@import url('https://fonts.googleapis.com/css?family=Nunito:200,400,700');
+@import "../node_modules/bulma/bulma.sass";
 </style>
