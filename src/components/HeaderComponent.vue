@@ -42,8 +42,8 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                         <template v-if="isLoggedIn">
-                            <router-link to="household" class="is-flex is-align-items-center button-spacing">
-                                <span>{{ userName }}</span>
+                            <router-link to="household" class="is-flex is-align-items-center user-name-item">
+                                <strong>{{ userName }}</strong>
                                 <UserIcon height="2.5em" />
                             </router-link>
                         </template>
@@ -91,15 +91,11 @@ export default defineComponent({
   
   <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.button-spacing {
-    cursor: pointer;
-    justify-content: center;
-    padding-bottom: calc(0.5em - 1px);
-    padding-left: 1em;
-    padding-right: 1em;
-    padding-top: calc(0.5em - 1px);
-    text-align: center;
-    white-space: nowrap;
-    margin-bottom: 0.5rem;
+.user-name-item strong{
+    color:black;
+}
+nav {
+    margin-bottom: 1rem;
+    box-shadow: 0 0.5em 1em -0.125em rgb(10 10 10 / 10%), 0 0px 0 1px rgb(10 10 10 / 2%);
 }
 </style>

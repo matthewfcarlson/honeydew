@@ -12,14 +12,30 @@
 import { useUserStore } from '@/store';
 import { defineComponent } from 'vue';
 
+const hexToRgb = (hex:string) => {
+  return hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m:string, r:string, g:string, b:string) => `#${r + r + g + g + b + b}`).substring(1).match(/.{2}/g)?.map(x => parseInt(x, 16))
+}
+
+// Determine relation of luminance in color
+const luminance = (r:number, g:number, b:number) => {
+  const a = [r, g, b].map((v) => {
+    v /= 255
+    return v <= 0.03928
+      ? v / 12.92
+      : ((v + 0.055) / 1.055) ** 2
+  })
+
+  return (a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722)
+}
+
 export default defineComponent({
     name: 'UserIcon',
     props: {
-        color: {
+        raw_color: {
             type: String,
             default: "",
         },
-        icon: {
+        raw_icon: {
             type: String,
             default:""
         },
@@ -29,22 +45,31 @@ export default defineComponent({
         }
     },
     computed: {
+        color: function() {
+            if (this.raw_color == "") {
+                const data = useUserStore().userIconColor;
+                if (data != null) return data[1];
+                return "#003366"
+            }
+            return this.raw_color;
+        },
+        icon: function() {
+            if (this.raw_icon == "") {
+                const data = useUserStore().userIconColor;
+                if (data != null) return data[0];
+                return "fa-carrot"
+            }
+            return this.raw_icon;
+        },
         classes: function () {
             let icon = this.icon;
-            if (icon == "") {
-                const data = useUserStore().userIconColor;
-                if (data != null) icon = data[0];
-                else icon = "fa-carrot"
-            }
-            return [icon, "fas", "fa-stack-1x", "fa-inverse"]
+            let rgb = hexToRgb(this.color) || [0,0,0];
+            const color_dark = luminance(rgb[0], rgb[1], rgb[2]) < 0.5;
+            const text_class = (color_dark) ? "icon-regular":"icon-inverted";
+            return [icon, text_class, "fas", "fa-stack-1x", "fa-inverse"]
         },
         styles: function () {
             let color = this.color;
-            if (color == "") {
-                const data = useUserStore().userIconColor;
-                if (data != null) color = data[1];
-                else color = "#003366"
-            }
             return {color}
         },
     }
@@ -53,22 +78,11 @@ export default defineComponent({
   
   <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-    margin: 40px 0 0;
+.icon-inverted {
+    color:rgba(0,0,0,.7);
 }
-
-ul {
-    list-style-type: none;
-    padding: 0;
-}
-
-li {
-    display: inline-block;
-    margin: 0 10px;
-}
-
-a {
-    color: #42b983;
+.icon-regular {
+    color:white;
 }
 </style>
   
