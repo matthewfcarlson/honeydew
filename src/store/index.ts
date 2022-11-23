@@ -104,12 +104,11 @@ export const useUserStore = defineStore("user", {
                 success: true,
                 data: this._user
             }
-            const user = await QueryAPI(client.me.get.query);
-            console.log(user);
-            return {
-                success: false,
-                message: "TBI"
-            }
+            const result = await QueryAPI(client.me.get.query);
+            if (!result.success) return result;
+            // Idk why the type inference is saying this is never[]
+            this._user = result.data;
+            return result;
         },
         async getInviteLink(): APIResult<string> {
             return await QueryAPI(client.household.invite.query);
@@ -140,6 +139,7 @@ export const useUserStore = defineStore("user", {
                 const result = await axios.post("/auth/signup", post_body);
                 const data = AuthSignupResponseZ.parse(result.data);
                 this._loggedIn = true;
+                this._user = null;
                 this.fetchUser();
                 return {
                     success: true,

@@ -3,6 +3,15 @@ import IndexView from '../views/IndexView.vue';
 import SignoutView from '../views/SignoutView.vue'
 import SignupView from '../views/SignupView.vue'
 import NotFoundView from '../views/404View.vue'
+import { useUserStore } from '@/store';
+
+import 'vue-router'
+declare module 'vue-router' {
+  interface RouteMeta {
+    // if not defined, we assume auth is required
+    noAuthRequired?: boolean
+  }
+}
 
 const routes = [
   {
@@ -41,7 +50,10 @@ const routes = [
   {
     path: "/household",
     name: "Household",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/HouseholdView.vue')
+    component: () => import(/* webpackChunkName: "admin" */ '../views/HouseholdView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -53,6 +65,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+})
+
+router.beforeEach((to, from)=> {
+  if (useUserStore().isLoggedIn) {
+    return true;
+  }
+  if (to.meta.noAuthRequired == undefined) return true;
+  if (to.meta.noAuthRequired == false) return {name: '400'};
 })
 
 export default router

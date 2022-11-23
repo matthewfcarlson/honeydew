@@ -95,7 +95,7 @@ export default defineComponent({
       this.error = "";
       const result = await this.signUp(this.name, this.invite_data);
       if (result.success) {
-        this.recovery_code = result.data.recovery_key;
+        this.recovery_code = `${result.data.user_id}:${result.data.recovery_key}`;
       }
       else {
         this.error = result.message;
