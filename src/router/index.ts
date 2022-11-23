@@ -56,6 +56,30 @@ const routes = [
     }
   },
   {
+    path: "/meals",
+    name: "Meals",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/MealsView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
+  },
+  {
+    path: "/chores",
+    name: "Chores",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/ChoresView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
+  },
+  {
+    path: "/projects",
+    name: "Projects",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/ProjectsView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: '404',
     component: NotFoundView,
