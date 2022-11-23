@@ -6,7 +6,7 @@
                 <p class="panel-heading">
                     {{ household.name }}
                 </p>
-                <a class="panel-block is-active" v-for="member in household.members" :key="member.userid">
+                <a class="panel-block" v-for="member in household.members" :key="member.userid">
                     <UserIcon class="panel-icon" :color="member.color" :icon="member.icon" />
                     {{ member.name }}
                 </a>

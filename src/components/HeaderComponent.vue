@@ -18,18 +18,22 @@
                 <template v-if="isLoggedIn">
 
                     <router-link to="meals" class="navbar-item">
+                        <i class="fa-solid fa-utensils"></i>&nbsp;
                         Meals
                     </router-link>
 
                     <router-link to="chores" class="navbar-item">
+                        <i class="fa-solid fa-hand-sparkles"></i>&nbsp;
                         Chores
                     </router-link>
 
                     <router-link to="projects" class="navbar-item">
+                        <i class="fa-solid fa-hammer"></i>&nbsp;
                         Projects
                     </router-link>
                 </template>
                 <router-link to="about" class="navbar-item">
+                    <i class="fa-solid fa-circle-info"></i>&nbsp;
                     About
                 </router-link>
 

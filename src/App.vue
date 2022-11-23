@@ -50,6 +50,7 @@ nav a.router-link-exact-active {
 // Sailwind (Tailwind in SASS)
 $sailwind_sizes: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18,
   20,24, 32, 40, 42, 50, 56;
+$sailwind_weights: 100, 200, 300, 400, 500, 600, 700, 800, 900;
 $sides: 'top', 'right', 'bottom', 'left';
 @each $space in $sailwind_sizes {
   .m-#{$space} {
@@ -113,6 +114,12 @@ $sailwind_colors: (
 }
 .maxh-25vh {
   max-height:25vh;
+}
+
+@each $weight in $sailwind_weights {
+  .fw-#{$weight} {
+    font-weight: $weight !important;
+  }
 }
 // // Set your brand colors
 // $green-light: #e9edc9;
