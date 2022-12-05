@@ -1,17 +1,17 @@
 import { HoneydewPagesFunction } from "../../types";
-import Database, { HOUSEID, USERID } from "../../_db";
+import Database, { HOUSEID, UserId } from "../../_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
 
 export interface ApiHousehold {
     name:string;
     id:HOUSEID;
-    members:{userid:USERID, firstname:string, lastname:string}[];
+    members:{userid:UserId, firstname:string, lastname:string}[];
 }
 
 export interface ApiUser {
     first_name:string;
     last_name:string;
-    id:USERID;
+    id:UserId;
     household:ApiHousehold|null;
     task:any;
 }

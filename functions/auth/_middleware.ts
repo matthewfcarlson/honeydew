@@ -12,7 +12,7 @@ import { deleteCookie } from '../_utils';
  * @param {String} key - The name of the cookie we are reading from the cookie string
  * @returns {(String|null)} Returns the value of the cookie OR null if nothing was found.
  */
-function getCookie(cookieString, key) {
+function getCookie(cookieString:string, key: string) {
   if (cookieString) {
     const allCookies = cookieString.split("; ")
     const targetCookie = allCookies.find(cookie => cookie.includes(key))
@@ -24,7 +24,7 @@ function getCookie(cookieString, key) {
   return null
 }
 
-async function isValidJwt(secret: string, token: string) {
+async function isValidJwt(secret: string, token: string|null) {
 
   if (token == null) return false;
 
@@ -42,15 +42,15 @@ async function isValidJwt(secret: string, token: string) {
 export const jwtHandler: HoneydewPagesFunction = async (context) => {
   const cookieString = context.request.headers.get("Cookie");
   const secret = context.env.JWT_SECRET;
-  const token = (cookieString != null) ? getCookie(cookieString, TEMP_TOKEN) : null;
+  const token = ((cookieString != null) ? getCookie(cookieString, TEMP_TOKEN) : null);
   const isValid = await isValidJwt(secret, token)
-  context.data.jwt_raw = token;
+  context.data.jwt_raw = token || "";
   context.data.authorized = false;
   context.data.userid = null;
   context.data.user = null;
 
   if (isValid) {
-    const { payload } = jwt.decode(token);
+    const { payload } = jwt.decode(token || "");
     context.data.jwt = payload;
     context.data.userid = payload.id || null;
     return await context.next();
@@ -63,10 +63,10 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
   }
   // this system might be stupid
   // I could probably get by just fine with one cookie
-  const refresh_token = (cookieString != null) ? getCookie(cookieString, DEVICE_TOKEN) : null;
+  const refresh_token = ((cookieString != null) ? getCookie(cookieString, DEVICE_TOKEN) : null);
   const isRefreshValid = await isValidJwt(secret, refresh_token);
   if (isRefreshValid){
-    const { payload } = jwt.decode(refresh_token);
+    const { payload } = jwt.decode(refresh_token || "");
     context.data.jwt = payload;
     context.data.userid = payload.id || null;
     if (context.data.userid == null) {
@@ -112,7 +112,7 @@ export const userAuthHandler: HoneydewPagesFunction = async (context)=> {
   return await context.next();
 }
 
-export async function topLevelHandler(context) {
+export const topLevelHandler: HoneydewPagesFunction = async (context) => {
   let res = null;
   try {
     // register the console handler
@@ -138,8 +138,8 @@ export async function topLevelHandler(context) {
     console.error(thrown.stack);
   }
   finally {
-    const delta = Date.now() - context.data.timestamp;
-    res.headers.set('x-response-timing', delta);
+    const delta = (Date.now() - context.data.timestamp).toString();
+    res!.headers.set('x-response-timing', delta);
   }
   return res;
 }

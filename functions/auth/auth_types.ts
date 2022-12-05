@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { HouseIdZ, UserIdZ } from "../db_types";
 
 // TODO: move over to the database types
 
 // These are the types of the auth routes as they are not covered by trpc
 export const AuthSignupResponseZ = z.object({
-    user_id: z.string().uuid(),
+    user_id: UserIdZ,
     recovery_key: z.string().min(10),
-    household: z.string().uuid()
+    household: HouseIdZ,
 }).strict()
 export type AuthSignupResponse = z.infer<typeof AuthSignupResponseZ>;
 
@@ -19,14 +20,14 @@ export type AuthSignupRequest = z.infer<typeof AuthSignupRequestZ>;
 
 export const AuthHouseholdMemberZ = z.object({
     name: z.string().min(2),
-    userid: z.string(),
+    userid: UserIdZ,
     color: z.string().min(7),
     icon: z.string(),
 }).strict();
 export type AuthHouseholdMember = z.infer<typeof AuthHouseholdMemberZ>;
 
 export const AuthHouseholdZ = z.object({
-    id: z.string().uuid(),
+    id: HouseIdZ,
     name: z.string().min(2).max(40),
     members: z.array(AuthHouseholdMemberZ)
 }).strict();
@@ -35,7 +36,7 @@ export type AuthHousehold = z.infer<typeof AuthHouseholdZ>;
 export const AuthCheckZ = z.object({
     name: z.string().min(2).max(30),
     household: AuthHouseholdZ,
-    id: z.string().uuid(),
+    id: UserIdZ,
     task: z.any(),
     color: z.string().min(7),
     icon: z.string(),

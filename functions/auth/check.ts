@@ -1,5 +1,5 @@
 import { HoneydewPagesFunction } from "../types";
-import Database, { HOUSEID, USERID } from "../_db";
+import Database, { HOUSEID, UserId } from "../_db";
 import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
 import { AuthCheck, AuthHousehold, TEMP_TOKEN } from "./auth_types";
 

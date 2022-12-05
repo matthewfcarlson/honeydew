@@ -1,7 +1,7 @@
 
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
-import type { DbUser } from '../../data_types';
+import type { DbUser } from '../../db_types';
 import type Database from '../../_db';
 import { TRPCError } from '@trpc/server';
 import { ArrayBufferToHexString } from '../../_utils';
@@ -31,7 +31,7 @@ const GenerateInviteLink = async function (db: Database, user: DbUser | null, ur
     cause: "Household is not found",
   });
   const key = await db.HouseKeyCreate(household.id, user.id);
-  if (key == "error") throw new TRPCError({
+  if (key == null) throw new TRPCError({
     code: 'INTERNAL_SERVER_ERROR',
     cause: "Could not generate HouseKey for Invite"
   });

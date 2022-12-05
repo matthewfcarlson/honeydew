@@ -1,6 +1,3 @@
-import TelegramAPI from "./api/telegram/_telegram";
-import { HoneydewPageEnv } from "./types";
-import Database, { UUID } from "./_db";
 
 export const ResponseJsonBadRequest = (message?:string): Response => {
   const status = 400;
@@ -106,7 +103,7 @@ export function deleteCookie(response:Response, key: string) {
   response.headers.append("Set-Cookie", delHttpCookie);
 }
 const testChars = (str:string) => /^[a-f-0-9]+$/.test(str);
-export function ConvertToUUID(x:any): UUID {
+export function ConvertToUUID(x:any): string {
   if (typeof x === 'string' || x instanceof String) {
     x = x.substring(0,72).toLowerCase(); // make sure it's only 72 chars long
     if (testChars(x) == false) return '';

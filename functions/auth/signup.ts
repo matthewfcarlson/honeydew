@@ -2,26 +2,11 @@
 import jwt from '@tsndr/cloudflare-worker-jwt'
 import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
 
-import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
-import Database, { DbHousehold } from '../_db';
+import Database from '../_db';
 import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
-import { DbUser } from '../data_types';
+import { DbHousehold, DbUser, UserIdZ } from '../db_types';
 import { VerifyHouseKeyCode } from './join/[id]';
-
-function formatUserDbId(userId) {
-    return `user:${userId}`;
-}
-
-async function generateNewUserUUID(env) {
-    let userId = uuidv4();
-    let data = await env.HONEYDEW.get(formatUserDbId(userId));
-    while (data != null) {
-        userId = uuidv4();
-        data = await env.HONEYDEW.get(formatUserDbId(userId));
-    }
-    return userId
-}
 
 export async function GiveNewTemporaryCookie(env: HoneydewPageEnv, response:Response, user:DbUser) {
      // Creating a more secure token?
@@ -45,7 +30,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         data, // arbitrary space for passing data between middlewares
     } = context;
 
-    const body = await readRequestBody(request);
+    const body = await readRequestBody(request) as any;
 
     if (body == null || body["name"] == undefined) {
         return ResponseJsonMissingData("Name");
@@ -65,35 +50,43 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
 
     const db = data.db as Database;
-    const user = await db.UserCreate(name);
 
     // Check if household exists
     let house: null | DbHousehold = null;
     if (housekey_data != '') {
-        const key = await VerifyHouseKeyCode(housekey_data, db, env.JWT_SECRET);
-        if (key == false) {
-            return ResponseJsonAccessDenied();
-        }
-        house = await db.HouseholdGet(key.house);
+        // const key = await VerifyHouseKeyCode(housekey_data, db, env.JWT_SECRET);
+        // if (key == false) {
+        //     return ResponseJsonAccessDenied();
+        // }
+        // house = await db.HouseholdGet(key.house);
         if (house == null) return ResponseJsonMissingData("Bad houseid");
-        await db.UserSetHousehold(user.id, house.id, user, house);
+    }
+    else {
+        house = await db.HouseholdCreate(`${name}'s House`);
     }
 
+    if (house == null) {
+        return ResponseJsonBadRequest("We were unable to generate a house");
+    }
+
+    const user = await db.UserCreate(name, house.id);
+    if (user == null) {
+        return ResponseJsonBadRequest("We were unable to generate a user");
+    }
+    await db.UserSetHousehold(user.id, house.id, user, house);
+
+
     const secret = env.JWT_SECRET;
-    
+
     // Creating a more secure token?
     const refresh_token = await jwt.sign({
         id: user.id,
         // tokens do not expire just because why not?
     }, secret);
-    
-    if (house == null) {
-        house = await db.HouseholdCreate(`${user.name}'s House`, user.id);
-    }
-    
-    const household_id = (house != null) ? house.id : null;
+
+
     const result: AuthSignupResponse = {
-        user_id: user.id, recovery_key: user._recoverykey, household: household_id
+        user_id: user.id, recovery_key: user._recoverykey, household: house.id
     }
     const info = JSON.stringify(result, null, 2);
     const response = new Response(info, {
