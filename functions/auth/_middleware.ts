@@ -69,6 +69,13 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     const { payload } = jwt.decode(refresh_token);
     context.data.jwt = payload;
     context.data.userid = payload.id || null;
+    if (context.data.userid == null) {
+      console.error("JWT is malformed");
+      const response = await context.next();
+      deleteCookie(response, DEVICE_TOKEN);
+      // TODO: delete all cookies
+      return response;
+    }
     const db = context.data.db as Database;
     const user = await db.GetUser(context.data.userid);
     context.data.user = user;
@@ -76,6 +83,7 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
       console.error("We cannot find this user");
       const response = await context.next();
       deleteCookie(response, DEVICE_TOKEN);
+      // TODO: delete all cookies
       return response;
     }
   }
