@@ -7,8 +7,8 @@
                     {{ household.name }}
                 </p>
                 <a class="panel-block" v-for="member in household.members" :key="member.userid">
-                    <UserIcon class="panel-icon" :color="member.color" :icon="member.icon" />
-                    {{ member.name }}
+                    <UserIcon class="panel-icon" :raw_color="member.color" :raw_icon="member.icon" />
+                    <span>{{ member.name }}</span>
                 </a>
                 <div class="panel-block" v-if="invite_link.length == 0">
                     <button @click="get_invite" class="button is-success is-outlined is-fullwidth">

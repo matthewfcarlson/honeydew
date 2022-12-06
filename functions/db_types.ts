@@ -19,15 +19,16 @@ export const HouseIdZ = z.string({
     required_error: "HouseID is required",
     invalid_type_error: "HouseID must start with UI:"
 }).length(38).startsWith("H:", {message: "Must start with H:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
-
 export type HouseId = z.infer<typeof HouseIdZ>;
 
-export type DbIds = UserId | HouseId;
+export const HouseKeyIdz = z.string().length(39).startsWith("HK:", {message: "Must start with HK:"}).refine(endsWithUuid).brand();
+export type HouseKeyId = z.infer<typeof HouseKeyIdz>;
+
+export type DbIds = UserId | HouseId | HouseKeyId;
 
 export interface DbDataObj {
     id: DbIds
 }
-
 
 enum RecipeType {
     PASTA,
@@ -57,7 +58,7 @@ export type UUID = string;
 export type RECIPEID = UUID;
 export type HOUSEID = UUID;
 
-export const DbUserZ = z.object({
+export const DbUserZRaw = z.object({
     id: UserIdZ,
     name: z.string(),
     household: HouseIdZ,
@@ -65,29 +66,11 @@ export const DbUserZ = z.object({
     icon: z.string(),
     _recoverykey: z.string(),
     _chat_id: z.string().nullable(),
-}).brand()
+})
+export const DbUserZ = DbUserZRaw.brand()
+export type DbUser = z.infer<typeof DbUserZ>;
+export type DbUserRaw = z.infer<typeof DbUserZRaw>;
 
-// stored at U:{UserId}
-// TODO: move over to zod
-export interface DbUser {
-    id: UserId;
-    name: string;
-    household: HouseId|null;
-    color:string; // css color
-    icon:string; // fas string
-    _recoverykey:string; // a magic key to recovery your account
-    _chat_id: string | null;
-}
-export const DbUserKey = (id: UserId) => `U:${id}`;
-export function isDbUser(x: unknown): x is DbUser {
-    const y = (x as DbUser);
-    if (y.household === undefined) return false;
-    if (y.name === undefined) return false;
-    if (y._recoverykey === undefined) return false;
-    if (y._chat_id === undefined) return false;
-    if (y.id === undefined) return false;
-    return true;
-}
 
 export const DbHouseholdZ = z.object({
     id: HouseIdZ,
@@ -97,17 +80,11 @@ export const DbHouseholdZ = z.object({
 
 export type DbHousehold = z.infer<typeof DbHouseholdZ>;
 
-export interface DbHouseKey {
-    id: UUID;
-    house: HOUSEID;
-    generated_by: UserId;
-}
-const DbHouseKeyKey = (id: UUID) => `HK:${id}`;
-function isDbHouseKey(x: unknown): x is DbHouseKey {
-    const y = (x as DbHouseKey);
-    if (y.house === undefined) return false;
-    if (y.generated_by === undefined) return false;
-    if (y.id === undefined) return false;
-    return true;
-}
-
+export const DbHouseKeyZRaw = z.object({
+    id: HouseKeyIdz,
+    house: HouseIdZ,
+    generated_by: UserIdZ
+});
+export const DbHouseKeyZ = DbHouseKeyZRaw.brand();
+export type DbHouseKeyRaw = z.infer<typeof DbHouseKeyZRaw>;
+export type DbHouseKey = z.infer<typeof DbHouseKeyZ>;

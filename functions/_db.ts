@@ -1,7 +1,7 @@
 import TelegramAPI from "./api/telegram/_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "./_utils";
-import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbIds, DbUser, DbUserKey, HouseId, HouseIdZ, isDbUser, UserId, UserIdZ } from "./db_types";
+import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, UserId, UserIdZ } from "./db_types";
 
 const uuidv4 = () => (crypto as any).randomUUID();
 
@@ -35,10 +35,16 @@ export default class Database {
         await this._kv.put(x.id, JSON.stringify(x), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
     }
 
-    async GetUser(id: UserId) {
-        const results = await this.queryDBJson(id);
-        if (results == null || !isDbUser(results)) return null;
-        return results;
+    private async deleteKey(key: DbIds) {
+        await this._kv.delete(key);
+    }
+
+    async GetUser(id: UserId) : Promise<DbUser | null>{
+        const raw = await this.queryDBJson(id);
+        if (raw == null ) return null;
+        const results = DbUserZ.safeParse(raw);
+        if (results.success == false) return null;
+        return results.data;
     }
 
     async UserExists(id: UserId) {
@@ -76,7 +82,7 @@ export default class Database {
         // base-64 of crypto.getRandomValues()?
         const recovery_key = uuidv4(); // https://neilmadden.blog/2018/08/30/moving-away-from-uuids/
         if (await this.UserExists(id)) return null;
-        const user: DbUser = {
+        const user: DbUserRaw ={
             name,
             id,
             household: household,
@@ -84,8 +90,9 @@ export default class Database {
             icon,
             _recoverykey: recovery_key,
             _chat_id: null
-        }
-        await this.setDBJson(user);
+        };
+        const db_user = DbUserZ.parse(user);
+        await this.setDBJson(db_user);
         return user;
     }
 
@@ -166,32 +173,41 @@ export default class Database {
         }
     }
 
-    async HouseKeyExists(id: string) {
-        // const key = DbHouseKeyKey(id);
-        // const existing = await this.queryDBRaw(key);
-        // if (existing != null) return true;
+    async HouseKeyExists(id: HouseKeyId) {
+        const existing = await this.queryDBRaw(id);
+        if (existing != null) return true;
         return false;
     }
 
     async HouseKeyCreate(house: HouseId, creator: UserId) : Promise<DbHouseKey | null> {
-        // const id = uuidv4();
-        // if (await this.HouseKeyExists(id)) return "error";
-        // const housekey: DbHouseKey = {
-        //     id,
-        //     house,
-        //     generated_by: creator
-        // }
-        // await this.setDBJson(housekey);
-        // return housekey;
+        try{
+            const id = HouseKeyIdz.parse("HK:"+uuidv4());
+            if (await this.HouseKeyExists(id)) return null;
+            const raw: DbHouseKeyRaw = {
+                id,
+                house,
+                generated_by: creator
+            }
+            const housekey = DbHouseKeyZ.parse(raw);
+            await this.setDBJson(housekey);
+            return housekey;
+        }
+        catch (err) {
+            console.error(err);
+        }
         return null;
     }
 
-    async HouseKeyGet(id: HouseId) {
-        // const key = DbHouseKeyKey(id);
-        // const results = await this.queryDBJson(key);
-        // if (results == null || !isDbHouseKey(results)) return null;
-        // return results;
+    async HouseKeyGet(id: HouseKeyId) {
+        const raw = await this.queryDBJson(id);
+        if (raw == null) return null;
+        const results = DbHouseKeyZ.safeParse(raw);
+        if (results.success) return results.data;
         return null;
+    }
+
+    async HouseKeyDelete(id: HouseKeyId) {
+        await this.deleteKey(id);
     }
 
 }

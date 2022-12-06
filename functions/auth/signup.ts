@@ -5,7 +5,7 @@ import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied,
 import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
 import Database from '../_db';
 import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
-import { DbHousehold, DbUser, UserIdZ } from '../db_types';
+import { DbHousehold, DbUser } from '../db_types';
 import { VerifyHouseKeyCode } from './join/[id]';
 
 export async function GiveNewTemporaryCookie(env: HoneydewPageEnv, response:Response, user:DbUser) {
@@ -54,12 +54,14 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     // Check if household exists
     let house: null | DbHousehold = null;
     if (housekey_data != '') {
-        // const key = await VerifyHouseKeyCode(housekey_data, db, env.JWT_SECRET);
-        // if (key == false) {
-        //     return ResponseJsonAccessDenied();
-        // }
-        // house = await db.HouseholdGet(key.house);
+        const key = await VerifyHouseKeyCode(housekey_data, db, env.JWT_SECRET);
+        if (key == false || key == null) {
+            return ResponseJsonAccessDenied();
+        }
+        house = await db.HouseholdGet(key.house);
         if (house == null) return ResponseJsonMissingData("Bad houseid");
+        // delete this key so it can't be used again
+        await db.HouseKeyDelete(key.id);
     }
     else {
         house = await db.HouseholdCreate(`${name}'s House`);

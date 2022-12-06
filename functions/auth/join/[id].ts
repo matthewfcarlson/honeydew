@@ -1,3 +1,4 @@
+import { HouseKeyIdz } from "../../db_types";
 import { HoneydewPagesFunction } from "../../types";
 import Database, { HOUSEID, UserId } from "../../_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
@@ -17,7 +18,7 @@ export interface ApiUser {
 }
 
 export async function VerifyHouseKeyCode(id:string, db:Database, secret_key:string) {
-    const parts = id.split(":");
+    const parts = id.split("_");
     if (parts.length != 2) {
         console.error("VerifyHouseKeyCode BAD SPLIT", parts);
         return false;
@@ -29,19 +30,26 @@ export async function VerifyHouseKeyCode(id:string, db:Database, secret_key:stri
     const hash_data = new TextEncoder().encode(key_id+secret_key);
     const hash_digest = await crypto.subtle.digest("SHA-256", hash_data);
     const hash_text = ArrayBufferToHexString(hash_digest).substring(0,16);
+
+    const house_key_data = HouseKeyIdz.safeParse(key_id);
+    if (house_key_data.success == false) {
+        console.error("VerifyHouseKeyCode key is not valid");
+        return false;
+    }
+    const house_key_id = house_key_data.data;
     // TODO: check if key-id is in fact a UUID
     if (hash_text != key_sha) {
-        console.error("Housekey join: SHA does not match")
+        console.error("VerifyHouseKeyCode: SHA does not match")
         return false;
     }
 
     // TODO: check sha as well
     // TODO: don't respond right away to prevent timing attacks
-    if (await db.HouseKeyExists(key_id) == false) {
-        console.error("Housekey does not exist: "+key_id);
+    if (await db.HouseKeyExists(house_key_id) == false) {
+        console.error("VerifyHouseKeyCode, key does not exist: "+house_key_id);
         return false;
     }
-    const key = await db.HouseKeyGet(key_id);
+    const key = await db.HouseKeyGet(house_key_id);
 
     return key;
 }
@@ -62,7 +70,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     const key = await VerifyHouseKeyCode(id, db, context.env.JWT_SECRET);
 
-    if (key == false) {
+    if (key == false || key == null) {
         console.error("Join household, key is bad");
         return ResponseJsonAccessDenied();
     }

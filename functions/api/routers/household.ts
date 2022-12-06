@@ -39,7 +39,7 @@ const GenerateInviteLink = async function (db: Database, user: DbUser | null, ur
   const hash_data = new TextEncoder().encode(key.id+secret_key);
   const hash_digest = await crypto.subtle.digest("SHA-256", hash_data);
   const hash_text = ArrayBufferToHexString(hash_digest).substring(0,16);
-  const full_key = `${key.id}:${hash_text}`
+  const full_key = `${key.id}_${hash_text}`
   const base_url = url.host;
   return `https://${base_url}/auth/join/${full_key}`
 }
