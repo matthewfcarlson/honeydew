@@ -1,11 +1,13 @@
-import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonBadRequest, ResponseJsonMissingData } from "../../_utils";
+import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonOk } from "../../_utils";
 import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from "../../types";
+import Database from "../../_db";
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const ta = new TelegramAPI(context.env.TELEGRAM);
     const body = await readRequestBody(context.request);
+    const db = context.data.db as Database;
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
     if (secret == null || secret == "") {
         return ResponseJsonMissingData("Telegram Token");
@@ -22,16 +24,15 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     if (isTelegramUpdateMessage(body)) {
         const x = body;
         await context.env.HONEYDEW.put("telegram_message", JSON.stringify(x));
-        if (x.message == undefined || x.message == null) return;
-        if (x.message.from == undefined || x.message.from == null) return;
-        //if (x.message.from.is_bot) return;
+        if (x.message == undefined || x.message == null) return ResponseJsonBadRequest("message is null");
+        if (x.message.from == undefined || x.message.from == null) return ResponseJsonBadRequest("message from is null");
         const to = x.message.from.first_name;
         const chat = x.message.chat;
         const text = x.message.text || "Unknown text"
         const task = (uuidv4().toString() as string);
         const uuid = (uuidv4().toString() as string).substring(0, 64);
         const response = `Reply to ${to} : "${text}". Task ${task}. UUID ${uuid}`
-        if (chat.title != null) return;
+        if (chat.title != null) return ResponseJsonBadRequest("chat title is null");
         console.log(response, chat.title || `Chat:${chat.id}`);
         const keyboard: TelegramInlineKeyboardMarkup = {
             inline_keyboard: [[
@@ -59,6 +60,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         else {
             console.error("Telegram Update Message", "message is null");
         }
+        return ResponseJsonOk()
     }
     if (isTelegramUpdateCallbackQuery(body)) {
         const message = body;
@@ -68,7 +70,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
             const key = `inlinereply:${uuid}`;
             const value = await context.env.HONEYDEW.get(key)
             console.error("querying", key);
-            const kv_data = JSON.parse(value);
+            const kv_data = JSON.parse(value || "");
             if (kv_data != null) {
                 const results = await Promise.all([
                     ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id),
@@ -83,5 +85,5 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         }
     }
 
-    return new Response("OK");
+    return ResponseJsonOk();
 }

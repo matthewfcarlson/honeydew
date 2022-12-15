@@ -123,11 +123,11 @@ function isTelegramUpdate(x: unknown): x is TelegramUpdate {
     if ((x as TelegramUpdate).update_id === undefined) return false;
     return true;
 }
-export function isTelegramUpdateMessage(x: TelegramUpdate): x is TelegramUpdateMessage {
+export function isTelegramUpdateMessage(x: unknown): x is TelegramUpdateMessage {
     if ((x as TelegramUpdateMessage).message === undefined) return false;
     return true;
 }
-export function isTelegramUpdateCallbackQuery(x: TelegramUpdate): x is TelegramUpdateCallbackQuery {
+export function isTelegramUpdateCallbackQuery(x: unknown): x is TelegramUpdateCallbackQuery {
     if ((x as TelegramUpdateCallbackQuery).callback_query === undefined) return false;
     return true;
 }

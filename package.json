@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "dev": "npx wrangler pages dev -k HONEYDEW -- npm run serve"
+    "dev": "npx wrangler pages dev -k HONEYDEW --d1 HONEYDEWSQL --persist -- npm run serve"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^3.18.0",
@@ -30,6 +30,7 @@
     "@vue/cli-service": "~5.0.0",
     "@vue/eslint-config-typescript": "^9.1.0",
     "axios": "^1.1.3",
+    "better-sqlite3": "^7.6.2",
     "bulma": "^0.9.4",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
@@ -40,7 +41,7 @@
     "typescript": "~4.5.5",
     "vue": "^3.2.13",
     "vue-router": "^4.1.6",
-    "wrangler": "^2.1.13"
+    "wrangler": "^2.6.2"
   },
   "eslintConfig": {
     "root": true,

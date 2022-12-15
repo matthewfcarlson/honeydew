@@ -6,9 +6,11 @@ import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHous
 const uuidv4 = () => (crypto as any).randomUUID();
 
 export default class Database {
+    private _db: D1Database;
     private _kv: KVNamespace;
     private _t: TelegramAPI;
-    constructor(kv: KVNamespace, telegram: TelegramAPI) {
+    constructor(kv: KVNamespace, telegram: TelegramAPI, db: D1Database) {
+        this._db = db;
         this._kv = kv;
         this._t = telegram;
     }

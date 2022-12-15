@@ -126,7 +126,7 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
     // Put the KV ORM layer into context data
-    context.data.db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM));
+    context.data.db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
     // pass to the next handler
     res = await context.next();
   }

@@ -61,6 +61,12 @@ export const ResponseJsonMethodNotAllowed = (): Response => {
   }), { status: 405 });
 };
 
+export const ResponseJsonOk = () : Response => {
+  return new Response(JSON.stringify({
+    message: "ok"
+  }), {status:200})
+}
+
 /**
  * readRequestBody reads in the incoming request body
  * Use await readRequestBody(..) in an async function to get the string
