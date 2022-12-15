@@ -1,26 +1,12 @@
 import TelegramAPI from "../functions/api/telegram/_telegram";
 import Database from "../functions/_db";
-const { HONEYDEW } = getMiniflareBindings();
+const { HONEYDEW, HONEYDEWSQL } = getMiniflareBindings();
 
-class MockedSQL implements D1Database {
-    prepare(query: string): D1PreparedStatement {
-        throw new Error("Method not implemented.");
-    }
-    dump(): Promise<ArrayBuffer> {
-        throw new Error("Method not implemented.");
-    }
-    batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]> {
-        throw new Error("Method not implemented.");
-    }
-    exec<T = unknown>(query: string): Promise<D1Result<T>> {
-        throw new Error("Method not implemented.");
-    }
-}
 
 function createDB() {
     const telegram = new TelegramAPI("TESTING");
     const kv = HONEYDEW as KVNamespace;
-    const db = new Database(kv, telegram, new MockedSQL())
+    const db = new Database(kv, telegram, HONEYDEWSQL)
     return db;
 }
 

@@ -11,11 +11,12 @@ module.exports = {
   testRegex: '/tests/.*\\.(test|spec)?\\.(ts|tsx)$',
   collectCoverageFrom: [
     "functions/*.ts",
-    "src/*.ts"
+    // "src/*.ts"
   ],
   testEnvironmentOptions: {
     bindings: { KEY: "value" },
     kvNamespaces: ["HONEYDEW"],
+    d1Namespaces: ["HONEYDEWSQL"],
     modules: true,
   },
 };
