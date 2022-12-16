@@ -1,6 +1,6 @@
 import { JwtPayload } from "@tsndr/cloudflare-worker-jwt";
 import { DbUser, UserId } from "./db_types";
-import type Database from "./_db";
+import type Database from "./database/_db";
 
 // These are the types used by every honeydew page function
 

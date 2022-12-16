@@ -1,6 +1,6 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
 import { HoneydewPagesFunction } from '../types';
-import Database from '../_db';
+import Database from '../database/_db';
 import TelegramAPI from '../api/telegram/_telegram';
 import { DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
 import { GiveNewTemporaryCookie } from './signup';

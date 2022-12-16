@@ -3,7 +3,7 @@ import jwt from '@tsndr/cloudflare-worker-jwt'
 import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
 
 import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
-import Database from '../_db';
+import Database from '../database/_db';
 import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
 import { DbHousehold, DbUser } from '../db_types';
 import { VerifyHouseKeyCode } from './join/[id]';

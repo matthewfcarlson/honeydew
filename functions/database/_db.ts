@@ -1,18 +1,59 @@
-import TelegramAPI from "./api/telegram/_telegram";
+import TelegramAPI from "../api/telegram/_telegram";
 import { z } from "zod";
-import { pickRandomUserIconAndColor } from "./_utils";
-import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, UserId, UserIdZ } from "./db_types";
+import { pickRandomUserIconAndColor } from "../_utils";
+import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, UserId, UserIdZ } from "../db_types";
+import { Kysely, Migrator } from 'kysely';
+import { D1Dialect } from 'kysely-d1';
+import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
+
+interface DataBaseData {
+    users: DbUser,
+    households: DbHousehold
+}
 
 const uuidv4 = () => (crypto as any).randomUUID();
 
 export default class Database {
-    private _db: D1Database;
+    private _sql: D1Database;
     private _kv: KVNamespace;
     private _t: TelegramAPI;
+    private _models;
+    private _db;
     constructor(kv: KVNamespace, telegram: TelegramAPI, db: D1Database) {
-        this._db = db;
+        this._sql = db;
         this._kv = kv;
         this._t = telegram;
+        this._models = {};
+        this.CheckOnSQL();
+        this._db = new Kysely<DataBaseData>({ dialect: new D1Dialect({ database: db }) });
+    }
+
+    // This will do a drop and create if needed
+    public async CheckOnSQL() {
+        const db_version = await this._kv.get("SQLDB_VERSION");
+        if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version || "");
+    }
+
+    private async migrateDatabase(version: string) {
+        console.warn("Trying to migrate database");
+        // We should figure out the latest version we are on and then go up
+        // For now, we just go through them all
+        try {
+            const starting = Number(version);
+            if (starting >= HoneydewMigrations.length) {
+                const migration = HoneydewMigrations[HoneydewMigrations.length - 1];
+                if (migration.down) migration.down(this._db);
+            }
+            else {
+                for (let i = starting; i < HoneydewMigrations.length; i += 1) {
+                    await HoneydewMigrations[i].up(this._db);
+                }
+            }
+            await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion, { expirationTtl: 60 * 60 * 6 }); // we refresh the database every 6 hours
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
     private async queryDBRaw(key: DbIds) {
@@ -41,9 +82,9 @@ export default class Database {
         await this._kv.delete(key);
     }
 
-    async GetUser(id: UserId) : Promise<DbUser | null>{
+    async GetUser(id: UserId): Promise<DbUser | null> {
         const raw = await this.queryDBJson(id);
-        if (raw == null ) return null;
+        if (raw == null) return null;
         const results = DbUserZ.safeParse(raw);
         if (results.success == false) return null;
         return results.data;
@@ -56,12 +97,12 @@ export default class Database {
     }
 
     async generateNewUserUUID() {
-        let userId: UserId|null = null;
+        let userId: UserId | null = null;
         let count = 0;
         while (count < 50) {
             count += 1;
-            const attempted_id = UserIdZ.safeParse("U:"+uuidv4());
-            if (attempted_id.success == false){
+            const attempted_id = UserIdZ.safeParse("U:" + uuidv4());
+            if (attempted_id.success == false) {
                 continue;
             }
             userId = attempted_id.data;
@@ -84,7 +125,7 @@ export default class Database {
         // base-64 of crypto.getRandomValues()?
         const recovery_key = uuidv4(); // https://neilmadden.blog/2018/08/30/moving-away-from-uuids/
         if (await this.UserExists(id)) return null;
-        const user: DbUserRaw ={
+        const user: DbUserRaw = {
             name,
             id,
             household: household,
@@ -95,6 +136,8 @@ export default class Database {
         };
         const db_user = DbUserZ.parse(user);
         await this.setDBJson(db_user);
+        const result = await this._db.insertInto("users").values(db_user).execute();
+        console.log(result);
         return user;
     }
 
@@ -151,8 +194,8 @@ export default class Database {
     }
 
     async HouseholdCreate(name: string, creator?: UserId) {
-        try{
-            const id = HouseIdZ.parse("H:"+uuidv4());
+        try {
+            const id = HouseIdZ.parse("H:" + uuidv4());
             if (await this.HouseholdExists(id)) {
                 console.error("Unable to generate house id");
                 return null;
@@ -181,9 +224,9 @@ export default class Database {
         return false;
     }
 
-    async HouseKeyCreate(house: HouseId, creator: UserId) : Promise<DbHouseKey | null> {
-        try{
-            const id = HouseKeyIdz.parse("HK:"+uuidv4());
+    async HouseKeyCreate(house: HouseId, creator: UserId): Promise<DbHouseKey | null> {
+        try {
+            const id = HouseKeyIdz.parse("HK:" + uuidv4());
             if (await this.HouseKeyExists(id)) return null;
             const raw: DbHouseKeyRaw = {
                 id,

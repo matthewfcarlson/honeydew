@@ -60,11 +60,12 @@ export type HOUSEID = UUID;
 
 export const DbUserZRaw = z.object({
     id: UserIdZ,
-    name: z.string(),
+    name: z.string().max(255),
     household: HouseIdZ,
     color: z.string().length(7), // css color
-    icon: z.string(),
-    _recoverykey: z.string(),
+    icon: z.string().max(40),
+    _created_at: z.string().optional(),
+    _recoverykey: z.string().max(255),
     _chat_id: z.string().nullable(),
 })
 export const DbUserZ = DbUserZRaw.brand()
@@ -74,7 +75,7 @@ export type DbUserRaw = z.infer<typeof DbUserZRaw>;
 
 export const DbHouseholdZ = z.object({
     id: HouseIdZ,
-    name: z.string(),
+    name: z.string().max(255),
     members: z.array(UserIdZ)
 }).brand();
 

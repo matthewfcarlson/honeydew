@@ -2,7 +2,7 @@ import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, Re
 import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from "../../types";
-import Database from "../../_db";
+import Database from "../../database/_db";
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const ta = new TelegramAPI(context.env.TELEGRAM);

@@ -2,7 +2,7 @@
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import type { DbUser } from '../../db_types';
-import type Database from '../../_db';
+import type Database from '../../database/_db';
 import { TRPCError } from '@trpc/server';
 import { ArrayBufferToHexString } from '../../_utils';
 
