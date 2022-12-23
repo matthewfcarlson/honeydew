@@ -1,12 +1,12 @@
 import TelegramAPI from "../functions/api/telegram/_telegram";
-import Database from "../functions/_db";
-const { HONEYDEW, HONEYDEWSQL } = getMiniflareBindings();
+import Database from "../functions/database/_db";
+const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 
 function createDB() {
     const telegram = new TelegramAPI("TESTING");
     const kv = HONEYDEW as KVNamespace;
-    const db = new Database(kv, telegram, HONEYDEWSQL)
+    const db = new Database(kv, telegram, __D1_BETA__HONEYDEWSQL)
     return db;
 }
 

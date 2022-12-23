@@ -16,7 +16,7 @@ module.exports = {
   testEnvironmentOptions: {
     bindings: { KEY: "value" },
     kvNamespaces: ["HONEYDEW"],
-    d1Namespaces: ["HONEYDEWSQL"],
+    d1Databases: ["__D1_BETA__HONEYDEWSQL"],
     modules: true,
   },
 };

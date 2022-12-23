@@ -5,7 +5,7 @@
       <p class="subtitle">Create a new account</p>
     </section>
     <section class="section" v-else>
-      <p class="title">Welcome, {{userName}}!</p>
+      <p class="title">Welcome, {{ userName }}!</p>
       <p class="subtitle">To Honeydew</p>
     </section>
     <section class="hero">
@@ -20,28 +20,31 @@
         <a href="/">Go Home</a>
       </div>
       <div v-else-if="isLoggedIn == false">
-        <div class="field m-3">
-          <label class="label">Your Name</label>
-          <div class="field-body">
-            <div class="field has-addons">
-              <div class="control has-icons-left is-expanded">
-                <input :disabled="thinking" type="text" v-model="name" placeholder="Your name" class="input" />
-                <span class="icon is-small is-left">
-                  <i class="fa-regular fa-user"></i>
-                </span>
-              </div>
-              <div class="control">
-                <a disabled v-if="thinking" class="button is-primary">
-                  Thinking
-                </a>
-                <a v-else @click="press_signup" class="button is-primary">
-                  Create
-                </a>
+        <form>
+          <div class="field m-3">
+            <label class="label">Your Name</label>
+            <div class="field-body">
+              <div class="field has-addons">
+                <div class="control has-icons-left is-expanded">
+                  <input :disabled="thinking" type="text" v-model="name" placeholder="Your name" class="input" />
+                  <span class="icon is-small is-left">
+                    <i class="fa-regular fa-user"></i>
+                  </span>
+                </div>
+                <div class="control">
+                  <a disabled v-if="thinking" class="button is-primary">
+                    Thinking
+                  </a>
+                  <a v-else @click="press_signup" class="button is-primary">
+                    Create
+                  </a>
+                </div>
               </div>
             </div>
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAAABtOYbnvjMckFhC"></div>
+            <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
           </div>
-          <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
-        </div>
+        </form>
         <div v-if="invite_data.length == 0">
           <p>We'll create a new household for you that can invite as many people as you'd like.</p>
         </div>
