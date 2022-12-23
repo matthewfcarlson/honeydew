@@ -1,7 +1,6 @@
 import { HoneydewPagesFunction } from "../types";
 import Database from "../database/_db";
-import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound, ResponseJsonOk } from "../_utils";
-import { AuthCheck, AuthHousehold, TEMP_TOKEN } from "./auth_types";
+import { ResponseJsonOk } from "../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
 

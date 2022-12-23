@@ -11,6 +11,7 @@ export type HoneydewPageEnv = {
   PRODUCTION:"true"|"false"; // whether we are in production or not
   HONEYDEW: KVNamespace;
   HONEYDEWSQL: D1Database;
+  TURNSTILE: string; // the turnstile secret
 }
 
 export type HoneydewPageData = {

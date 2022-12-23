@@ -51,6 +51,27 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
 
     const db = data.db as Database;
 
+    if (env.PRODUCTION) {
+        // If we're in production, check with turnstile
+        const turnstile = body['turnstile'] || '';
+        if (turnstile == '') return ResponseJsonMissingData('Turnstile response');
+        const ip = request.headers.get('CF-Connecting-IP') || '';
+        const formData = new FormData();
+        formData.append('secret', env.TURNSTILE);
+        formData.append('remoteip', ip);
+        formData.append('response', turnstile);
+        const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+        const result = await fetch(url, {
+            body: formData,
+            method: 'POST',
+        });
+    
+        const outcome = await result.json() as any;
+        if (outcome == null || outcome.success == false) {
+            return ResponseJsonAccessDenied();
+        }
+    }
+
     // Check if household exists
     let house: null | DbHousehold = null;
     if (housekey_data != '') {
