@@ -1,6 +1,5 @@
 import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonOk } from "../../_utils";
 import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
-import { v4 as uuidv4 } from 'uuid';
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
 
@@ -29,8 +28,8 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         const to = x.message.from.first_name;
         const chat = x.message.chat;
         const text = x.message.text || "Unknown text"
-        const task = (uuidv4().toString() as string);
-        const uuid = (uuidv4().toString() as string).substring(0, 64);
+        const task = "testing"; //(uuidv4().toString() as string);
+        const uuid = "uid"; //(uuidv4().toString() as string).substring(0, 64);
         const response = `Reply to ${to} : "${text}". Task ${task}. UUID ${uuid}`
         if (chat.title != null) return ResponseJsonBadRequest("chat title is null");
         console.log(response, chat.title || `Chat:${chat.id}`);
