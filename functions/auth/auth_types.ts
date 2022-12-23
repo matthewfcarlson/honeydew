@@ -15,6 +15,7 @@ export type AuthSignupResponse = z.infer<typeof AuthSignupResponseZ>;
 export const AuthSignupRequestZ = z.object({
     name: z.string().min(2).max(30),
     key: z.string().optional(),
+    turnstile: z.string().optional(),
 }).strict()
 export type AuthSignupRequest = z.infer<typeof AuthSignupRequestZ>;
 

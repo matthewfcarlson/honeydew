@@ -129,10 +129,11 @@ export const useUserStore = defineStore("user", {
                 }
             }
         },
-        async signUp(name: string, key?: string): APIResult<AuthSignupResponse> {
+        async signUp(name: string, key?: string, turnstile:string = ""): APIResult<AuthSignupResponse> {
             const raw_body: AuthSignupRequest = {
                 name,
                 key,
+                turnstile
             }
             try {
                 const post_body = AuthSignupRequestZ.parse(raw_body);

@@ -51,9 +51,9 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
 
     const db = data.db as Database;
 
-    if (env.PRODUCTION) {
+    if (env.PRODUCTION == 'true') {
         // If we're in production, check with turnstile
-        const turnstile = body['cf-turnstile-response'] || '';
+        const turnstile = body['turnstile'] || '';
         if (turnstile == '') return ResponseJsonMissingData('Turnstile response');
         const ip = request.headers.get('CF-Connecting-IP') || '';
         const formData = new FormData();
@@ -68,6 +68,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     
         const outcome = await result.json() as any;
         if (outcome == null || outcome.success == false) {
+            console.error("Failed to request cloudflare")
             return ResponseJsonAccessDenied();
         }
     }

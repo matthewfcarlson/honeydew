@@ -43,7 +43,10 @@
             </div>
             <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
           </div>
-          <div class="cf-turnstile" data-sitekey="0x4AAAAAAABtOYbnvjMckFhC"></div>
+          <cfturnstile
+            :sitekey="turnstile_sitekey"
+            @verify="turnstile_verify"
+          />
         </form>
         <div v-if="invite_data.length == 0">
           <p>We'll create a new household for you that can invite as many people as you'd like.</p>
@@ -67,9 +70,13 @@
 import { useUserStore } from "@/store";
 import { mapActions, mapState } from "pinia";
 import { defineComponent } from 'vue';
+import Turnstile from 'cfturnstile-vue3';
 
 export default defineComponent({
   name: 'SignupView',
+  components: {
+    "cfturnstile": Turnstile
+  },
   data() {
     return {
       name: "",
@@ -77,6 +84,8 @@ export default defineComponent({
       invite_data: new URLSearchParams(window.location.search).get('k') || '',
       thinking: false,
       recovery_code: "",
+      turnstile_sitekey: "0x4AAAAAAABtOYbnvjMckFhC",
+      turnstile_response: '',
     }
 
   },
@@ -85,6 +94,9 @@ export default defineComponent({
   },
   methods: {
     ...mapActions(useUserStore, ["signUp"]),
+    turnstile_verify: function (token:string) {
+      this.turnstile_response = token;
+    },
     copyRecoveryCode: async function () {
       try {
         await navigator.clipboard.writeText(this.recovery_code);
@@ -100,16 +112,14 @@ export default defineComponent({
       }
       this.thinking = true;
       this.error = "";
-      const formData = new FormData(this.$refs["signup-form"] as any);
-      console.log(formData);
-      // const result = await this.signUp(this.name, this.invite_data);
-      // if (result.success) {
-      //   this.recovery_code = `${result.data.user_id}:${result.data.recovery_key}`;
-      // }
-      // else {
-      //   this.error = result.message;
-      // }
-      // this.thinking = false;
+      const result = await this.signUp(this.name, this.invite_data, this.turnstile_response);
+      if (result.success) {
+        this.recovery_code = `${result.data.user_id}:${result.data.recovery_key}`;
+      }
+      else {
+        this.error = result.message;
+      }
+      this.thinking = false;
     },
   }
 
