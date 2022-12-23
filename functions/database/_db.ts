@@ -12,6 +12,7 @@ interface DataBaseData {
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
+const timer = (ms:number) => new Promise( res => setTimeout(res, ms));
 
 export default class Database {
     private _sql: D1Database;
@@ -24,20 +25,23 @@ export default class Database {
         this._kv = kv;
         this._t = telegram;
         this._models = {};
-        this.CheckOnSQL();
         this._db = new Kysely<DataBaseData>({ dialect: new D1Dialect({ database: db }) });
     }
 
     // This will do a drop and create if needed
     public async CheckOnSQL() {
-        const db_version = await this._kv.get("SQLDB_VERSION");
-        if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version || "");
+        const db_version = Number(await this._kv.get("SQLDB_VERSION") || "0");
+        if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version);
     }
 
-    private async migrateDatabase(version: string) {
-        console.warn("Trying to migrate database");
-        // We should figure out the latest version we are on and then go up
-        // For now, we just go through them all
+    private async migrateDatabase(version: number) {
+        const migration_lock = await this._kv.get("SQLDB_MIGRATIONLOCK");
+        if (migration_lock != null) {
+            console.error("Migration is already in progress");
+            return;
+        }
+        // TODO: move to a lock within sqlite?
+        const promise = this._kv.put("SQLDB_MIGRATIONLOCK", "locked", { expirationTtl: 60 * 60 }); // this expires every hour
         try {
             const starting = Number(version);
             if (starting >= HoneydewMigrations.length) {
@@ -49,11 +53,14 @@ export default class Database {
                     await HoneydewMigrations[i].up(this._db);
                 }
             }
-            await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion, { expirationTtl: 60 * 60 * 6 }); // we refresh the database every 6 hours
+            await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion.toString(), { expirationTtl: 60 * 60 * 6 }); // we refresh the database every 6 hours
+            console.log("Upgraded DB to version " + LatestHoneydewDBVersion)
         }
         catch (err) {
             console.error(err);
         }
+        await promise;
+        await this._kv.delete("SQLDB_MIGRATIONLOCK");
     }
 
     private async queryDBRaw(key: DbIds) {
@@ -136,38 +143,45 @@ export default class Database {
         };
         const db_user = DbUserZ.parse(user);
         await this.setDBJson(db_user);
-        const result = await this._db.insertInto("users").values(db_user).execute();
-        console.log(result);
+        await this._db.insertInto("users").values(db_user).execute();
+        //console.log(result);
         return user;
     }
 
-    async UserSetHousehold(id: UserId, household: HouseId, user?: DbUser | null, house?: DbHousehold | null) {
+    async UserSetHousehold(user_id: UserId, household_id: HouseId, user?: DbUser | null, house?: DbHousehold | null): Promise<boolean> {
         if (user == null || user == undefined) {
-            user = await this.GetUser(id);
+            user = await this.GetUser(user_id);
         }
         if (user == null) {
-            console.error("Could not find this USER", id);
+            console.error("Could not find this USER", user_id);
             return false;
+        }
+        // If the user is already assigned to this house, don't bother
+        if (user.household == household_id) {
+            console
+            return true;
         }
         if (user.household != null) {
-            console.error("UserSetHousehold", "need to implement joining a new household")
-        }
-        if (house == null && await this.HouseholdExists(household) == false) {
+            console.error("UserSetHousehold", "need to implement joining a new household");
             return false;
         }
-        user.household = household;
-        const promises = [this.setDBJson(user),];
+        if (house == null && await this.HouseholdExists(household_id) == false) {
+            return false;
+        }
 
         if (house == null || house == undefined) {
-            house = await this.HouseholdGet(household);
+            house = await this.HouseholdGet(household_id);
         }
         if (house == null) {
-            console.error("Could not find this house", household);
+            console.error("Could not find this house", household_id);
             return false;
         }
+        // Set the user's household
+        user.household = household_id;
+        const promises = [this.setDBJson(user),];
         // make sure there is only one of the user, add it to list of members
-        if (house.members.indexOf(id) == -1) {
-            house.members.push(id);
+        if (house.members.indexOf(user_id) == -1) {
+            house.members.push(user_id);
             promises.push(this.setDBJson(house));
         }
 

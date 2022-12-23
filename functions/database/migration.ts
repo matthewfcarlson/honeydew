@@ -20,4 +20,4 @@ const HoneydewVersion1 = {
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1
 ]
-export const LatestHoneydewDBVersion = HoneydewMigrations.length.toString();
+export const LatestHoneydewDBVersion = HoneydewMigrations.length;
