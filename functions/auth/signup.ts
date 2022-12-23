@@ -53,7 +53,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
 
     if (env.PRODUCTION) {
         // If we're in production, check with turnstile
-        const turnstile = body['turnstile'] || '';
+        const turnstile = body['cf-turnstile-response'] || '';
         if (turnstile == '') return ResponseJsonMissingData('Turnstile response');
         const ip = request.headers.get('CF-Connecting-IP') || '';
         const formData = new FormData();

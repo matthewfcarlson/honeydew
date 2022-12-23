@@ -20,13 +20,13 @@
         <a href="/">Go Home</a>
       </div>
       <div v-else-if="isLoggedIn == false">
-        <form>
+        <form ref="signup-form">
           <div class="field m-3">
             <label class="label">Your Name</label>
             <div class="field-body">
               <div class="field has-addons">
                 <div class="control has-icons-left is-expanded">
-                  <input :disabled="thinking" type="text" v-model="name" placeholder="Your name" class="input" />
+                  <input :disabled="thinking" type="text" name="name" v-model="name" placeholder="Your name" class="input" />
                   <span class="icon is-small is-left">
                     <i class="fa-regular fa-user"></i>
                   </span>
@@ -41,9 +41,9 @@
                 </div>
               </div>
             </div>
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAAABtOYbnvjMckFhC"></div>
             <p class="help is-danger" v-if="error.length != 0">{{ error }}</p>
           </div>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAABtOYbnvjMckFhC"></div>
         </form>
         <div v-if="invite_data.length == 0">
           <p>We'll create a new household for you that can invite as many people as you'd like.</p>
@@ -94,16 +94,22 @@ export default defineComponent({
       }
     },
     press_signup: async function () {
+      if (this.$refs["signup-form"] == undefined) {
+        this.error="Unable to find form";
+        return;
+      }
       this.thinking = true;
       this.error = "";
-      const result = await this.signUp(this.name, this.invite_data);
-      if (result.success) {
-        this.recovery_code = `${result.data.user_id}:${result.data.recovery_key}`;
-      }
-      else {
-        this.error = result.message;
-      }
-      this.thinking = false;
+      const formData = new FormData(this.$refs["signup-form"] as any);
+      console.log(formData);
+      // const result = await this.signUp(this.name, this.invite_data);
+      // if (result.success) {
+      //   this.recovery_code = `${result.data.user_id}:${result.data.recovery_key}`;
+      // }
+      // else {
+      //   this.error = result.message;
+      // }
+      // this.thinking = false;
     },
   }
 
