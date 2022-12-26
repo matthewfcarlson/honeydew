@@ -77,7 +77,7 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
       return response;
     }
     const db = context.data.db as Database;
-    const user = await db.GetUser(context.data.userid);
+    const user = await db.UserGet(context.data.userid);
     context.data.user = user;
     if (context.data.user == null) {
       console.error("We cannot find this user");
@@ -103,7 +103,7 @@ export const userAuthHandler: HoneydewPagesFunction = async (context)=> {
     return await context.next();
   }
   const db = context.data.db as Database;
-  const user = await db.GetUser(context.data.userid);
+  const user = await db.UserGet(context.data.userid);
   context.data.user = user;
 
   if (user != null) {

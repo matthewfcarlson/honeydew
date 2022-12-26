@@ -29,7 +29,7 @@ const Router = router({
     const apihouse: AuthHousehold = {
         id: household.id,
         name: household.name,
-        members: (await Promise.all(household.members.map(x => db.GetUser(x)))).filter((x) => x != null).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }) || [],
+        members: (await Promise.all(household.members.map(x => db.UserGet(x)))).filter((x) => x != null).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }) || [],
     };
     const result: AuthCheck = {
       name: user.name,

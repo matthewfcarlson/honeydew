@@ -19,7 +19,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const apihouse: AuthHousehold | null = (household == null) ? null : {
         id: household.id,
         name: household.name,
-        members: await (await Promise.all(household.members.map(x => db.GetUser(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
+        members: await (await Promise.all(household.members.map(x => db.UserGet(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
     };
     const results: AuthCheck = {
         name: user.name,

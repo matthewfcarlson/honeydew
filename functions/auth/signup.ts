@@ -97,7 +97,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     if (user == null) {
         return ResponseJsonBadRequest("We were unable to generate a user");
     }
-    await db.UserSetHousehold(user.id, house.id, user, house);
+    await db.UserSetHousehold(user.id, house.id);
 
 
     const secret = env.JWT_SECRET;

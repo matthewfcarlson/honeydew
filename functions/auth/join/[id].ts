@@ -79,7 +79,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         return ResponseRedirect(context.request,"/error?t=AlreadyHouseholdMember");
     }
 
-    const results = await db.UserSetHousehold(user.id, key.house, user);
+    const results = await db.UserSetHousehold(user.id, key.house);
     if (!results) {
         console.error("auth/join FAILED, could not set household");
         return ResponseJsonBadRequest();
