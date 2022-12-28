@@ -3,9 +3,10 @@ import { Kysely, Migration, MigrationProvider, sql } from "kysely";
 const HoneydewVersion1 = {
     async up(db: Kysely<any>): Promise<void> {
         {
-            await db.schema.dropTable('users').ifExists().execute();
+            const table_name = "USERS"
+            await db.schema.dropTable(table_name).ifExists().execute();
             await db.schema
-                .createTable('users')
+                .createTable(table_name)
                 .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
                 .addColumn('name', 'varchar(255)', (col) => col.notNull())
                 .addColumn('household', 'varchar(40)', (col) => col.notNull())
@@ -17,9 +18,10 @@ const HoneydewVersion1 = {
                 .execute()
         }
         {
-            await db.schema.dropTable('projects').ifExists().execute();
+            const table_name = "PROJECTS"
+            await db.schema.dropTable(table_name).ifExists().execute();
             await db.schema
-                .createTable('projects')
+                .createTable(table_name)
                 .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
                 .addColumn('description', 'varchar(255)', (col) => col.notNull())
                 .addColumn('household', 'varchar(40)', (col) => col.notNull())
