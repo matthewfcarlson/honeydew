@@ -67,10 +67,6 @@ export type DbRecipe = z.infer<typeof DbRecipeZ>;
 // -------------------------------------------------
 // Data Types
 
-export type UUID = string;
-export type RECIPEID = UUID;
-export type HOUSEID = UUID;
-
 export const DbUserZRaw = z.object({
     id: UserIdZ,
     name: z.string().max(255),
@@ -86,12 +82,13 @@ export type DbUser = z.infer<typeof DbUserZ>;
 export type DbUserRaw = z.infer<typeof DbUserZRaw>;
 
 
-export const DbHouseholdZ = z.object({
+export const DbHouseholdRawZ = z.object({
     id: HouseIdZ,
     name: z.string().max(255),
     members: z.array(UserIdZ)
-}).brand<"Household">();
-
+})
+export const DbHouseholdZ = DbHouseholdRawZ.brand<"Household">();
+export type DbHouseholdRaw = z.infer<typeof DbHouseholdRawZ>;
 export type DbHousehold = z.infer<typeof DbHouseholdZ>;
 
 export const DbHouseKeyZRaw = z.object({
@@ -105,7 +102,8 @@ export type DbHouseKey = z.infer<typeof DbHouseKeyZ>;
 
 export const DbProjectZRaw = z.object({
     id: ProjectIdZ,
-    description: z.string(),
+    description: z.string().max(255),
+    household: HouseIdZ,
 });
 export const DbProjectZ = DbProjectZRaw.brand<"Project">();
 export type DbProjectRaw = z.infer<typeof DbProjectZRaw>;
@@ -115,7 +113,8 @@ export type DbProject = z.infer<typeof DbProjectZ>;
 export const DbTaskZRaw = z.object({
     id: TaskIdZ,
     household: HouseIdZ,
-    description: z.string(),
+    description: z.string().max(255),
+    project: ProjectIdZ.nullable(),
     completed: z.boolean(),
     added_by: UserIdZ,
     requirement1: z.nullable(TaskIdZ),

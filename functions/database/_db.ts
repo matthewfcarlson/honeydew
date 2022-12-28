@@ -1,30 +1,31 @@
 import TelegramAPI from "../api/telegram/_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "../_utils";
-import { DbDataObj, DbHousehold, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectZ, DbTask, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
+import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
 import { Kysely, Migrator } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
 
+type SQLHousehold = Omit<DbHouseholdRaw, "members">;
+
 interface DataBaseData {
-    users: DbUser,
-    households: DbHousehold
+    users: DbUserRaw,
+    households: SQLHousehold
+    projects: DbProjectRaw
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
-const timer = (ms:number) => new Promise( res => setTimeout(res, ms));
+const timer = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export default class Database {
     private _sql: D1Database;
     private _kv: KVNamespace;
     private _t: TelegramAPI;
-    private _models;
     private _db;
     constructor(kv: KVNamespace, telegram: TelegramAPI, db: D1Database) {
         this._sql = db;
         this._kv = kv;
         this._t = telegram;
-        this._models = {};
         this._db = new Kysely<DataBaseData>({ dialect: new D1Dialect({ database: db }) });
     }
 
@@ -90,21 +91,26 @@ export default class Database {
     }
 
     async UserGet(id: UserId): Promise<DbUser | null> {
-        const user_id = UserIdZ.safeParse(id);
-        if (user_id.success == false) return null;
-        const raw = await this.queryDBJson(user_id.data);
-        if (raw == null) return null;
-        const results = DbUserZ.safeParse(raw);
-        if (results.success == false) return null;
-        return results.data;
+        try {
+            const user_id = UserIdZ.safeParse(id);
+            if (user_id.success == false) return null;
+            const raw = await this._db.selectFrom("users").selectAll().where("id", "==", id).executeTakeFirstOrThrow();
+            const results = DbUserZ.safeParse(raw);
+            if (results.success == false) return null;
+            return results.data;
+        }
+        catch (err) {
+            console.error(err);
+            return null;
+        }
     }
 
     async UserExists(id: UserId) {
         const user_id = UserIdZ.safeParse(id);
         if (user_id.success == false) return null;
-        const existing_user = await this.queryDBRaw(user_id.data);
-        if (existing_user != null) return true;
-        return false;
+        const result = await this._db.selectFrom("users").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
     }
 
     async UserGenerateUUID() {
@@ -146,7 +152,6 @@ export default class Database {
             _chat_id: null
         };
         const db_user = DbUserZ.parse(user);
-        await this.setDBJson(db_user);
         await this._db.insertInto("users").values(db_user).execute();
         const result = await this.UserSetHousehold(user.id, household);
         if (!result) {
@@ -159,39 +164,19 @@ export default class Database {
     async UserSetHousehold(user_id: UserId, household_id: HouseId): Promise<boolean> {
         const user = await this.UserGet(user_id);
         if (user == null) {
-            console.error("Could not find this USER", user_id);
+            console.error("UserSetHousehold", "Could not find this USER", user_id);
             return false;
         }
+        // They they are already in this house, we're good
+        if (user.household == household_id) return true;
         if (await this.HouseholdExists(household_id) == false) {
+            console.error("UserSetHousehold", "household requested doesn't exist", household_id);
             return false;
         }
-        const promises = [];
-        if (user.household != household_id && user.household != null) {
-            // First we get the old house
-            const old_house = await this.HouseholdGet(user.household);
-            if (old_house != null) {
-                old_house.members = old_house.members.filter((x)=>x!=user.id);
-                promises.push(this.setDBJson(old_house));
-            }
-        }
 
-        const house = await this.HouseholdGet(household_id);
-        if (house == null) {
-            console.error("Could not find this house", household_id);
-            return false;
-        }
-        // Set the user's household
-        if (user.household != household_id) {
-            user.household = household_id;
-            promises.push(this.setDBJson(user));
-        }
-        // make sure there is only one of the user, add it to list of members
-        if (house.members.length == 0 || house.members.indexOf(user_id) == -1) {
-            house.members.push(user_id);
-            promises.push(this.setDBJson(house));
-        }
-
-        await Promise.all(promises);
+        await this._db.updateTable("users").where("id", "==", user_id).set({
+            household: household_id
+        }).execute();
 
         return true;
     }
@@ -217,16 +202,22 @@ export default class Database {
     async HouseholdExists(id: HouseId) {
         const household_id = HouseIdZ.safeParse(id);
         if (household_id.success == false) return null;
-        const existing = await this.queryDBRaw(household_id.data);
-        if (existing != null) return true;
-        return false;
+        const result = await this._db.selectFrom("households").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
     }
 
     async HouseholdGet(id: HouseId) {
         const household_id = HouseIdZ.safeParse(id);
         if (household_id.success == false) return null;
-        const data = await this.queryDBJson(household_id.data);
-        if (data == null) return null;
+        const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
+        if (sql_data == undefined) return null;
+        const members_raw = await this._db.selectFrom("users").select("id").where("household", "==", household_id.data).execute();
+        const members = members_raw.map((x)=>x.id);
+        const data: DbHouseholdRaw = {
+            members,
+            ...sql_data
+        }
         const results = DbHouseholdZ.safeParse(data);
         if (!results.success) {
             console.error(`Malformed data in database for {id}`);
@@ -241,12 +232,16 @@ export default class Database {
             if (id == null) {
                 return null;
             }
+            const sql_house: SQLHousehold = {
+                id, 
+                name
+            };
             const house: DbHousehold = DbHouseholdZ.parse({
-                id,
-                name,
+                ...sql_house,
                 members: []
-            });
-            await this.setDBJson(house);
+            } as DbHouseholdRaw);
+
+            await this._db.insertInto("households").values(sql_house).executeTakeFirstOrThrow();
             return house;
         }
         catch (err) {
@@ -255,6 +250,7 @@ export default class Database {
         }
     }
 
+    // Housekeys are a KV concept
     async HouseKeyExists(id: HouseKeyId) {
         const housekey_id = HouseKeyIdz.safeParse(id);
         if (housekey_id.success == false) return null;
@@ -296,9 +292,11 @@ export default class Database {
         await this.deleteKey(id);
     }
 
-    async ProjectGenerateUUID(): Promise<null|ProjectId> {
+    // Projects are stored in SQL
+    async ProjectGenerateUUID(): Promise<null | ProjectId> {
         let projectId: ProjectId | null = null;
         let count = 0;
+        // TODO: This code seems way too boilerplate, make generic and move out
         while (count < 50) {
             count += 1;
             const attempted_id = ProjectIdZ.safeParse("P:" + uuidv4());
@@ -306,6 +304,8 @@ export default class Database {
                 continue;
             }
             projectId = attempted_id.data;
+            // TODO: figure how to generate a UUID required without pinging SQL server
+            // Perhaps use KV as cache?
             if (await this.ProjectExists(projectId) == false) break;
         }
         if (count > 50) {
@@ -314,21 +314,28 @@ export default class Database {
         return projectId
     }
 
-    async ProjectExists(id: ProjectId) {
+    async ProjectExists(id: ProjectId): Promise<boolean> {
         const project_id = ProjectIdZ.safeParse(id);
-        if (project_id.success == false) return null;
-        const existing = await this.queryDBRaw(project_id.data);
-        if (existing != null) return true;
-        return false;
+        if (project_id.success == false) return false;
+        const result = await this._db.selectFrom("projects").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
     }
 
-    async ProjectGet(id: ProjectId) {
-        const project_id = ProjectIdZ.safeParse(id);
-        if (project_id.success == false) return null;
-        throw new Error("Not implemented");
+    async ProjectGet(id: ProjectId): Promise<DbProject | null> {
+        try {
+            const project_id = ProjectIdZ.parse(id);
+            const project_raw = await this._db.selectFrom("projects").selectAll().where("id", "==", project_id).executeTakeFirstOrThrow();
+            const project = DbProjectZ.parse(project_raw);
+            return project;
+        }
+        catch (err) {
+            console.error(err);
+            return null;
+        }
     }
 
-    async ProjectCreate(description:string) {
+    async ProjectCreate(description: string, household: HouseId) {
         try {
             const id = await this.ProjectGenerateUUID();
             if (id == null) {
@@ -336,9 +343,10 @@ export default class Database {
             }
             const project: DbProject = DbProjectZ.parse({
                 id,
+                household,
                 description,
             });
-            await this.setDBJson(project);
+            await this._db.insertInto("projects").values(project).executeTakeFirstOrThrow();
             return project;
         }
         catch (err) {
@@ -350,11 +358,37 @@ export default class Database {
     async ProjectDelete(id: ProjectId) {
         const project_id = ProjectIdZ.safeParse(id);
         if (project_id.success == false) return false;
+        await this._db.deleteFrom("projects").where("id", "==", project_id.data).execute();
         await this.deleteKey(id);
         return true;
     }
 
-    async TaskGenerateUUID(): Promise<null|TaskId> {
+    async ProjectsList(userId: UserId | null = null, householdId: HouseId | null = null): Promise<DbProject[] | null> {
+        if (userId == null && householdId == null) return null;
+        if (userId != null && householdId != null) return null;
+        if (householdId == null) {
+            const user_id = UserIdZ.safeParse(userId);
+            if (user_id.success == false) return null;
+            const user = await this.UserGet(user_id.data);
+            if (user == null) return null;
+            householdId = user.household;
+        }
+        const household_id = HouseIdZ.safeParse(householdId);
+        if (household_id.success == false) {
+            return null;
+        }
+        const raw_results = await this._db.selectFrom("projects").selectAll().where("household", "==", household_id.data).execute();
+        const results: DbProject[] = [];
+        // I tried this earlier with a map, filter, map and it didn't like it
+        // Perhaps figure out a way to standardize this?
+        raw_results.forEach((x)=>{
+            const result = DbProjectZ.safeParse(x);
+            if (result.success == false) return;
+            results.push(result.data);
+        });
+        return results;
+    }
+    async TaskGenerateUUID(): Promise<null | TaskId> {
         let taskId: TaskId | null = null;
         let count = 0;
         while (count < 50) {
@@ -373,21 +407,81 @@ export default class Database {
     }
 
     async TaskExists(id: TaskId): Promise<boolean> {
-        const task_id = ProjectIdZ.safeParse(id);
+        const task_id = TaskIdZ.safeParse(id);
         if (task_id.success == false) return false;
         const existing = await this.queryDBRaw(task_id.data);
         if (existing != null) return true;
         return false;
     }
 
-    async TaskCreate(description:string, creator: UserId, household: HouseId, requirement1:ProjectId|null = null, requirement2:ProjectId|null = null): Promise<DbTask|null> {
-        return null;
+    async TaskCreate(description: string, creator: UserId, household: HouseId, project: ProjectId | null = null, requirement1: TaskId | null = null, requirement2: TaskId | null = null): Promise<DbTask | null> {
+        try {
+            const id = await this.TaskGenerateUUID();
+            if (id == null) {
+                return null;
+            }
+            if (requirement2 != null && requirement1 == null) {
+                console.error("TaskCreate", "Cannot have a second requirement without a first");
+                return null;
+            }
+            if (project == null && requirement1 != null) {
+                console.error("TaskCreate", "Cannot have a requirement without a project");
+                return null;
+            }
+            const taskZ: DbTaskRaw = {
+                id,
+                household,
+                description,
+                project,
+                completed: false,
+                added_by: creator,
+                requirement1,
+                requirement2
+            };
+            const task: DbTask = DbTaskZ.parse(taskZ);
+            await this.setDBJson(task);
+            return task;
+        }
+        catch (err) {
+            console.error(err);
+            return null;
+        }
     }
 
-    async TaskGet(id: TaskId) {
-        const task_id = ProjectIdZ.safeParse(id);
-        if (task_id.success == false) return false;
-        return null;
+    async TaskGet(id: TaskId): Promise<DbTask | null> {
+        const task_id = TaskIdZ.safeParse(id);
+        if (task_id.success == false) return null;
+
+        const raw = await this.queryDBJson(id);
+        if (raw == null) return null;
+        const results = DbTaskZ.safeParse(raw);
+        if (results.success == false) {
+            return null;
+        }
+        return results.data;
+    }
+
+    async TaskMarkComplete(id: TaskId): Promise<boolean> {
+        const task_id = TaskIdZ.safeParse(id);
+        if (task_id.success == false) {
+            console.error("TaskComplete", "Unable to parse task id")
+            return false;
+        }
+
+        const task = await this.TaskGet(id);
+        if (task == null) {
+            console.error("TaskComplete", "Unable to find task");
+            return false;
+        }
+        if (task.completed == false) {
+            task.completed = true;
+            await this.setDBJson(task);
+        }
+        return true;
+    }
+
+    async TaskDelete(id: TaskId) {
+        await this.deleteKey(id);
     }
 
 }

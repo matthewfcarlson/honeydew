@@ -1,11 +1,11 @@
-import { HouseKeyIdz } from "../../db_types";
+import { HouseKeyIdz, UserId } from "../../db_types";
 import { HoneydewPagesFunction } from "../../types";
-import Database, { HOUSEID, UserId } from "../../database/_db";
+import Database from "../../database/_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
 
 export interface ApiHousehold {
     name:string;
-    id:HOUSEID;
+    id:string;
     members:{userid:UserId, firstname:string, lastname:string}[];
 }
 

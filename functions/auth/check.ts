@@ -1,6 +1,6 @@
 import { HoneydewPagesFunction } from "../types";
-import Database, { HOUSEID, UserId } from "../database/_db";
-import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound } from "../_utils";
+import Database from "../database/_db";
+import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound, ResponseJsonNotImplementedYet } from "../_utils";
 import { AuthCheck, AuthHousehold, TEMP_TOKEN } from "./auth_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
@@ -16,14 +16,17 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         return response;
     }
     const household = await db.HouseholdGet(user.household);
-    const apihouse: AuthHousehold | null = (household == null) ? null : {
+    const api_house: AuthHousehold | null = (household == null) ? null : {
         id: household.id,
         name: household.name,
-        members: await (await Promise.all(household.members.map(x => db.UserGet(x)))).map(x => { return { userid: x.id, name: x.name, icon: x.icon, color: x.color } }),
+        members: await (await Promise.all(household.members.map(x => db.UserGet(x)))).filter(x => {return x != null}).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }),
     };
+    if (api_house == null) {
+        return ResponseJsonNotImplementedYet();
+    }
     const results: AuthCheck = {
         name: user.name,
-        household: apihouse,
+        household: api_house,
         id: user.id,
         color: user.color,
         icon: user.icon,

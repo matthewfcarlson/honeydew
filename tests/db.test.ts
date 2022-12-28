@@ -1,3 +1,4 @@
+import { DbProject } from "functions/db_types";
 import TelegramAPI from "../functions/api/telegram/_telegram";
 import Database from "../functions/database/_db";
 const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
@@ -17,12 +18,12 @@ beforeAll(async () => {
 describe('User tests', () => {
   it('can create user', async () => {
     // Arrange
-    const house = await db.HouseholdCreate("BOBY'S HOUSE");
+    const house = await db.HouseholdCreate("BOB'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     expect(house.id.length).toBeGreaterThan(10);
     // Act
-    const user = await db.UserCreate("BOBY", house.id);
+    const user = await db.UserCreate("BOBBY", house.id);
     // Assert
     if (user == null) return;
     expect(user.id.length).toBeGreaterThan(10);
@@ -44,11 +45,11 @@ describe('User tests', () => {
 
   it('it should be able to move a user to a different household', async () => {
     // Arrange
-    const house = await db.HouseholdCreate("BOBY'S HOUSE");
+    const house = await db.HouseholdCreate("BOB'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     expect(house.id.length).toBeGreaterThan(10);
-    const user = await db.UserCreate("BOBY", house.id);
+    const user = await db.UserCreate("BOBBY", house.id);
     expect(user).not.toBeNull();
     if (user == null) return;
     expect(user.id.length).toBeGreaterThan(10);
@@ -76,11 +77,11 @@ describe('User tests', () => {
 
   it('it should be able to join the same household', async () => {
     // Arrange
-    let house = await db.HouseholdCreate("BOBY'S HOUSE");
+    let house = await db.HouseholdCreate("BOB'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     expect(house.id.length).toBeGreaterThan(10);
-    const user1 = await db.UserCreate("BOBY", house.id);
+    const user1 = await db.UserCreate("BOBBY", house.id);
     expect(user1).not.toBeNull();
     if (user1 == null) return;
     expect(user1.id.length).toBeGreaterThan(10);
@@ -125,7 +126,7 @@ describe('User tests', () => {
 describe('Household tests', () => {
   it('can create house', async () => {
     // Arrange
-    const house = await db.HouseholdCreate("BOBY'S HOUSE");
+    const house = await db.HouseholdCreate("BOBBY'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     expect(house.id.length).toBeGreaterThan(10);
@@ -162,9 +163,9 @@ describe('Household tests', () => {
     }
   });
 
-  it('housekeys can be generated', async() => {
+  it('house keys can be generated', async () => {
     // Arrange
-    const house = await db.HouseholdCreate("BOBY'S HOUSE");
+    const house = await db.HouseholdCreate("BOBBY'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     const user_id = await db.UserGenerateUUID();
@@ -187,9 +188,9 @@ describe('Household tests', () => {
     expect(key.generated_by).toBe(new_key.generated_by);
   });
 
-  it('housekeys can be deleted', async() => {
+  it('house keys can be deleted', async () => {
     // Arrange
-    const house = await db.HouseholdCreate("BOBY'S HOUSE");
+    const house = await db.HouseholdCreate("BOBBY'S HOUSE");
     expect(house).not.toBeNull();
     if (house == null) return;
     const user_id = await db.UserGenerateUUID();
@@ -215,8 +216,12 @@ describe('Project tests', () => {
     expect(user_id).not.toBeNull();
     if (user_id == null) return;
 
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
     // Act
-    const project = await db.ProjectCreate("Master Closet")
+    const project = await db.ProjectCreate("Master Closet", house_id)
     expect(project).not.toBeNull();
     if (project == null) return;
 
@@ -224,8 +229,61 @@ describe('Project tests', () => {
     expect(await db.ProjectExists(project.id)).toBe(true);
 
     // Act
+    const project2 = await db.ProjectGet(project.id);
+    expect(project2).not.toBeNull();
+    if (project2 == null) return;
+
+    // Assert
+    expect(project).toStrictEqual<DbProject>(project2);
+
+    // Act
     await db.ProjectDelete(project.id);
     expect(await db.ProjectExists(project.id)).toBe(false);
+
+  });
+
+  it('can list projects', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Act - add two projects
+    const project1 = await db.ProjectCreate("Master Closet", house_id);
+    expect(project1).not.toBeNull();
+    if (project1 == null) return;
+    const project2 = await db.ProjectCreate("Kitchen", house_id);
+    expect(project2).not.toBeNull();
+    if (project2 == null) return;
+    // Assert
+    let project_list = await db.ProjectsList(null, house_id);
+    expect(project_list).toHaveLength(2);
+    project_list = await db.ProjectsList(null, null);
+    expect(project_list).toBeNull();
+    project_list = await db.ProjectsList(user_id);
+    expect(project_list).toHaveLength(2);
+
+    // Act
+    await db.ProjectDelete(project1.id);
+    // Assert
+    project_list = await db.ProjectsList(null, house_id);
+    expect(project_list).toHaveLength(1);
+
+    // Act
+    await db.ProjectDelete(project2.id);
+    // Assert
+    project_list = await db.ProjectsList(null, house_id);
+    expect(project_list).toHaveLength(0);
+
+    // Act
+    project_list = await db.ProjectsList(user_id, house_id);
+    expect(project_list).toBeNull();
+    project_list = await db.ProjectsList(null, null);
+    expect(project_list).toBeNull();
 
   });
 
@@ -235,6 +293,162 @@ describe('Project tests', () => {
     const uuid_count = 5;
     for (let i = 0; i < uuid_count; i++) {
       const uuid = await db.ProjectGenerateUUID();
+      expect(uuid).not.toBeNull();
+      uuids.push(uuid || "");
+    }
+
+    // Act
+    // Assert
+    for (let i = 0; i < uuid_count; i++) {
+      for (let j = i + 1; j < uuid_count; j++) {
+        expect(i).not.toEqual(j);
+        expect(uuids[i]).not.toEqual(uuids[j]);
+        expect(uuids[i]).not.toEqual("");
+      }
+    }
+  });
+});
+
+describe('Task tests', () => {
+  it('can create and delete tasks', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Act
+    const task = await db.TaskCreate("Clean", user_id, house_id);
+    expect(task).not.toBeNull();
+    if (task == null) return;
+
+    // Assert
+    expect(await db.TaskExists(task.id)).toBe(true);
+
+    // Act
+    const task2 = await db.TaskGet(task.id);
+    expect(task2).not.toBeNull();
+    if (task2 == null) return;
+
+    // Assert
+    expect(task.id).toBe(task2.id);
+    expect(task.added_by).toBe(task2.added_by);
+
+    // Act
+    await db.TaskDelete(task.id);
+    expect(await db.TaskExists(task.id)).toBe(false);
+
+  });
+
+  it('can create and delete tasks', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Act
+    const task = await db.TaskCreate("Clean", user_id, house_id);
+    expect(task).not.toBeNull();
+    if (task == null) return;
+  });
+
+  it('tasks are part of projects', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const project = await db.ProjectCreate("Master Closet", house_id)
+    expect(project).not.toBeNull();
+    if (project == null) return;
+
+    // Act
+    const task = await db.TaskCreate("Clean", user_id, house_id, project.id);
+    expect(task).not.toBeNull();
+    if (task == null) return;
+  });
+
+  it('tasks can have requirements', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const project = await db.ProjectCreate("Master Closet", house_id)
+    expect(project).not.toBeNull();
+    if (project == null) return;
+
+    // Act
+    const task1 = await db.TaskCreate("Clean", user_id, house_id, project.id);
+    expect(task1).not.toBeNull();
+    if (task1 == null) return;
+
+    const task2 = await db.TaskCreate("Dust", user_id, house_id, project.id);
+    expect(task2).not.toBeNull();
+    if (task2 == null) return;
+
+    const task3_1_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, task1.id, task2.id);
+    expect(task3_1_2).not.toBeNull();
+    if (task3_1_2 == null) return;
+    expect(task3_1_2.requirement1).toBe(task1.id);
+    expect(task3_1_2.requirement2).toBe(task2.id);
+
+    // you can't have requirements without a project
+    const task4_1_2 = await db.TaskCreate("Paint", user_id, house_id, null, task1.id, task2.id);
+    expect(task4_1_2).toBeNull();
+
+    const task5_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, null, task2.id);
+    expect(task5_2).toBeNull();
+  });
+
+  it('can complete a task', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Act
+    let task = await db.TaskCreate("Clean", user_id, house_id);
+    expect(task).not.toBeNull();
+    if (task == null) return;
+    expect(task.completed).toBe(false);
+
+    expect(await db.TaskMarkComplete(task.id)).toBe(true)
+
+    // Assert
+    task = await db.TaskGet(task.id);
+    expect(task).not.toBeNull();
+    if (task == null) return;
+    expect(task.completed).toBe(true);
+
+    expect(await db.TaskMarkComplete(task.id)).toBe(true)
+  });
+
+  it('UUIDs should be unique', async () => {
+    // Arrange
+    const uuids: string[] = [];
+    const uuid_count = 5;
+    for (let i = 0; i < uuid_count; i++) {
+      const uuid = await db.TaskGenerateUUID();
       expect(uuid).not.toBeNull();
       uuids.push(uuid || "");
     }
