@@ -4,4 +4,7 @@
     <router-link to="/">Take me home</router-link>
 </div>
 </template>
-  
+
+<script lang="ts">
+// TODO: read in error code type if needed?
+</script>

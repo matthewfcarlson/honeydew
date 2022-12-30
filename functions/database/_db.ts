@@ -1,4 +1,4 @@
-import TelegramAPI from "./_telegram";
+import {TelegramAPI} from "./_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "../_utils";
 import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
@@ -33,6 +33,10 @@ export default class Database {
     public async CheckOnSQL() {
         const db_version = Number(await this._kv.get("SQLDB_VERSION") || "0");
         if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version);
+    }
+
+    public GetTelegram() {
+        return this._t;
     }
 
     private async migrateDatabase(version: number) {
@@ -178,6 +182,28 @@ export default class Database {
             household: household_id
         }).execute();
 
+        return true;
+    }
+
+    async UserFind(id?: UserId, chat_id?: number): Promise<DbUser|null> {
+        try {
+            if (id == undefined && chat_id == undefined) return null;
+            let query = this._db.selectFrom("users").selectAll();
+            if (chat_id != undefined) query = query.where("_chat_id", "==", chat_id);
+            if (id != undefined) query = query.where("id", "==", id);
+            const raw = await query.executeTakeFirst();
+            if (raw == undefined) return null;
+            return DbUserZ.parse(raw);
+        }
+        catch (err) {
+            console.error(err);
+            return null;
+        }
+    }
+
+    async UserRegisterTelegram(user_id: UserId, chat_id:number, tuser_id:number): Promise<boolean> {
+        if (await this.UserExists(user_id) == false) return false;
+        await this._db.updateTable("users").where("id", "==", user_id).set({_chat_id: chat_id}).execute();
         return true;
     }
 

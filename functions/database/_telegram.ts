@@ -167,14 +167,14 @@ function isTelegramWebhookInfo(x: unknown): x is TelegramWebhookInfo {
     return true;
 }
 
-export default class TelegramAPI {
+export class TelegramAPI {
     private key: string;
 
     constructor(key: string) {
         this.key = key;
     }
 
-    private getAPIUrl(method: string): string {
+    protected getAPIUrl(method: string): string {
         return `https://api.telegram.org/bot${this.key}/${method}`
     }
 
@@ -183,7 +183,7 @@ export default class TelegramAPI {
      * Use await gatherResponse(..) in an async function to get the response body
      * @param {Response} response
      */
-    private async gatherResponse(response: Response) {
+    protected async gatherResponse(response: Response) {
         const { headers } = response;
         const contentType = headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
@@ -197,7 +197,7 @@ export default class TelegramAPI {
         }
     }
 
-    private async request(method: string) {
+    protected async request(method: string) {
         const url = this.getAPIUrl(method);
         const init = {
             headers: {
@@ -214,7 +214,7 @@ export default class TelegramAPI {
         return results;
     }
 
-    private async requestPost(method: string, data: any) {
+    protected async requestPost(method: string, data: any) {
         const url = this.getAPIUrl(method);
         const init = {
             method: "post",
@@ -302,5 +302,67 @@ export default class TelegramAPI {
         if (results == false) return false;
         if (!isTelegramWebhookInfo(results.result)) return false;
         return results.result;
+    }
+}
+
+interface MockedTelegramRequestGet {
+    type: 'GET';
+    method: string;
+}
+interface MockedTelegramRequestPost {
+    type: 'POST';
+    method: string;
+    data: any;
+}
+export type MockedTelegramRequest = MockedTelegramRequestGet | MockedTelegramRequestPost;
+type MockedTelegramListener = ((x:MockedTelegramRequest)=>Promise<Response>);
+export class MockedTelegramAPI extends TelegramAPI {
+    private _request_listener: MockedTelegramListener|null = null;
+    public registerListener(listener:MockedTelegramListener) {
+        this._request_listener = listener;
+    }
+
+    protected getAPIUrl(method: string): string {
+        return `http://localhost/bot/${method}`
+    }
+
+    protected async request(method: string) {
+        const request:MockedTelegramRequest = {
+            type: "GET",
+            method,
+        }
+        if (this._request_listener == null) {
+            console.error("No listener registered");
+            return false;
+        }
+
+        const response = await this._request_listener(request);
+        const results = await this.gatherResponse(response);
+        if (response.status != 200) {
+            console.error(`REQUEST ${method}`, response, results);
+            return false;
+        }
+        if (!isTelegramAPIResponse(results)) return false;
+        return results;
+    }
+
+    protected async requestPost(method: string, data: any) {
+        const request:MockedTelegramRequest = {
+            type: "POST",
+            method,
+            data,
+        }
+        if (this._request_listener == null) {
+            console.error("No listener registered");
+            return false;
+        }
+        const response = await this._request_listener(request);
+        const results = await this.gatherResponse(response);
+        if (response.status != 200) {
+            console.error(`REQUEST ${method}`, response, results);
+            return false;
+        }
+        if (!isTelegramAPIResponse(results)) return false;
+        return results;
     }
 }

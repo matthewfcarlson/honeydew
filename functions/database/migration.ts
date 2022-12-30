@@ -14,7 +14,7 @@ const HoneydewVersion1 = {
                 .addColumn('icon', 'varchar(40)', (col) => col.notNull())
                 .addColumn('_created_at', 'timestamp', (col) => col.defaultTo('now()').notNull())
                 .addColumn('_recoverykey', 'varchar(255)', (col) => col.notNull())
-                .addColumn('_chat_id', 'varchar(255)')
+                .addColumn('_chat_id', 'int8', (col) => col.defaultTo(null))
                 .execute()
         }
         {

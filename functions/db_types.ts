@@ -75,8 +75,9 @@ export const DbUserZRaw = z.object({
     icon: z.string().max(40),
     _created_at: z.string().optional(),
     _recoverykey: z.string().max(255),
-    _chat_id: z.string().nullable(),
+    _chat_id: z.number().nullable(),
 })
+// TODO: should chat ID be an array that's chained together as needed?
 export const DbUserZ = DbUserZRaw.brand<"User">()
 export type DbUser = z.infer<typeof DbUserZ>;
 export type DbUserRaw = z.infer<typeof DbUserZRaw>;

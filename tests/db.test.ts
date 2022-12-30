@@ -1,5 +1,5 @@
 import { DbProject } from "functions/db_types";
-import TelegramAPI from "../functions/database/_telegram";
+import {TelegramAPI} from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
