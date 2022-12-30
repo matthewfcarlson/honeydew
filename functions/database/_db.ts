@@ -1,7 +1,7 @@
-import {TelegramAPI} from "./_telegram";
+import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "../_utils";
-import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
+import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
 import { Kysely, Migrator } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -12,6 +12,7 @@ interface DataBaseData {
     users: DbUserRaw,
     households: SQLHousehold
     projects: DbProjectRaw
+    recipes: DbRecipeRaw
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
@@ -185,7 +186,7 @@ export default class Database {
         return true;
     }
 
-    async UserFind(id?: UserId, chat_id?: number): Promise<DbUser|null> {
+    async UserFind(id?: UserId, chat_id?: number): Promise<DbUser | null> {
         try {
             if (id == undefined && chat_id == undefined) return null;
             let query = this._db.selectFrom("users").selectAll();
@@ -201,9 +202,9 @@ export default class Database {
         }
     }
 
-    async UserRegisterTelegram(user_id: UserId, chat_id:number, tuser_id:number): Promise<boolean> {
+    async UserRegisterTelegram(user_id: UserId, chat_id: number, tuser_id: number): Promise<boolean> {
         if (await this.UserExists(user_id) == false) return false;
-        await this._db.updateTable("users").where("id", "==", user_id).set({_chat_id: chat_id}).execute();
+        await this._db.updateTable("users").where("id", "==", user_id).set({ _chat_id: chat_id }).execute();
         return true;
     }
 
@@ -239,7 +240,7 @@ export default class Database {
         const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
         if (sql_data == undefined) return null;
         const members_raw = await this._db.selectFrom("users").select("id").where("household", "==", household_id.data).execute();
-        const members = members_raw.map((x)=>x.id);
+        const members = members_raw.map((x) => x.id);
         const data: DbHouseholdRaw = {
             members,
             ...sql_data
@@ -259,7 +260,7 @@ export default class Database {
                 return null;
             }
             const sql_house: SQLHousehold = {
-                id, 
+                id,
                 name
             };
             const house: DbHousehold = DbHouseholdZ.parse({
@@ -407,7 +408,7 @@ export default class Database {
         const results: DbProject[] = [];
         // I tried this earlier with a map, filter, map and it didn't like it
         // Perhaps figure out a way to standardize this?
-        raw_results.forEach((x)=>{
+        raw_results.forEach((x) => {
             const result = DbProjectZ.safeParse(x);
             if (result.success == false) return;
             results.push(result.data);
@@ -510,4 +511,51 @@ export default class Database {
         await this.deleteKey(id);
     }
 
+    async RecipeExists(id: RecipeId) {
+        // TODO: implement?
+        return false;
+    }
+
+    async RecipeGenerateUUID(): Promise<null | TaskId> {
+        let recipeId: RecipeId | null = null;
+        let count = 0;
+        while (count < 50) {
+            count += 1;
+            const attempted_id = RecipeIdZ.safeParse("R:" + uuidv4());
+            if (attempted_id.success == false) {
+                continue;
+            }
+            recipeId = attempted_id.data;
+            if (await this.RecipeExists(recipeId) == false) break;
+        }
+        if (count > 50) {
+            console.error("This should not have happened, we were unable to generate a new user ID");
+        }
+        return recipeId
+    }
+
+    async RecipeCreateIfNotExists(url: string): Promise<DbRecipe | null> {
+        try {
+            const recipe_raw = await this._db.selectFrom("recipes").selectAll().where("url", "==", url).executeTakeFirstOrThrow();
+            if (recipe_raw != undefined) {
+                return DbRecipeZ.parse(recipe_raw);
+            }
+            const id = await this.TaskGenerateUUID();
+            if (id == null) {
+                return null;
+            }
+            // Otherwise we need to create it
+            const recipe: DbRecipeRaw = {
+                id,
+                url
+            }
+            const recipe_z = DbRecipeZ.parse(recipe);
+            await this._db.insertInto("recipes").values(recipe).execute();
+            return recipe_z;
+        }
+        catch (err) {
+            console.error(err);
+            return null;
+        }
+    }
 }

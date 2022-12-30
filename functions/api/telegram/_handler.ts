@@ -1,13 +1,23 @@
 import Database from "../../database/_db";
 import { TelegramCallbackQuery, TelegramInlineKeyboardMarkup, TelegramUpdateCallbackQuery, TelegramUpdateMessage } from "../../database/_telegram";
 import { DbUser } from "../../db_types";
-import { ResponseJsonBadRequest, ResponseJsonOk } from "../../_utils";
+import { IsValidHttpUrl, ResponseJsonBadRequest, ResponseJsonOk } from "../../_utils";
 
 async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user: DbUser) {
-    const response = `Hello ${user.name}, this is still a work in progress`
-    // reply to the original message
-    await db.GetTelegram().sendTextMessage(msg.message.chat.id, response, msg.message.message_id);
-    return false;
+    const text = msg.message.text || 'N/A';
+    if (IsValidHttpUrl(text) == false) return false;
+    const recipe = await db.RecipeCreateIfNotExists(text);
+    if (recipe == null) {
+        const response = `I'm not sure this is a recipe, maybe enter it manually from the website?`
+        // unable to create this recipe
+        await db.GetTelegram().sendTextMessage(msg.message.chat.id, response, msg.message.message_id);
+    }
+    else {
+        const response = `I've added this recipe and added it your card box ${recipe.id}. This is still a work in progress`
+        // reply to the original message
+        await db.GetTelegram().sendTextMessage(msg.message.chat.id, response, msg.message.message_id);
+    }
+    return true;
 }
 
 export async function HandleTelegramUpdateMessage(db: Database, message: TelegramUpdateMessage) {
@@ -62,6 +72,8 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
     // else {
     //     console.error("Telegram Update Message", "message is null");
     // }
+    const response = "I'm sorry, I don't understand this message"
+    await db.GetTelegram().sendTextMessage(chat.id, response, x.message.message_id);
     return ResponseJsonOk()
 }
 

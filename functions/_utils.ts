@@ -1,3 +1,12 @@
+export function IsValidHttpUrl(string:string) {
+  let url;
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;
+  }
+  return url.protocol === "http:" || url.protocol === "https:";
+}
 
 export const ResponseJsonBadRequest = (message?:string): Response => {
   const status = 400;

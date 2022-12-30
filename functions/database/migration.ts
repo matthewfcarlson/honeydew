@@ -36,6 +36,25 @@ const HoneydewVersion1 = {
                 .addColumn('name', 'varchar(255)', (col) => col.notNull())
                 .execute()
         }
+        {
+            const table_name = "RECIPE"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.unique())
+                .addColumn('url', 'varchar(512)', (col) => col.primaryKey())
+                .execute()
+        }
+        {
+            const table_name = "CARDBOX"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('recipe_id', 'varchar(40)', (col) => col.unique())
+                .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
+                .addUniqueConstraint("cardbox_ids_unique", ['household_id', 'recipe_id'])
+                .execute()
+        }
     }
 }
 

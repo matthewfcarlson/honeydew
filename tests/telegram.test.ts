@@ -61,7 +61,10 @@ describe('Telegram tests', () => {
       // I don't check for anything more fancy
       console.error(x);
       if (x.type == "POST" && x.method == "sendMessage") {
-        got_message = true;
+        const text = x.data.text as string;
+        if (text.includes("recipe")) {
+          got_message = true;
+        }
       }
       return generateTelegramResponse(null);
     });

@@ -36,8 +36,13 @@ export const TaskIdZ = z.string({
 }).length(38).startsWith("T:", {message: "Must start with T:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
 export type TaskId = z.infer<typeof ProjectIdZ>;
 
+export const RecipeIdZ = z.string({
+    required_error: "RecipeId is required",
+    invalid_type_error: "RecipeId must start with R:"
+}).length(38).startsWith("R:", {message: "Must start with R:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
+export type RecipeId = z.infer<typeof ProjectIdZ>;
 
-export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId;
+export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId;
 
 export interface DbDataObj {
     id: DbIds
@@ -51,16 +56,16 @@ enum RecipeType {
     VEGGIES,
 }
 
-const DbRecipeZ = z.object({
-    id: z.string().uuid(),
-    url: z.string().min(5),
-    picture_url: z.string().min(5).or(z.null()),
-    ingredients: z.set(z.string()),
-    last_made: z.number().positive(),
-    category: z.nativeEnum(RecipeType),
-    household: z.string().uuid(),
-});
-export type DbRecipe = z.infer<typeof DbRecipeZ>;
+// const DbRecipeZ = z.object({
+//     id: z.string().uuid(),
+//     url: z.string().min(5),
+//     picture_url: z.string().min(5).or(z.null()),
+//     ingredients: z.set(z.string()),
+//     last_made: z.number().positive(),
+//     category: z.nativeEnum(RecipeType),
+//     household: z.string().uuid(),
+// });
+// export type DbRecipe = z.infer<typeof DbRecipeZ>;
 
 
 
@@ -124,3 +129,11 @@ export const DbTaskZRaw = z.object({
 export const DbTaskZ = DbTaskZRaw.brand<"Task">();
 export type DbTaskRaw = z.infer<typeof DbTaskZRaw>;
 export type DbTask = z.infer<typeof DbTaskZ>;
+
+export const DbRecipeZRaw = z.object({
+    id: RecipeIdZ,
+    url: z.string().max(512)
+});
+export const DbRecipeZ = DbRecipeZRaw.brand<"Recipe">();
+export type DbRecipeRaw = z.infer<typeof DbRecipeZRaw>;
+export type DbRecipe = z.infer<typeof DbRecipeZ>;
