@@ -1,5 +1,5 @@
 import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonOk } from "../../_utils";
-import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "./_telegram";
+import TelegramAPI, { isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "../../database/_telegram";
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
 

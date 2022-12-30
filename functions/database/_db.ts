@@ -1,4 +1,4 @@
-import TelegramAPI from "../api/telegram/_telegram";
+import TelegramAPI from "./_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "../_utils";
 import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
@@ -421,11 +421,11 @@ export default class Database {
                 return null;
             }
             if (requirement2 != null && requirement1 == null) {
-                console.error("TaskCreate", "Cannot have a second requirement without a first");
+                console.warn("TaskCreate", "Cannot have a second requirement without a first");
                 return null;
             }
             if (project == null && requirement1 != null) {
-                console.error("TaskCreate", "Cannot have a requirement without a project");
+                console.warn("TaskCreate", "Cannot have a requirement without a project");
                 return null;
             }
             const taskZ: DbTaskRaw = {
