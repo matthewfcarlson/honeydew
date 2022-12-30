@@ -5,6 +5,6 @@
 </div>
 </template>
 
-<script lang="ts">
+<!-- <script lang="ts">
 // TODO: read in error code type if needed?
-</script>
+</script> -->
