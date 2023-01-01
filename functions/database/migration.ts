@@ -37,7 +37,7 @@ const HoneydewVersion1 = {
                 .execute()
         }
         {
-            const table_name = "RECIPE"
+            const table_name = "RECIPES"
             await db.schema.dropTable(table_name).ifExists().execute();
             await db.schema
                 .createTable(table_name)
@@ -46,7 +46,7 @@ const HoneydewVersion1 = {
                 .execute()
         }
         {
-            const table_name = "CARDBOX"
+            const table_name = "CARDBOXS"
             await db.schema.dropTable(table_name).ifExists().execute();
             await db.schema
                 .createTable(table_name)

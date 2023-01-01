@@ -536,11 +536,11 @@ export default class Database {
 
     async RecipeCreateIfNotExists(url: string): Promise<DbRecipe | null> {
         try {
-            const recipe_raw = await this._db.selectFrom("recipes").selectAll().where("url", "==", url).executeTakeFirstOrThrow();
+            const recipe_raw = await this._db.selectFrom("recipes").selectAll().where("url", "==", url).executeTakeFirst();
             if (recipe_raw != undefined) {
                 return DbRecipeZ.parse(recipe_raw);
             }
-            const id = await this.TaskGenerateUUID();
+            const id = await this.RecipeGenerateUUID();
             if (id == null) {
                 return null;
             }

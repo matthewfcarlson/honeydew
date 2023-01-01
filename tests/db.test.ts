@@ -464,3 +464,11 @@ describe('Task tests', () => {
     }
   });
 });
+
+describe('Task tests', () => {
+  it('can create and delete tasks', async () => {
+    const recipe = await db.RecipeCreateIfNotExists("https://www.americastestkitchen.com/recipes/11130-sous-vide-raspberry-syrup")
+    expect(recipe).not.toBeNull();
+  });
+
+});
