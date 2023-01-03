@@ -1,5 +1,4 @@
 // Central Texas Foodbank
-import recipeDataScraper from "@jitl/recipe-data-scraper";
 import { AbstractRecipeScraper, HoneydewScrapedRecipeData } from "..";
 import * as cheerio from 'cheerio';
 
@@ -19,7 +18,7 @@ export default class CentralTexasFoodBankScraper implements AbstractRecipeScrape
             .find("img[typeof='foaf:Image']")
             .first()
             .prop("src");
-        const image = new URL(image_src, url.protocol + url.host);
+        const image = (image_src == undefined) ? null : new URL(image_src, url.protocol + url.host);
         const name = html("#block-basis-page-title")
             .find("span")
             .text()
@@ -54,7 +53,7 @@ export default class CentralTexasFoodBankScraper implements AbstractRecipeScrape
         //     .find("div")
         //     .text();
         return {
-            image: image.toString(),
+            image: (image == null) ? "" : image.toString(),
             name: name || "Unknown",
             url: url_str
         }

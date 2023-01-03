@@ -17,7 +17,7 @@ interface AllRecipeSchema1_0 {
     }
 }
 
-
+// Once ld_json is done, we can get rid of this
 export default class AllRecipesScraper implements AbstractRecipeScraper {
     public canParseUrl(url: URL): boolean {
         const host = url.hostname.toLowerCase();

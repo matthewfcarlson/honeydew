@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DbRecipeZRaw } from "../db_types";
 import AllRecipesScraper from "./scrapers/allrecipes";
 import CentralTexasFoodBankScraper from "./scrapers/ctfb";
-import JsonScraper from "./scrapers/json";
+import JsonScraper from "./scrapers/ld_json";
 
 export const ScrapedRecipeDataZ = DbRecipeZRaw.omit({id:true});
 export type HoneydewScrapedRecipeData = z.infer<typeof ScrapedRecipeDataZ>;
