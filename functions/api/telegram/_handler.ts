@@ -8,7 +8,7 @@ async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user
     if (IsValidHttpUrl(text) == false) return false;
     const recipe = await db.RecipeCreateIfNotExists(text);
     if (recipe == null) {
-        const response = `I'm not sure this is a recipe, maybe enter it manually from the website?`
+        const response = `I'm not sure "${text}" is a recipe, maybe enter it manually from the website?`
         // unable to create this recipe
         await db.GetTelegram().sendTextMessage(msg.message.chat.id, response, msg.message.message_id);
     }
@@ -44,7 +44,7 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
     }
     // Check if this is a recipe or link
     if (await HandleRecipeUpdate(db, x, user) == true) return ResponseJsonOk(); 
-    
+
     const response = "I'm sorry, I don't understand this message"
     await db.GetTelegram().sendTextMessage(chat.id, response, x.message.message_id);
     return ResponseJsonOk()
