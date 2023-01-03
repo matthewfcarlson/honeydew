@@ -116,11 +116,18 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
   try {
     // register the console handler
     const _error = console.error;
-    const message_hours_lifetime = 2; // messages last 12 hours
+    const _warn = console.warn;
+    const message_hours_lifetime = 12; // messages last 12 hours
     console.error = function (...data) {
       const key = `err:${Date.now().toString()}`;
       context.env.HONEYDEW.put(key, JSON.stringify(data), { expirationTtl: 60 * 60 * message_hours_lifetime });
       _error(...data);
+      console.trace()
+    }
+    console.warn = function (...data) {
+      const key = `warn:${Date.now().toString()}`;
+      context.env.HONEYDEW.put(key, JSON.stringify(data), { expirationTtl: 60 * 60 * message_hours_lifetime });
+      _warn(...data);
     }
     // Time stamp and then go the next handler
     context.data.timestamp = Date.now();
@@ -129,7 +136,10 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
     // pass to the next handler
     res = await context.next();
   }
-  catch (thrown) {
+  catch (thrown: any) {
+    if (!thrown.stack.includes('\n')) {
+      Error.captureStackTrace(thrown)
+    }
     res = new Response(`Server Error ${thrown}\n${thrown.stack}`, {
       status: 500,
       statusText: "Internal Server Error",

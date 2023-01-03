@@ -10,34 +10,24 @@ export default class CentralTexasFoodBankScraper implements AbstractRecipeScrape
         return false;
     }
     public async parseUrl(url: URL): Promise<HoneydewScrapedRecipeData> {
-        const url_str = url.toString();
-        const raw_response = await fetch(url_str);
-        const raw_text = await raw_response.text();
-        const html = cheerio.load(raw_text);
-        const image_src = html(".middle-section")
-            .find("img[typeof='foaf:Image']")
-            .first()
-            .prop("src");
-        const image = (image_src == undefined) ? null : new URL(image_src, url.protocol + url.host);
-        const name = html("#block-basis-page-title")
-            .find("span")
-            .text()
-            .toLowerCase()
-            .replace(/\b\w/g, l => l.toUpperCase());
-        const ingredients: string[] = [];
-        html(".ingredients-container")
-            .find(".field-item")
-            .each((i, el) => {
-                ingredients.push(
-                    html(el)
-                        .text()
-                        .trim()
-                );
-            });
-        if (ingredients.length == 0) {
-            html(".field-name-field-ingredients")
-                .children("div")
-                .children("div")
+        try {
+            const url_str = url.toString();
+            const raw_response = await fetch(url_str);
+            const raw_text = await raw_response.text();
+            const html = cheerio.load(raw_text);
+            const image_src = html(".middle-section")
+                .find("img[typeof='foaf:Image']")
+                .first()
+                .prop("src");
+            const image = (image_src == undefined) ? null : new URL(image_src, url.protocol + url.host);
+            const name = html("#block-basis-page-title")
+                .find("span")
+                .text()
+                .toLowerCase()
+                .replace(/\b\w/g, l => l.toUpperCase());
+            const ingredients: string[] = [];
+            html(".ingredients-container")
+                .find(".field-item")
                 .each((i, el) => {
                     ingredients.push(
                         html(el)
@@ -45,18 +35,39 @@ export default class CentralTexasFoodBankScraper implements AbstractRecipeScrape
                             .trim()
                     );
                 });
+            if (ingredients.length == 0) {
+                html(".field-name-field-ingredients")
+                    .children("div")
+                    .children("div")
+                    .each((i, el) => {
+                        ingredients.push(
+                            html(el)
+                                .text()
+                                .trim()
+                        );
+                    });
+            }
+            // const time_prep = html(".field-name-field-prep-time")
+            //     .find("div")
+            //     .text();
+            // const time_cook = html(".field-name-field-cooking-time")
+            //     .find("div")
+            //     .text();
+            return {
+                image: (image == null) ? "" : image.toString(),
+                name: name || "Unknown",
+                url: url_str
+            }
         }
-        // const time_prep = html(".field-name-field-prep-time")
-        //     .find("div")
-        //     .text();
-        // const time_cook = html(".field-name-field-cooking-time")
-        //     .find("div")
-        //     .text();
-        return {
-            image: (image == null) ? "" : image.toString(),
-            name: name || "Unknown",
-            url: url_str
+
+        catch (e: any) {
+            if (!e.stack.includes('\n')) {
+                Error.captureStackTrace(e)
+            }
+            console.error("CentralTexasFoodBankScraper error", e);
+            throw e;
         }
+
     }
 
 }

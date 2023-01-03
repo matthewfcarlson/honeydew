@@ -31,11 +31,11 @@ export async function scrapeRecipe(raw_url: string): Promise<HoneydewScrapedReci
         if (result.status == "rejected") {
             console.error("ScrapRecipe", raw_url, i, result.reason);
             continue;
-        };
+        }
         const recipe = ScrapedRecipeDataZ.safeParse(result.value);
         if (recipe.success) return recipe.data;
-        console.error("ScrapRecipe", raw_url, i, result);
+        console.error("ScrapRecipe", "zod error", raw_url, i, result, recipe.error);
     }
-    console.error("ScrapRecipe",raw_url, results);
+    console.error("ScrapRecipe","none succeeded", raw_url, results);
     return null;
 }
