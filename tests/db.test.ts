@@ -471,7 +471,8 @@ describe('Recipe tests', () => {
       "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/",
       "https://www.kingarthurbaking.com/recipes/english-muffin-toasting-bread-recipe",
       "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
-      "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
+      //"https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
+      "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
     ];
     for (let i = 0; i < urls.length; i++){
       const url = urls[i];
@@ -480,7 +481,6 @@ describe('Recipe tests', () => {
       if (recipe == null) continue;
       expect(await db.RecipeExists(null, url)).toBe(true);
       expect(recipe.name.length).toBeGreaterThan(5);
-      console.log(recipe.name);
     }
   });
 

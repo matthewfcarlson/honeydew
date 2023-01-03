@@ -261,6 +261,18 @@ export class TelegramAPI {
         return results.result;
     }
 
+    public async sendPhoto(chat_id: string|number, photo: string, reply_to_message?: number) {
+        const data = {
+            chat_id,
+            photo,
+            reply_to_message_id: reply_to_message
+        };
+        const results = await this.requestPost('sendPhoto', data);
+        if (results == false) return false;
+        if (!isTelegramMessage(results.result)) return false;
+        return results.result;
+    }
+
     public async clearMessageReplyMarkup(chat_id:number|string, message_id: number) {
         const data = {
             chat_id,

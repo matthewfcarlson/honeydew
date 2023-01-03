@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DbRecipeZRaw } from "../db_types";
 import AllRecipesScraper from "./scrapers/allrecipes";
+import CentralTexasFoodBankScraper from "./scrapers/ctfb";
 import JsonScraper from "./scrapers/json";
 
 export const ScrapedRecipeDataZ = DbRecipeZRaw.omit({id:true});
@@ -8,6 +9,7 @@ export type HoneydewScrapedRecipeData = z.infer<typeof ScrapedRecipeDataZ>;
 
 const SCRAPERS = [
     new AllRecipesScraper(),
+    new CentralTexasFoodBankScraper(),
     new JsonScraper(),
 ]
 
