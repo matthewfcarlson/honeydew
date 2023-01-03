@@ -45,7 +45,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const housekey_data = body['key'] || '';
 
     if (data.authorized != undefined && context.data.authorized == true) {
-        console.error("Already logged in, don't sign them in again");
+        console.error("SIGNUP", "Already logged in, don't sign them in again");
         return ResponseJsonBadRequest("Already logged in")
     }
 
@@ -68,7 +68,7 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     
         const outcome = await result.json() as any;
         if (outcome == null || outcome.success == false) {
-            console.error("Failed to request cloudflare")
+            console.error("SIGNUP", "Failed to request cloudflare")
             return ResponseJsonAccessDenied();
         }
     }

@@ -45,36 +45,6 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
     // Check if this is a recipe or link
     if (await HandleRecipeUpdate(db, x, user) == true) return ResponseJsonOk(); 
     
-    // if (chat.title != null) return ResponseJsonBadRequest("chat title is null");
-    // console.log(response, chat.title || `Chat:${chat.id}`);
-    // const keyboard: TelegramInlineKeyboardMarkup = {
-    //     inline_keyboard: [[
-    //         {
-    //             text: "Completed Task",
-    //             callback_data: uuid,
-    //         },
-    //         {
-    //             text: "Ignore",
-    //             callback_data: uuid, // todo: create a new UUID to keep track of
-    //         }
-    //     ]]
-    // };
-    // 
-    // const reply = await db.sendTextMessage(chat.id, response, x.message.message_id, keyboard);
-    // console.error("sent message", message);
-    // if (reply != false) {
-    //     const kv_data = {
-    //         task,
-    //         chat_id: chat.id,
-    //         message_id: reply.message_id
-    //     }
-    //     // TODO: wrap this all in a nice API with types and everything!
-
-    //     //await context.env.HONEYDEW.put(`inlinereply:${uuid}`, JSON.stringify(kv_data));
-    // }
-    // else {
-    //     console.error("Telegram Update Message", "message is null");
-    // }
     const response = "I'm sorry, I don't understand this message"
     await db.GetTelegram().sendTextMessage(chat.id, response, x.message.message_id);
     return ResponseJsonOk()

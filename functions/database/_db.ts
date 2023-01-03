@@ -44,7 +44,7 @@ export default class Database {
     private async migrateDatabase(version: number) {
         const migration_lock = await this._kv.get("SQLDB_MIGRATIONLOCK");
         if (migration_lock != null) {
-            console.error("Migration is already in progress");
+            console.error("DB_MIGRATEDB", "Migration is already in progress");
             return;
         }
         // TODO: move to a lock within sqlite?
@@ -64,7 +64,7 @@ export default class Database {
             console.log("Upgraded DB to version " + LatestHoneydewDBVersion + "from" + starting)
         }
         catch (err) {
-            console.error(err);
+            console.error("MIGRATE_DB", err);
         }
         await promise;
         await this._kv.delete("SQLDB_MIGRATIONLOCK");
@@ -72,7 +72,7 @@ export default class Database {
 
     private async queryDBRaw(key: DbIds) {
         if (key == "") {
-            console.error("We tries to query the database with an empty key");
+            console.error("DB_QUERYRAW", "We tries to query the database with an empty key");
         }
         const results = await this._kv.get(key);
         return results;
@@ -106,7 +106,7 @@ export default class Database {
             return results.data;
         }
         catch (err) {
-            console.error(err);
+            console.error("UserGet:", err);
             return null;
         }
     }
@@ -132,7 +132,7 @@ export default class Database {
             if (await this.UserExists(userId) == false) break;
         }
         if (count > 50) {
-            console.error("This should not have happened, we were unable to generate a new user ID");
+            console.error("UserGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
         }
         return userId
     }
@@ -140,7 +140,7 @@ export default class Database {
     async UserCreate(name: string, household: HouseId) {
         const id = await this.UserGenerateUUID();
         if (id == null) {
-            console.error("We were not able to create a new user");
+            console.error("UserCreate", "We were not able to create a new user");
             return null;
         }
         const [icon, color] = pickRandomUserIconAndColor();
@@ -161,7 +161,7 @@ export default class Database {
         await this._db.insertInto("users").values(db_user).execute();
         const result = await this.UserSetHousehold(user.id, household);
         if (!result) {
-            console.error("Failed to set error");
+            console.error("UserCreate", "Failed to set error");
             return null;
         }
         return user;
@@ -198,7 +198,7 @@ export default class Database {
             return DbUserZ.parse(raw);
         }
         catch (err) {
-            console.error(err);
+            console.error("UserFind", err);
             return null;
         }
     }
@@ -222,7 +222,7 @@ export default class Database {
             if (await this.HouseholdExists(houseID) == false) break;
         }
         if (count > 50) {
-            console.error("This should not have happened, we were unable to generate a new household ID");
+            console.error("HouseholdGenerateUUID", "This should not have happened, we were unable to generate a new household ID");
         }
         return houseID
     }
@@ -248,7 +248,7 @@ export default class Database {
         }
         const results = DbHouseholdZ.safeParse(data);
         if (!results.success) {
-            console.error(`Malformed data in database for {id}`);
+            console.error("HouseholdGet", `Malformed data in database for {id}`);
             return null;
         }
         return results.data;
@@ -273,7 +273,7 @@ export default class Database {
             return house;
         }
         catch (err) {
-            console.error(err);
+            console.error("HouseholdCreate", err);
             return null;
         }
     }
@@ -301,7 +301,7 @@ export default class Database {
             return housekey;
         }
         catch (err) {
-            console.error(err);
+            console.error("HouseKeyCreate", err);
         }
         return null;
     }
@@ -337,7 +337,7 @@ export default class Database {
             if (await this.ProjectExists(projectId) == false) break;
         }
         if (count > 50) {
-            console.error("This should not have happened, we were unable to generate a new user ID");
+            console.error("ProjectGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
         }
         return projectId
     }
@@ -358,7 +358,7 @@ export default class Database {
             return project;
         }
         catch (err) {
-            console.error(err);
+            console.error("ProjectGet", err);
             return null;
         }
     }
@@ -378,7 +378,7 @@ export default class Database {
             return project;
         }
         catch (err) {
-            console.error(err);
+            console.error("ProjectCreate", err);
             return null;
         }
     }
@@ -429,7 +429,7 @@ export default class Database {
             if (await this.ProjectExists(taskId) == false) break;
         }
         if (count > 50) {
-            console.error("This should not have happened, we were unable to generate a new user ID");
+            console.error("TaskGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
         }
         return taskId
     }
@@ -471,7 +471,7 @@ export default class Database {
             return task;
         }
         catch (err) {
-            console.error(err);
+            console.error("TaskCreate", err);
             return null;
         }
     }
@@ -512,11 +512,11 @@ export default class Database {
         await this.deleteKey(id);
     }
 
-    async RecipeExists(id: RecipeId|null, url?:string) {
+    async RecipeExists(id: RecipeId | null, url?: string) {
         if (id == null && url == undefined) return false;
         if (id != null && url != undefined) return false;
         let query = this._db.selectFrom("recipes").select("id")
-        
+
         if (id != null) {
             query = query.where("id", "==", id);
         }
@@ -541,7 +541,7 @@ export default class Database {
             if (await this.RecipeExists(recipeId) == false) break;
         }
         if (count > 50) {
-            console.error("This should not have happened, we were unable to generate a new user ID");
+            console.error("RecipeGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
         }
         return recipeId
     }
@@ -570,7 +570,7 @@ export default class Database {
             return recipe_z;
         }
         catch (err) {
-            console.error(err);
+            console.error("RecipeCreateIfNotExists", err);
             return null;
         }
     }

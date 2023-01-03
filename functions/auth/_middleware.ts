@@ -58,7 +58,6 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
   // If we're dealing with an auth endpoint, don't issue a new token
   const url = new URL(context.request.url);
   if (url.pathname == "/auth/signout") {
-    console.error("Don't bother");
     return await context.next();
   }
   // this system might be stupid
@@ -70,7 +69,7 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     context.data.jwt = payload;
     context.data.userid = payload.id || null;
     if (context.data.userid == null) {
-      console.error("JWT is malformed");
+      console.error("jwtHandler", "JWT is malformed");
       const response = await context.next();
       deleteCookie(response, DEVICE_TOKEN);
       // TODO: delete all cookies
@@ -80,7 +79,7 @@ export const jwtHandler: HoneydewPagesFunction = async (context) => {
     const user = await db.UserGet(context.data.userid);
     context.data.user = user;
     if (context.data.user == null) {
-      console.error("We cannot find this user");
+      console.error("jwtHandler", "We cannot find this user");
       const response = await context.next();
       deleteCookie(response, DEVICE_TOKEN);
       // TODO: delete all cookies

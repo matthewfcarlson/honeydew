@@ -29,8 +29,10 @@ export async function scrapeRecipe(raw_url: string): Promise<HoneydewScrapedReci
     for (let i = 0; i < results.length; i++) {
         const result = results[i];
         if (result.status == "rejected") continue;
-        return result.value;
+        const recipe = ScrapedRecipeDataZ.safeParse(result.value);
+        if (recipe.success) return recipe.data;
+        console.error("ScrapRecipe", raw_url, result);
     }
-    console.error(results);
+    console.error("ScrapRecipe",results);
     return null;
 }

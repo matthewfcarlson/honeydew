@@ -64,14 +64,14 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const user = context.data.user
     if (user == null) return ResponseJsonNotFound();
     if (Array.isArray(id)) {
-        console.error("auth/join ID IS ARRAY", id);
+        console.error("AUTH/JOIN/[id]", "auth/join ID IS ARRAY", id);
         return ResponseJsonBadRequest();
     }
 
     const key = await VerifyHouseKeyCode(id, db, context.env.JWT_SECRET);
 
     if (key == false || key == null) {
-        console.error("Join household, key is bad");
+        console.error("AUTH/JOIN/[id]", "Join household, key is bad");
         return ResponseJsonAccessDenied();
     }
 
@@ -81,7 +81,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     const results = await db.UserSetHousehold(user.id, key.house);
     if (!results) {
-        console.error("auth/join FAILED, could not set household");
+        console.error("AUTH/JOIN/[id]", "auth/join FAILED, could not set household");
         return ResponseJsonBadRequest();
     }
 
