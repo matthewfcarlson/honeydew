@@ -59,7 +59,7 @@ describe('Telegram tests', () => {
     let got_message = false;
     telegram.registerListener(async (x) => {
       // I don't check for anything more fancy
-      console.error(x);
+      //console.error(x);
       if (x.type == "POST" && x.method == "sendMessage") {
         const text = x.data.text as string;
         if (text.includes("recipe")) {
@@ -75,6 +75,7 @@ describe('Telegram tests', () => {
     const chat_id = 20;
     const tuser_id = 10;
     expect(await db.UserRegisterTelegram(user.id, chat_id, tuser_id)).toBe(true);
+    const url = "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/"
     // TODO: create function that handles this?
     const update1: TelegramUpdateMessage = {
       message: {
@@ -89,13 +90,13 @@ describe('Telegram tests', () => {
           id: chat_id,
           type: "private",
         },
-        text: "https://www.americastestkitchen.com/recipes/15318-multicooker-chicken-in-a-pot-with-lemon-herb-sauce"
+        text: url
       },
       update_id: 0
     };
     const result = await HandleTelegramUpdateMessage(db, update1);
     expect(result.status).toEqual(200);
-    //expect(got_message).toEqual(false);
-    // TODO: Look for a recipe that got added
+    // Look for a recipe that got added
+    expect(await db.RecipeExists(null, url)).toBe(true);
   });
 });

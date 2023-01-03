@@ -43,6 +43,8 @@ const HoneydewVersion1 = {
                 .createTable(table_name)
                 .addColumn('id', 'varchar(40)', (col) => col.unique())
                 .addColumn('url', 'varchar(512)', (col) => col.primaryKey())
+                .addColumn('image', 'varchar(512)', (col) => col.notNull())
+                .addColumn('name', 'varchar(255)', (col) => col.notNull())
                 .execute()
         }
         {

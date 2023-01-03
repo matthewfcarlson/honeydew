@@ -5,6 +5,7 @@ import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHou
 import { Kysely, Migrator } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
+import { scrapeRecipe } from "../_recipe";
 
 type SQLHousehold = Omit<DbHouseholdRaw, "members">;
 
@@ -511,9 +512,20 @@ export default class Database {
         await this.deleteKey(id);
     }
 
-    async RecipeExists(id: RecipeId) {
-        // TODO: implement?
-        return false;
+    async RecipeExists(id: RecipeId|null, url?:string) {
+        if (id == null && url == undefined) return false;
+        if (id != null && url != undefined) return false;
+        let query = this._db.selectFrom("recipes").select("id")
+        
+        if (id != null) {
+            query = query.where("id", "==", id);
+        }
+        if (url != undefined) {
+            query = query.where("url", "==", url);
+        }
+        const result = await query.executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
     }
 
     async RecipeGenerateUUID(): Promise<null | TaskId> {
@@ -544,10 +556,14 @@ export default class Database {
             if (id == null) {
                 return null;
             }
+            const result = await scrapeRecipe(url);
+            if (result == null) {
+                return null;
+            }
             // Otherwise we need to create it
             const recipe: DbRecipeRaw = {
                 id,
-                url
+                ...result
             }
             const recipe_z = DbRecipeZ.parse(recipe);
             await this._db.insertInto("recipes").values(recipe).execute();

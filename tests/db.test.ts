@@ -465,10 +465,24 @@ describe('Task tests', () => {
   });
 });
 
-describe('Task tests', () => {
-  it('can create and delete tasks', async () => {
-    const recipe = await db.RecipeCreateIfNotExists("https://www.americastestkitchen.com/recipes/11130-sous-vide-raspberry-syrup")
-    expect(recipe).not.toBeNull();
+describe('Recipe tests', () => {
+  it('can handles lots of recipes', async () => {
+    const urls = [
+      "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/",
+      "https://www.kingarthurbaking.com/recipes/english-muffin-toasting-bread-recipe",
+      "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
+      "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
+    ];
+    for (let i = 0; i < urls.length; i++){
+      const url = urls[i];
+      const recipe = await db.RecipeCreateIfNotExists(url)
+      expect(recipe).not.toBeNull();
+      if (recipe == null) continue;
+      expect(await db.RecipeExists(null, url)).toBe(true);
+      expect(recipe.name.length).toBeGreaterThan(5);
+      console.log(recipe.name);
+    }
   });
+
 
 });

@@ -1,4 +1,4 @@
-import { string, z } from "zod";
+import { z } from "zod";
 // UUID looks like this: 42598872-8a5b-44c7-a6ca-1be5e0f21518 = 36 characters
 // -------------------------------------------------
 // ID Types
@@ -132,7 +132,9 @@ export type DbTask = z.infer<typeof DbTaskZ>;
 
 export const DbRecipeZRaw = z.object({
     id: RecipeIdZ,
-    url: z.string().max(512)
+    name: z.string().max(255),
+    url: z.string().max(512),
+    image: z.string().max(512),
 });
 export const DbRecipeZ = DbRecipeZRaw.brand<"Recipe">();
 export type DbRecipeRaw = z.infer<typeof DbRecipeZRaw>;

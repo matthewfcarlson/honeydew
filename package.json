@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^3.18.0",
+    "@jitl/recipe-data-scraper": "^2.0.0",
     "@trpc/server": "^10.0.0-rc.8",
     "@tsndr/cloudflare-worker-jwt": "^2.1.2",
     "kysely": "^0.22.0",
