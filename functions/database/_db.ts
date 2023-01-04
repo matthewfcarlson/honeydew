@@ -1,11 +1,12 @@
 import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
 import { pickRandomUserIconAndColor } from "../_utils";
-import { DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
-import { Kysely, Migrator } from 'kysely';
+import { DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
+import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
 import { scrapeRecipe } from "../_recipe";
+import { last } from "cheerio/lib/api/traversing";
 
 type SQLHousehold = Omit<DbHouseholdRaw, "members">;
 
@@ -14,6 +15,7 @@ interface DataBaseData {
     households: SQLHousehold
     projects: DbProjectRaw
     recipes: DbRecipeRaw
+    cardboxes: DbCardBoxRaw
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
@@ -571,6 +573,29 @@ export default class Database {
         }
         catch (err) {
             console.error("RecipeCreateIfNotExists", err);
+            return null;
+        }
+    }
+
+    async CardBoxAddRecipe(recipe_id: RecipeId, house_id: HouseId): Promise<DbCardBox | null> {
+        try {
+            const cardbox_raw = await this._db.selectFrom("cardboxes").selectAll().where("recipe_id", "==", recipe_id).where("household_id", "==", house_id).executeTakeFirst();
+            if (cardbox_raw != undefined) {
+                return DbCardBoxZ.parse(cardbox_raw);
+            }
+            // Otherwise we need to create it
+            const cardbox: DbCardBoxRaw = {
+                recipe_id,
+                household_id: house_id,
+                lastMade: null,
+                favorite: 0,
+            }
+            const cardbox_z = DbCardBoxZ.parse(cardbox);
+            await this._db.insertInto("cardboxes").values(cardbox).execute();
+            return cardbox_z;
+        }
+        catch (err) {
+            console.error("CardBoxAddRecipe", err);
             return null;
         }
     }

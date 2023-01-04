@@ -139,3 +139,14 @@ export const DbRecipeZRaw = z.object({
 export const DbRecipeZ = DbRecipeZRaw.brand<"Recipe">();
 export type DbRecipeRaw = z.infer<typeof DbRecipeZRaw>;
 export type DbRecipe = z.infer<typeof DbRecipeZ>;
+
+export const DbCardBoxZRaw = z.object({
+    recipe_id: RecipeIdZ,
+    household_id: HouseIdZ,
+    lastMade: z.number().nonnegative().nullable(),
+    favorite: z.number(),
+});
+export const DbCardBoxZ = DbCardBoxZRaw.brand<"Cardbox">();
+export type DbCardBoxRaw = z.infer<typeof DbCardBoxZRaw>;
+export type DbCardBox = z.infer<typeof DbCardBoxZ>;
+

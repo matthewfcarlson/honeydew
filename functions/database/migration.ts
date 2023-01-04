@@ -48,12 +48,14 @@ const HoneydewVersion1 = {
                 .execute()
         }
         {
-            const table_name = "CARDBOXS"
+            const table_name = "CARDBOXES"
             await db.schema.dropTable(table_name).ifExists().execute();
             await db.schema
                 .createTable(table_name)
                 .addColumn('recipe_id', 'varchar(40)', (col) => col.unique())
                 .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
+                .addColumn('lastMade', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
+                .addColumn('favorite', "integer", (col)=>col.defaultTo(0).notNull())
                 .addUniqueConstraint("cardbox_ids_unique", ['household_id', 'recipe_id'])
                 .execute()
         }

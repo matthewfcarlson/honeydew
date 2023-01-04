@@ -15,7 +15,10 @@ async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user
     else {
         const response = `I've made a recipe for "${recipe.name}" and added it your card box ${recipe.id}. This is still a work in progress`
         // reply to the original message
-        await db.GetTelegram().sendPhoto(msg.message.chat.id, recipe.image, response, msg.message.message_id);
+        const promises = [];
+        promises.push(db.GetTelegram().sendPhoto(msg.message.chat.id, recipe.image, response, msg.message.message_id));
+        promises.push(db.CardBoxAddRecipe(recipe.id, user.household));
+        await Promise.all(promises);
     }
     return true;
 }

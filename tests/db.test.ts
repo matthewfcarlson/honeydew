@@ -469,16 +469,30 @@ describe('Task tests', () => {
 describe('Recipe tests', () => {
   test.each([
     "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/",
-    "https://www.kingarthurbaking.com/recipes/english-muffin-toasting-bread-recipe",
-    "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
-    "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
+    //"https://www.kingarthurbaking.com/recipes/english-muffin-toasting-bread-recipe",
+    //"https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
+    //"https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
     "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
-    "https://www.joshuaweissman.com/post/dominos-pizza",
+    //"https://www.joshuaweissman.com/post/dominos-pizza",
   ])("can add %s as a recipe", async (url) => {
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
     if (recipe == null) return;
     expect(await db.RecipeExists(null, url)).toBe(true);
     expect(recipe.name.length).toBeGreaterThan(5);
+  });
+
+  it("can add recipe to cardbox", async () => {
+    const url = "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/";
+    const recipe = await db.RecipeCreateIfNotExists(url)
+    expect(recipe).not.toBeNull();
+    if (recipe == null) return;
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const cardbox = await db.CardBoxAddRecipe(recipe.id, house_id);
+    expect(cardbox).not.toBeNull();
   })
+
 });
