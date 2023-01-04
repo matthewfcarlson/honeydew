@@ -261,10 +261,11 @@ export class TelegramAPI {
         return results.result;
     }
 
-    public async sendPhoto(chat_id: string|number, photo: string, reply_to_message?: number) {
+    public async sendPhoto(chat_id: string|number, photo: string, caption?: string, reply_to_message?: number) {
         const data = {
             chat_id,
             photo,
+            caption,
             reply_to_message_id: reply_to_message
         };
         const results = await this.requestPost('sendPhoto', data);

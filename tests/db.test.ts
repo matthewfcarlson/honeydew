@@ -473,6 +473,7 @@ describe('Recipe tests', () => {
     "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
     "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
     "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
+    "https://www.joshuaweissman.com/post/dominos-pizza",
   ])("can add %s as a recipe", async (url) => {
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
