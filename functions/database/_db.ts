@@ -428,7 +428,7 @@ export default class Database {
                 continue;
             }
             taskId = attempted_id.data;
-            if (await this.ProjectExists(taskId) == false) break;
+            if (await this.TaskExists(taskId) == false) break;
         }
         if (count > 50) {
             console.error("TaskGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
@@ -530,7 +530,7 @@ export default class Database {
         return true;
     }
 
-    async RecipeGenerateUUID(): Promise<null | TaskId> {
+    async RecipeGenerateUUID(): Promise<null | RecipeId> {
         let recipeId: RecipeId | null = null;
         let count = 0;
         while (count < 50) {

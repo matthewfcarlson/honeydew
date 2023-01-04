@@ -11,38 +11,45 @@ function endsWithUuid(x:string) : boolean {
 export const UserIdZ = z.string({
     required_error: "UserId is required",
     invalid_type_error: "UserID must start with U:"
-}).length(38).startsWith("U:", {message: "Must start with U:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
+}).length(38).startsWith("U:", {message: "Must start with U:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"UserId">()
 
 export type UserId = z.infer<typeof UserIdZ>;
 
 export const HouseIdZ = z.string({
     required_error: "HouseID is required",
     invalid_type_error: "HouseID must start with H:"
-}).length(38).startsWith("H:", {message: "Must start with H:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
+}).length(38).startsWith("H:", {message: "Must start with H:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"HouseId">()
 export type HouseId = z.infer<typeof HouseIdZ>;
 
-export const HouseKeyIdz = z.string().length(39).startsWith("HK:", {message: "Must start with HK:"}).refine(endsWithUuid).brand();
+export const HouseKeyIdz = z.string().length(39).startsWith("HK:", {message: "Must start with HK:"}).refine(endsWithUuid).brand<"HousekeyId">();
 export type HouseKeyId = z.infer<typeof HouseKeyIdz>;
 
 export const ProjectIdZ = z.string({
     required_error: "ProjectID is required",
     invalid_type_error: "ProjectID must start with P:"
-}).length(38).startsWith("P:", {message: "Must start with P:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
+}).length(38).startsWith("P:", {message: "Must start with P:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"ProjectId">()
 export type ProjectId = z.infer<typeof ProjectIdZ>;
 
 export const TaskIdZ = z.string({
     required_error: "TaskID is required",
     invalid_type_error: "TaskID must start with P:"
-}).length(38).startsWith("T:", {message: "Must start with T:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
-export type TaskId = z.infer<typeof ProjectIdZ>;
+}).length(38).startsWith("T:", {message: "Must start with T:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"TaskId">()
+export type TaskId = z.infer<typeof TaskIdZ>;
 
 export const RecipeIdZ = z.string({
     required_error: "RecipeId is required",
     invalid_type_error: "RecipeId must start with R:"
-}).length(38).startsWith("R:", {message: "Must start with R:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand()
-export type RecipeId = z.infer<typeof ProjectIdZ>;
+}).length(38).startsWith("R:", {message: "Must start with R:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"RecipeId">()
+export type RecipeId = z.infer<typeof RecipeIdZ>;
 
-export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId;
+export const ChordIdz = z.string({
+    required_error: "ChoreId is required",
+    invalid_type_error: "ChoreId must start with R:"
+}).length(38).startsWith("C:", {message: "Must start with C:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"ChoreId">()
+export type ChoreId = z.infer<typeof ChordIdz>;
+
+
+export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId | ChoreId;
 
 export interface DbDataObj {
     id: DbIds
@@ -149,4 +156,16 @@ export const DbCardBoxZRaw = z.object({
 export const DbCardBoxZ = DbCardBoxZRaw.brand<"Cardbox">();
 export type DbCardBoxRaw = z.infer<typeof DbCardBoxZRaw>;
 export type DbCardBox = z.infer<typeof DbCardBoxZ>;
+
+export const DbChoreZRaw = z.object({
+    id: ChordIdz,
+    household_id: HouseIdZ,
+    name: z.string().max(255),
+    frequency:z.number().positive(),
+    lastDone: z.number().nonnegative().nullable(),
+    waitUntil: z.number().nonnegative().nullable(),
+});
+export const DbChoreZ = DbChoreZRaw.brand<"Chore">();
+export type DbChoreRaw = z.infer<typeof DbChoreZRaw>;
+export type DbChoreBox = z.infer<typeof DbChoreZ>;
 

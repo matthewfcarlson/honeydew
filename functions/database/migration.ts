@@ -59,6 +59,19 @@ const HoneydewVersion1 = {
                 .addUniqueConstraint("cardbox_ids_unique", ['household_id', 'recipe_id'])
                 .execute()
         }
+        {
+            const table_name = "CHORES"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('name', 'varchar(255)', (col) => col.notNull())
+                .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
+                .addColumn('frequency', "integer", (col)=>col.notNull())
+                .addColumn('lastDone', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
+                .addColumn('waitUntil', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
+                .execute()
+        }
     }
 }
 
