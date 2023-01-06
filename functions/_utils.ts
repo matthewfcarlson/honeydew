@@ -171,6 +171,12 @@ export function hexStringToArrayBuffer(hexString:string) {
   return array.buffer;
 }
 
+export function getJulianDate(): number {
+  const date = new Date();
+  const time = date.getTime(); // the timestamp, not neccessarely using UTC as current time
+  return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
+}
+
 export const user_colors = [
   "#76C4AE",
   "#9FC2BA",

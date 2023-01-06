@@ -122,7 +122,6 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
       const key = `err:${Date.now().toString()}`;
       context.env.HONEYDEW.put(key, JSON.stringify(data), { expirationTtl: 60 * 60 * message_hours_lifetime });
       _error(...data);
-      console.trace()
     }
     console.warn = function (...data) {
       const key = `warn:${Date.now().toString()}`;

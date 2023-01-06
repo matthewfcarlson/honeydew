@@ -8,6 +8,12 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       code: 'UNAUTHORIZED',
     });
   }
+  if (ctx.data.user == null) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      cause: "User was not found"
+    })
+  }
   return next();
 });
 

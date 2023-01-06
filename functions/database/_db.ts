@@ -1,7 +1,7 @@
 import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
-import { pickRandomUserIconAndColor } from "../_utils";
-import { DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ } from "../db_types";
+import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -16,6 +16,7 @@ interface DataBaseData {
     projects: DbProjectRaw
     recipes: DbRecipeRaw
     cardboxes: DbCardBoxRaw
+    chores: DbChoreRaw
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
@@ -35,7 +36,7 @@ export default class Database {
 
     // This will do a drop and create if needed
     public async CheckOnSQL() {
-        const db_version = Number(await this._kv.get("SQLDB_VERSION") || "0");
+        const db_version = Number(await this._kv.get("SQLDB_VERSION") || "-1");
         if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version);
     }
 
@@ -50,9 +51,10 @@ export default class Database {
             return;
         }
         // TODO: move to a lock within sqlite?
+        // TODO: generate a random value and try to put it in there?
         const promise = this._kv.put("SQLDB_MIGRATIONLOCK", "locked", { expirationTtl: 60 * 60 }); // this expires every hour
         try {
-            const starting = Number(version);
+            const starting = Math.max(version, 0);
             if (starting >= HoneydewMigrations.length) {
                 const migration = HoneydewMigrations[HoneydewMigrations.length - 1];
                 if (migration.down) migration.down(this._db);
@@ -63,7 +65,7 @@ export default class Database {
                 }
             }
             await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion.toString(), { expirationTtl: 60 * 60 * 6 }); // we refresh the database every 6 hours
-            console.log("Upgraded DB to version " + LatestHoneydewDBVersion + "from" + starting)
+            console.log("Upgraded DB to version " + LatestHoneydewDBVersion + " from " + starting)
         }
         catch (err) {
             console.error("MIGRATE_DB", err);
@@ -596,6 +598,116 @@ export default class Database {
         }
         catch (err) {
             console.error("CardBoxAddRecipe", err);
+            return null;
+        }
+    }
+
+    async CardBoxGetFavorites(house_id: HouseId, favorites: boolean = true): Promise<DbCardBoxRecipe[]> {
+        const id_parse = HouseIdZ.safeParse(house_id);
+        if (id_parse.success == false) return []
+        const cardbox = await this._db.selectFrom(["cardboxes", "recipes"]).selectAll("cardboxes").selectAll("recipes").where("household_id", "==", house_id).where("favorite", "==",favorites?1:0).whereRef("cardboxes.recipe_id", "==", "recipes.id").execute();
+        const results:DbCardBoxRecipe[] = [];
+        cardbox.forEach((x)=> {
+            const cardbox: DbCardBoxRaw = x
+            const recipe: DbRecipeRaw = {
+                id: x.recipe_id,
+                url: x.url,
+                name: x.name,
+                image: x["image"]
+            }
+            const z = DbCardBoxRecipeZ.safeParse( {
+                recipe,
+                ...cardbox,
+            });
+            if (z.success) results.push(z.data);
+            else console.error(z.error);
+        });
+        return results;
+    }
+
+    async CardBoxSetFavorite(recipe_id: RecipeId, house_id: HouseId, favored: boolean): Promise<boolean> {
+        try {
+            // Just make sure there is at least one
+            const cardbox_raw = await this._db.selectFrom("cardboxes").selectAll().where("recipe_id", "==", recipe_id).where("household_id", "==", house_id).executeTakeFirst();
+            if (cardbox_raw == undefined) {
+                return false;
+            }
+            await this._db.updateTable("cardboxes").where("recipe_id", "==", recipe_id).where("household_id", "==", house_id).set({ favorite: (favored ? 1 : 0) }).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("CardBoxSetFavorite", err);
+            return false;
+        }
+    }
+
+    async ChoreExists(id: ChoreId) {
+        const chore_id = ChoreIdz.safeParse(id);
+        if (chore_id.success == false) return false;
+        const result = await this._db.selectFrom("chores").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
+    }
+
+    async ChoreGenerateUUID(): Promise<null | ChoreId> {
+        let id: ChoreId | null = null;
+        let count = 0;
+        while (count < 50) {
+            count += 1;
+            const attempted_id = ChoreIdz.safeParse("C:" + uuidv4());
+            if (attempted_id.success == false) {
+                continue;
+            }
+            id = attempted_id.data;
+            if (await this.ChoreExists(id) == false) break;
+        }
+        if (count > 50) {
+            console.error("ChoreGenerateUUID", "This should not have happened, we were unable to generate a new user ID");
+        }
+        return id
+    }
+
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number): Promise<DbChore | null> {
+        try {
+            const id = await this.ChoreGenerateUUID();
+            if (id == null) {
+                return null;
+            }
+
+            const chore_raw: DbChoreRaw = {
+                id,
+                household_id,
+                name,
+                frequency,
+                lastDone: null,
+                waitUntil: null,
+            };
+            const chore = DbChoreZ.parse(chore_raw);
+            await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
+            return chore;
+        }
+        catch (err) {
+            console.error("TaskCreate", err);
+            return null;
+        }
+    }
+
+    async ChoreComplete(id: ChoreId, user: UserId): Promise<boolean> {
+        if (await this.ChoreExists(id) == false) return false;
+        await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: getJulianDate() }).execute();
+        return true;
+    }
+
+    async ChoreGet(id: ChoreId) {
+        try {
+            const chore_id = ChoreIdz.safeParse(id);
+            if (chore_id.success == false) return null;
+            const result = await this._db.selectFrom("chores").selectAll().where("id", "==", id).executeTakeFirstOrThrow();
+            if (result == undefined) return null;
+            return DbChoreZ.parse(result);
+        }
+        catch (err) {
+            console.error("ChoreGet", err);
             return null;
         }
     }

@@ -42,11 +42,11 @@ export const RecipeIdZ = z.string({
 }).length(38).startsWith("R:", {message: "Must start with R:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"RecipeId">()
 export type RecipeId = z.infer<typeof RecipeIdZ>;
 
-export const ChordIdz = z.string({
+export const ChoreIdz = z.string({
     required_error: "ChoreId is required",
     invalid_type_error: "ChoreId must start with R:"
 }).length(38).startsWith("C:", {message: "Must start with C:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"ChoreId">()
-export type ChoreId = z.infer<typeof ChordIdz>;
+export type ChoreId = z.infer<typeof ChoreIdz>;
 
 
 export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId | ChoreId;
@@ -150,22 +150,27 @@ export type DbRecipe = z.infer<typeof DbRecipeZ>;
 export const DbCardBoxZRaw = z.object({
     recipe_id: RecipeIdZ,
     household_id: HouseIdZ,
-    lastMade: z.number().nonnegative().nullable(),
+    lastMade: z.number().nonnegative().nullable(), // stored as julian day numbers
     favorite: z.number(),
 });
 export const DbCardBoxZ = DbCardBoxZRaw.brand<"Cardbox">();
 export type DbCardBoxRaw = z.infer<typeof DbCardBoxZRaw>;
 export type DbCardBox = z.infer<typeof DbCardBoxZ>;
 
+export const DbCardBoxRecipeZ = DbCardBoxZRaw.extend({
+    recipe: DbRecipeZ
+}).brand<"DbCardBoxRecipeZ">();
+export type DbCardBoxRecipe = z.infer<typeof DbCardBoxRecipeZ>;
+
 export const DbChoreZRaw = z.object({
-    id: ChordIdz,
+    id: ChoreIdz,
     household_id: HouseIdZ,
     name: z.string().max(255),
     frequency:z.number().positive(),
-    lastDone: z.number().nonnegative().nullable(),
-    waitUntil: z.number().nonnegative().nullable(),
+    lastDone: z.number().nonnegative().nullable(),  // stored as julian day numbers
+    waitUntil: z.number().nonnegative().nullable(), // stored as julian day numbers
 });
 export const DbChoreZ = DbChoreZRaw.brand<"Chore">();
 export type DbChoreRaw = z.infer<typeof DbChoreZRaw>;
-export type DbChoreBox = z.infer<typeof DbChoreZ>;
+export type DbChore = z.infer<typeof DbChoreZ>;
 

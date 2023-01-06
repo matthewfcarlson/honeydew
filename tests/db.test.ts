@@ -493,6 +493,44 @@ describe('Recipe tests', () => {
 
     const cardbox = await db.CardBoxAddRecipe(recipe.id, house_id);
     expect(cardbox).not.toBeNull();
-  })
 
+    let yes_favorites = await db.CardBoxGetFavorites(house_id, true);
+    let not_favorites = await db.CardBoxGetFavorites(house_id, false);
+    expect(not_favorites).not.toBeNull();
+    expect(yes_favorites).not.toBeNull();
+    expect(not_favorites).toHaveLength(1);
+    expect(yes_favorites).toHaveLength(0);
+
+    // Set the recipe as a favorite
+    expect(await db.CardBoxSetFavorite(recipe.id, house_id, true)).toBe(true);
+
+    // Make sure we have a favorites recipe and 
+    yes_favorites = await db.CardBoxGetFavorites(house_id, true);
+    not_favorites = await db.CardBoxGetFavorites(house_id, false);
+    expect(yes_favorites).not.toBeNull();
+    expect(yes_favorites).toHaveLength(1);
+    expect(not_favorites).not.toBeNull();
+    expect(not_favorites).toHaveLength(0);
+  })
+});
+
+describe('Chore tests', () => {
+  it("can add chores to household", async () => {
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const chore = await db.ChoreCreate("sweeping", house_id, 5);
+    expect(chore).not.toBeNull();
+
+    expect(await db.ChoreComplete(chore!.id, user_id)).toBe(true);
+
+    const chore2 = await db.ChoreGet(chore!.id);
+    expect(chore2).not.toBeNull();
+    expect(chore2!.lastDone).not.toEqual(0);
+  })
 });

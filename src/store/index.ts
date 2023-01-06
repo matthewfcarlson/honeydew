@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { createTRPCProxyClient, httpBatchLink, TRPCClientError } from '@trpc/client';
 import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
-import { ZodError } from 'zod';
+import { boolean, ZodError } from 'zod';
+import { DbCardBoxRecipe, RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
+import { TRPCError } from '@trpc/server';
 
 interface APIResultSuccess<T> {
     success: true;
@@ -34,6 +36,25 @@ export type APIResult<T> = Promise<APIResultSuccess<T> | APIResultError>;
 
 type Query<T> = () => Promise<T>;
 
+export function isTRPCClientError(
+    cause: unknown,
+): cause is TRPCClientError<AppRouter> {
+    return cause instanceof TRPCClientError;
+}
+
+function handleError(err: unknown): APIResultError {
+    if (isTRPCClientError(err)) {
+        return {
+            success: false,
+            message: err.message || "Error querying API",
+        }
+    }
+    return {
+        success: false,
+        message: `Unknown error ${err}`
+    }
+}
+
 async function QueryAPI<R>(query: Query<R>): APIResult<R> {
     try {
         const result = await query();
@@ -43,24 +64,15 @@ async function QueryAPI<R>(query: Query<R>): APIResult<R> {
         }
     }
     catch (err) {
-        console.error(err);
-        console.error(typeof err);
-        // if (err instanceof TRPCError) {
-        //     return {
-        //         status: "error",
-        //         message: err.response?.data.message || "Error querying API",
-        //     }
-        // }
-        return {
-            success: false,
-            message: `Unknown error ${err}`
-        }
+        return handleError(err);
     }
 }
 
 interface UserStoreState {
     _loggedIn: boolean;
     _user: null | AuthCheck;
+    _recipeFavs: DbCardBoxRecipe[],
+    _recipeToTry: DbCardBoxRecipe[],
 }
 
 export const useUserStore = defineStore("user", {
@@ -74,7 +86,9 @@ export const useUserStore = defineStore("user", {
         }
         const state: UserStoreState = {
             _loggedIn: (window as any).logged_in || false,
-            _user
+            _user,
+            _recipeFavs: [],
+            _recipeToTry: []
         }
         return state;
     },
@@ -91,11 +105,17 @@ export const useUserStore = defineStore("user", {
             if (state._user == null) return null;
             return state._user.household;
         },
-        userIconColor: (state)=> {
+        userIconColor: (state) => {
             if (!state._loggedIn) return null;
             if (state._user == null) return null;
             return [state._user.icon, state._user.color]
-        }
+        },
+        recipes: (state) => {
+            return {
+                favorites: state._recipeFavs,
+                toTry: state._recipeToTry,
+            }
+        },
     },
     actions: {
         async fetchUser(): APIResult<AuthCheck> {
@@ -109,6 +129,17 @@ export const useUserStore = defineStore("user", {
             // Idk why the type inference is saying this is never[]
             this._user = result.data;
             return result;
+        },
+        async FetchRecipes() {
+            const favs = await QueryAPI(client.recipes.favorites.query);
+            if (favs.success) {
+                this._recipeFavs = favs.data;
+            }
+            const toTry = await QueryAPI(client.recipes.toTry.query);
+            if (toTry.success) {
+                this._recipeToTry = toTry.data;
+            }
+            console.log(favs, toTry);
         },
         async getInviteLink(): APIResult<string> {
             return await QueryAPI(client.household.invite.query);
@@ -129,7 +160,35 @@ export const useUserStore = defineStore("user", {
                 }
             }
         },
-        async signUp(name: string, key?: string, turnstile:string = ""): APIResult<AuthSignupResponse> {
+        async RecipeAdd(url: string): APIResult<boolean> {
+            try {
+                const result = await client.recipes.add.query(url);
+                this.FetchRecipes(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async RecipeFavorite(id: string, favored: boolean): APIResult<boolean> {
+            try {
+                const recipe_id = RecipeIdZ.parse(id);
+                const result = await client.recipes.mark_favored.query({ recipe_id, favored });
+                this.FetchRecipes(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+
+        async signUp(name: string, key?: string, turnstile: string = ""): APIResult<AuthSignupResponse> {
             const raw_body: AuthSignupRequest = {
                 name,
                 key,
