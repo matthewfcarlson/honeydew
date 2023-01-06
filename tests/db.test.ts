@@ -500,6 +500,7 @@ describe('Recipe tests', () => {
     expect(yes_favorites).not.toBeNull();
     expect(not_favorites).toHaveLength(1);
     expect(yes_favorites).toHaveLength(0);
+    expect(not_favorites[0].favorite).toBe(false);
 
     // Set the recipe as a favorite
     expect(await db.CardBoxSetFavorite(recipe.id, house_id, true)).toBe(true);
