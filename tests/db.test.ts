@@ -474,6 +474,7 @@ describe('Recipe tests', () => {
     //"https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
     "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
     //"https://www.joshuaweissman.com/post/dominos-pizza",
+    "https://www.everyplate.com/recipes/creamy-dijon-chicken-639747695018ecdf720575c1",
   ])("can add %s as a recipe", async (url) => {
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
@@ -500,7 +501,7 @@ describe('Recipe tests', () => {
     expect(yes_favorites).not.toBeNull();
     expect(not_favorites).toHaveLength(1);
     expect(yes_favorites).toHaveLength(0);
-    expect(not_favorites[0].favorite).toBe(false);
+    expect(not_favorites[0].favorite).toBe(0);
 
     // Set the recipe as a favorite
     expect(await db.CardBoxSetFavorite(recipe.id, house_id, true)).toBe(true);
@@ -510,6 +511,7 @@ describe('Recipe tests', () => {
     not_favorites = await db.CardBoxGetFavorites(house_id, false);
     expect(yes_favorites).not.toBeNull();
     expect(yes_favorites).toHaveLength(1);
+    expect(yes_favorites[0].favorite).toBe(1);
     expect(not_favorites).not.toBeNull();
     expect(not_favorites).toHaveLength(0);
   })

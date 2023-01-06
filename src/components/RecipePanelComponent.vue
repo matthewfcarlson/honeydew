@@ -17,8 +17,8 @@
               <a class="level-item">
                 <span class="icon is-small"><i class="fas fa-edit"></i></span>
               </a>
-              <a class="level-item">
-                <span class="icon is-small"><i class="fas fa-retweet"></i></span>
+              <a class="level-item" :href="recipe.recipe.url" target="_blank">
+                <span class="icon is-small"><i class="fab fa-readme"></i></span>
               </a>
             </div>
           </nav>
