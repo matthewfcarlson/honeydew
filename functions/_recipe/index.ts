@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { DbRecipeZRaw } from "../db_types";
-import AllRecipesScraper from "./scrapers/allrecipes";
 import CentralTexasFoodBankScraper from "./scrapers/ctfb";
 import EveryPlateScraper from "./scrapers/everyplate";
 import JsonScraper from "./scrapers/ld_json";
 
-export const ScrapedRecipeDataZ = DbRecipeZRaw.omit({id:true});
+export const ScrapedRecipeDataZ = DbRecipeZRaw.omit({id:true}).extend({
+    ingredients: z.array(z.string())
+});
 export type HoneydewScrapedRecipeData = z.infer<typeof ScrapedRecipeDataZ>;
 
 const SCRAPERS = [
-    //new EveryPlateScraper(),
-    new AllRecipesScraper(),
+    new EveryPlateScraper(),
     new CentralTexasFoodBankScraper(),
     new JsonScraper(),
 ]

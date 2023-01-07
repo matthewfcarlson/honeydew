@@ -8,7 +8,7 @@
         <div class="media-content">
           <div class="content">
             <p>
-              <strong>{{ recipe.recipe.name }}</strong> <small>@johnsmith</small> <small>31m</small>
+              <strong>{{ recipe.recipe.name }}</strong> <small>@{{source}}</small> <small>{{ recipe.recipe.totalTime }}</small>
               <br>
             </p>
           </div>
@@ -33,19 +33,23 @@
 <script lang="ts">
 //import type { AuthHouseholdMember } from 'functions/auth/auth_types';
 import { useUserStore } from '@/store';
-import { defineComponent } from 'vue';
+import { DbCardBoxRecipe } from 'functions/db_types';
+import { defineComponent, PropType } from 'vue';
 
 
 export default defineComponent({
     name: 'RecipePanelComponent',
     props: {
         recipe: {
-            type: Object,
+            type: Object as PropType<DbCardBoxRecipe>,
             default: null,
         },
     },
     computed: {
-        
+        source: function () {
+          const url = new URL(this.recipe.recipe.url)
+          return url.hostname.slice(url.hostname.indexOf(".")+1)
+        },
     },
     methods: {
         markFavorite: async function (recipe_id: string, favored: boolean) {

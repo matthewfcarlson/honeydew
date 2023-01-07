@@ -3,7 +3,7 @@ import { z } from "zod";
 // -------------------------------------------------
 // ID Types
 
-function endsWithUuid(x:string) : boolean {
+function endsWithUuid(x: string): boolean {
     return true;
 }
 
@@ -11,41 +11,41 @@ function endsWithUuid(x:string) : boolean {
 export const UserIdZ = z.string({
     required_error: "UserId is required",
     invalid_type_error: "UserID must start with U:"
-}).length(38).startsWith("U:", {message: "Must start with U:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"UserId">()
+}).length(38).startsWith("U:", { message: "Must start with U:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"UserId">()
 
 export type UserId = z.infer<typeof UserIdZ>;
 
 export const HouseIdZ = z.string({
     required_error: "HouseID is required",
     invalid_type_error: "HouseID must start with H:"
-}).length(38).startsWith("H:", {message: "Must start with H:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"HouseId">()
+}).length(38).startsWith("H:", { message: "Must start with H:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"HouseId">()
 export type HouseId = z.infer<typeof HouseIdZ>;
 
-export const HouseKeyIdz = z.string().length(39).startsWith("HK:", {message: "Must start with HK:"}).refine(endsWithUuid).brand<"HousekeyId">();
+export const HouseKeyIdz = z.string().length(39).startsWith("HK:", { message: "Must start with HK:" }).refine(endsWithUuid).brand<"HousekeyId">();
 export type HouseKeyId = z.infer<typeof HouseKeyIdz>;
 
 export const ProjectIdZ = z.string({
     required_error: "ProjectID is required",
     invalid_type_error: "ProjectID must start with P:"
-}).length(38).startsWith("P:", {message: "Must start with P:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"ProjectId">()
+}).length(38).startsWith("P:", { message: "Must start with P:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ProjectId">()
 export type ProjectId = z.infer<typeof ProjectIdZ>;
 
 export const TaskIdZ = z.string({
     required_error: "TaskID is required",
     invalid_type_error: "TaskID must start with P:"
-}).length(38).startsWith("T:", {message: "Must start with T:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"TaskId">()
+}).length(38).startsWith("T:", { message: "Must start with T:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"TaskId">()
 export type TaskId = z.infer<typeof TaskIdZ>;
 
 export const RecipeIdZ = z.string({
     required_error: "RecipeId is required",
     invalid_type_error: "RecipeId must start with R:"
-}).length(38).startsWith("R:", {message: "Must start with R:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"RecipeId">()
+}).length(38).startsWith("R:", { message: "Must start with R:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"RecipeId">()
 export type RecipeId = z.infer<typeof RecipeIdZ>;
 
 export const ChoreIdz = z.string({
     required_error: "ChoreId is required",
     invalid_type_error: "ChoreId must start with R:"
-}).length(38).startsWith("C:", {message: "Must start with C:"}).refine(endsWithUuid, {message: "Must end in UUID"}).brand<"ChoreId">()
+}).length(38).startsWith("C:", { message: "Must start with C:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ChoreId">()
 export type ChoreId = z.infer<typeof ChoreIdz>;
 
 
@@ -142,6 +142,7 @@ export const DbRecipeZRaw = z.object({
     name: z.string().max(255),
     url: z.string().max(512),
     image: z.string().max(512),
+    totalTime: z.number().nonnegative(), // the time in minutes
 });
 export const DbRecipeZ = DbRecipeZRaw.brand<"Recipe">();
 export type DbRecipeRaw = z.infer<typeof DbRecipeZRaw>;
@@ -166,7 +167,7 @@ export const DbChoreZRaw = z.object({
     id: ChoreIdz,
     household_id: HouseIdZ,
     name: z.string().max(255),
-    frequency:z.number().positive(),
+    frequency: z.number().positive(),
     lastDone: z.number().nonnegative().nullable(),  // stored as julian day numbers
     waitUntil: z.number().nonnegative().nullable(), // stored as julian day numbers
 });

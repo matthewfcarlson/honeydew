@@ -1,5 +1,6 @@
 import { AbstractRecipeScraper, HoneydewScrapedRecipeData } from "..";
 import * as cheerio from 'cheerio';
+import { parseISO8601ToMinutes } from "../../_utils";
 
 // TODO: zod so we're confident it's what we expect
 interface LdRecipeSchema {
@@ -10,11 +11,11 @@ interface LdRecipeSchema {
     totalTime?: string; // ISO 8061
     recipeIngredient?: string[];
     recipeInstructions?: any[];
-    image?: {
-        url?: string,
+    image: {
+        url: string,
         height: number;
         width: number;
-    }
+    } | string[]
 }
 interface LdGraphSchema {
     "@context": "https://schema.org";
@@ -26,10 +27,16 @@ function ExtractRecipe(recipes: LdRecipeSchema[], url: string): HoneydewScrapedR
         const recipe = recipes[i];
         if (recipe["@type"] == undefined) continue;
         if (recipe["@type"] != "Recipe" && recipe["@type"].indexOf("Recipe") == -1) continue;
+        if (recipe.recipeIngredient == null || recipe.recipeIngredient == undefined) continue;
+        if (recipe.totalTime == null || recipe.totalTime == undefined) continue;
+        if (recipe.cookTime == null || recipe.cookTime == undefined) continue;
+        const image = (Array.isArray(recipe.image) ? recipe.image[0]: recipe.image.url || '')
         return {
             name: recipe.name,
             url,
-            image: recipe.image?.url || "", // TODO: placeholder image
+            image,
+            totalTime: parseISO8601ToMinutes(recipe.totalTime) || 0,
+            ingredients: recipe.recipeIngredient
         }
     }
     return null;
@@ -63,7 +70,7 @@ export default class JsonScraper implements AbstractRecipeScraper {
                     const data = contents as LdRecipeSchema[] | LdGraphSchema | LdRecipeSchema
                     if ("@graph" in data) {
                         const raw_recipe = ExtractRecipe(data["@graph"], url_str);
-                        if (raw_recipe == null) throw new Error("Unable to find recipe in graph");
+                        if (raw_recipe == null) return;
                         else recipe = raw_recipe;
                         return;
                     }
@@ -88,7 +95,6 @@ export default class JsonScraper implements AbstractRecipeScraper {
             if (!e.stack.includes('\n')) {
                 Error.captureStackTrace(e)
             }
-            console.error("JsonScraper error", e);
             throw e;
         }
     }

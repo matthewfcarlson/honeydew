@@ -1,5 +1,6 @@
 import { AbstractRecipeScraper, HoneydewScrapedRecipeData } from "..";
 import * as cheerio from 'cheerio';
+import { parseISO8601ToMinutes } from "../../_utils";
 
 // TODO: move this to zod?
 interface EveryPlateNextData {
@@ -87,10 +88,13 @@ export default class EveryPlateScraper implements AbstractRecipeScraper {
                 throw new Error(`Server did not return 200. ${raw_response.status} ${raw_response.statusText}`)
             }
             const data = JSON.parse(text) as EveryPlateRecipe;
+            const prep_time = parseISO8601ToMinutes(data.prepTime) || 0;
             return {
                 name: data.name,
                 url: url_str,
                 image: data.imageLink,
+                totalTime: prep_time, // everplate lies and says their total time is their cook time
+                ingredients: []
             }
         }
 
@@ -98,7 +102,7 @@ export default class EveryPlateScraper implements AbstractRecipeScraper {
             if (!e.stack.includes('\n')) {
                 Error.captureStackTrace(e)
             }
-            console.error("EveryplateScraper error", e);
+            console.error("EveryPlateScraper error", e);
             throw e;
         }
 

@@ -47,16 +47,21 @@ export default class CentralTexasFoodBankScraper implements AbstractRecipeScrape
                         );
                     });
             }
-            // const time_prep = html(".field-name-field-prep-time")
-            //     .find("div")
-            //     .text();
-            // const time_cook = html(".field-name-field-cooking-time")
-            //     .find("div")
-            //     .text();
+            const time_prep_str = html(".field-name-field-prep-time")
+                .find("div")
+                .text();
+            const time_cook_str = html(".field-name-field-cooking-time")
+                .find("div")
+                .text();
+            const time_prep = time_prep_str.replace(/(^\d+)(.+$)/i,'$1');
+            const time_cook = time_cook_str.replace(/(^\d+)(.+$)/i,'$1');
+            const totalTime = Number(time_prep) + Number(time_cook);
             return {
                 image: (image == null) ? "" : image.toString(),
                 name: name || "Unknown",
-                url: url_str
+                url: url_str,
+                totalTime,
+                ingredients,
             }
         }
 

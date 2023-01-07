@@ -219,3 +219,11 @@ export function getRandomValueFromArray<T>(list: T[]): T {
 export function pickRandomUserIconAndColor() {
   return [getRandomValueFromArray(user_icons), getRandomValueFromArray(user_colors)]
 }
+
+// Based on https://github.com/tolu/ISO8601-duration
+import { parse, toSeconds } from "iso8601-duration";
+export function parseISO8601ToMinutes(durationString:string): number|null {
+  const duration = parse(durationString);
+  const seconds = toSeconds(duration);
+  return Math.ceil(seconds/60); // round up
+}

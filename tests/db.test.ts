@@ -473,15 +473,18 @@ describe('Recipe tests', () => {
     "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
     "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
     "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
-    "https://www.joshuaweissman.com/post/dominos-pizza",
-    //"https://www.everyplate.com/recipes/creamy-dijon-chicken-639747695018ecdf720575c1",
+    "https://www.budgetbytes.com/pasta-e-fagioli/",
+    //"https://www.joshuaweissman.com/post/dominos-pizza",
+    "https://www.everyplate.com/recipes/creamy-dijon-chicken-639747695018ecdf720575c1",
   ])("can add %s as a recipe", async (url) => {
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
-    console.warn(recipe?.name);
     if (recipe == null) return;
-    expect(await db.RecipeExists(null, url)).toBe(true);
     expect(recipe.name.length).toBeGreaterThan(5);
+    expect(recipe.totalTime).toBeGreaterThan(0);
+    expect(recipe.url).toBe(url);
+
+    expect(await db.RecipeExists(null, url)).toBe(true);
   });
 
   it("can add recipe to cardbox", async () => {
