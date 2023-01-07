@@ -9,7 +9,7 @@ export const ScrapedRecipeDataZ = DbRecipeZRaw.omit({id:true});
 export type HoneydewScrapedRecipeData = z.infer<typeof ScrapedRecipeDataZ>;
 
 const SCRAPERS = [
-    new EveryPlateScraper(),
+    //new EveryPlateScraper(),
     new AllRecipesScraper(),
     new CentralTexasFoodBankScraper(),
     new JsonScraper(),
