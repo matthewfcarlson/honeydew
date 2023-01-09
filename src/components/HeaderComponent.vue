@@ -22,6 +22,11 @@
                         Meals
                     </router-link>
 
+                    <router-link to="recipes" class="navbar-item">
+                        <i class="fas fa-archive"></i>&nbsp;
+                        Recipes
+                    </router-link>
+
                     <router-link to="chores" class="navbar-item">
                         <i class="fa-solid fa-hand-sparkles"></i>&nbsp;
                         Chores
@@ -32,29 +37,31 @@
                         Projects
                     </router-link>
                 </template>
-                <router-link to="about" class="navbar-item">
-                    <i class="fa-solid fa-circle-info"></i>&nbsp;
-                    About
-                </router-link>
+                <template v-else>
+                    <router-link to="about" class="navbar-item">
+                        <i class="fa-solid fa-circle-info"></i>&nbsp;
+                        About
+                    </router-link>
+                </template>
 
             </div>
 
             <div class="navbar-end">
                 <div class="navbar-item">
-                        <template v-if="isLoggedIn">
-                            <router-link to="household" class="is-flex is-align-items-center user-name-item">
-                                <strong>{{ userName }}</strong>
-                                <UserIcon height="2.5em" />
-                            </router-link>
-                        </template>
-                        <template v-else>
-                            <router-link to="signup" class="button is-primary">
-                                <span class="icon is-small">
-                                    <i class="fa-solid fa-user-plus"></i>
-                                </span>
-                                <strong>Sign up</strong>
-                            </router-link>
-                        </template>
+                    <template v-if="isLoggedIn">
+                        <router-link to="household" class="is-flex is-align-items-center user-name-item">
+                            <strong>{{ userName }}</strong>
+                            <UserIcon height="2.5em" />
+                        </router-link>
+                    </template>
+                    <template v-else>
+                        <router-link to="signup" class="button is-primary">
+                            <span class="icon is-small">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </span>
+                            <strong>Sign up</strong>
+                        </router-link>
+                    </template>
                 </div>
             </div>
         </div>
@@ -91,10 +98,11 @@ export default defineComponent({
   
   <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.user-name-item strong{
-    color:#363636;
-    font-size:1.2rem;
+.user-name-item strong {
+    color: #363636;
+    font-size: 1.2rem;
 }
+
 nav {
     margin-bottom: 1rem;
     box-shadow: 0 0.5em 1em -0.125em rgb(10 10 10 / 10%), 0 0px 0 1px rgb(10 10 10 / 2%);

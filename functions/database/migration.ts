@@ -69,7 +69,7 @@ const HoneydewVersion1 = {
                 .addColumn('name', 'varchar(255)', (col) => col.notNull())
                 .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
                 .addColumn('frequency', "integer", (col)=>col.notNull())
-                .addColumn('lastDone', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
+                .addColumn('lastDone', "integer", (col)=>col.notNull()) // stored as julian day numbers, defaults to today's date
                 .addColumn('waitUntil', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
                 .execute()
         }

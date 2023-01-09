@@ -168,7 +168,7 @@ export const DbChoreZRaw = z.object({
     household_id: HouseIdZ,
     name: z.string().max(255),
     frequency: z.number().positive(),
-    lastDone: z.number().nonnegative().nullable(),  // stored as julian day numbers
+    lastDone: z.number().nonnegative(),  // stored as julian day numbers
     waitUntil: z.number().nonnegative().nullable(), // stored as julian day numbers
 });
 export const DbChoreZ = DbChoreZRaw.brand<"Chore">();

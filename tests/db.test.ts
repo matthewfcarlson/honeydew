@@ -539,5 +539,54 @@ describe('Chore tests', () => {
     const chore2 = await db.ChoreGet(chore!.id);
     expect(chore2).not.toBeNull();
     expect(chore2!.lastDone).not.toEqual(0);
-  })
+  });
+
+  it("can get assigned Chore", async () => {
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+    {
+      const chore = await db.ChoreCreate("sweeping", house_id, 5);
+      expect(chore).not.toBeNull();
+
+      const chore_select_1 = await db.ChorePickNextChore(house_id);
+      expect(chore_select_1).not.toBeNull();
+
+      expect(await db.ChoreComplete(chore!.id, user_id)).toBe(true);
+
+      const chore_select_2 = await db.ChorePickNextChore(house_id);
+      expect(chore_select_2).toBeNull();
+
+      const chore2 = await db.ChoreGet(chore!.id);
+      expect(chore2).not.toBeNull();
+      expect(chore2!.lastDone).not.toEqual(0);
+      expect(chore2!.lastDone).not.toEqual(chore?.lastDone);
+
+      expect((await db.ChoreGetAll(house_id)).length).toBe(1);
+    }
+    {
+      const chore5 = await db.ChoreCreate("sweeping_5", house_id, 5);
+      const chore2 = await db.ChoreCreate("sweeping_2", house_id, 2);
+      const chore1 = await db.ChoreCreate("sweeping_2", house_id, 1);
+      if (chore1 == null || chore2==null || chore5 == null) return;
+
+      const chore_select_1 = await db.ChorePickNextChore(house_id);
+      expect(chore_select_1).not.toBeNull();
+      if (chore_select_1 == null) return;
+      expect(chore_select_1.id).toBe(chore1.id);
+
+      expect(await db.ChoreComplete(chore1.id, user_id)).toBe(true);
+
+      const chore_select_2 = await db.ChorePickNextChore(house_id);
+      expect(chore_select_2).not.toBeNull();
+      if (chore_select_2 == null) return;
+      expect(chore_select_2.id).toBe(chore2.id);
+      expect((await db.ChoreGetAll(house_id)).length).toBe(4);
+    }
+  });
+  
 });

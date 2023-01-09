@@ -1,5 +1,72 @@
 <template>
   <div class="about">
     <h1>This is an chores page</h1>
+    <div v-for="chore in chores" :key="chore.id">
+      {{ chore.name }}: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }} <button @click="complete_chore(chore.id)">Complete</button>
+    </div>
+    <hr/>
+    <input v-model="chore_name" placeholder="Chore name"/>
+    <input v-model="chore_freq" type="number" placeholder="Chore name"/>
+    <button @click="add_chore">Add</button>
   </div>
 </template>
+
+
+<script lang="ts">
+
+import { defineComponent } from 'vue';
+import { useUserStore } from "@/store";
+import { mapState } from "pinia";
+
+export default defineComponent({
+  name: 'ChoreView',
+  data() {
+    return {
+      chore_name: "",
+      chore_freq: "1",
+      error: "",
+    }
+
+  },
+  components: {
+    // RecipePanelComponent
+  },
+  computed: {
+    ...mapState(useUserStore, ["userName", "chores", "currentDate"])
+  },
+  mounted: function () {
+    useUserStore().ChoreFetch();
+  },
+  methods: {
+    lastDoneToTime: function (currentDate: number, lastDone:number): string {
+      const diff = currentDate - lastDone;
+      if (diff < 0) return "The Future?"
+      if (diff == 0) return "Today"
+      if (diff == 1) return "Yesterday"
+      if (diff < 30) return `${diff} days`
+      return "a while"
+    },
+    add_chore: async function () {
+      const chore_frequency = Number(this.chore_freq.trim());
+      if (Number.isNaN(chore_frequency)) {
+        this.error = "Frequency must be a number";
+        return;
+      }
+      const status = await useUserStore().ChoreAdd(this.chore_name, chore_frequency);
+      if (status.success == true) {
+        this.chore_name = "";
+        this.chore_freq = "1";
+      }
+      else {
+        this.error = status.message;
+      }
+    },
+    complete_chore: async function(id:string) {
+      const status = await useUserStore().ChoreComplete(id);
+      if (status.success == false) {
+        this.error = status.message
+      }
+    }
+  }
+});
+</script>

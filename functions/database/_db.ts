@@ -64,7 +64,7 @@ export default class Database {
                     await HoneydewMigrations[i].up(this._db);
                 }
             }
-            await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion.toString(), { expirationTtl: 60 * 60 * 6 }); // we refresh the database every 6 hours
+            await this._kv.put("SQLDB_VERSION", LatestHoneydewDBVersion.toString()); // Save the DB version and don't let it expire
             console.log("Upgraded DB to version " + LatestHoneydewDBVersion + " from " + starting)
         }
         catch (err) {
@@ -207,7 +207,7 @@ export default class Database {
         }
     }
 
-    async UserRegisterTelegram(user_id: UserId, chat_id: number, tuser_id: number): Promise<boolean> {
+    async UserRegisterTelegram(user_id: UserId, chat_id: number, tele_user_id: number): Promise<boolean> {
         if (await this.UserExists(user_id) == false) return false;
         await this._db.updateTable("users").where("id", "==", user_id).set({ _chat_id: chat_id }).execute();
         return true;
@@ -377,7 +377,7 @@ export default class Database {
                 id,
                 household,
                 description,
-            });
+            } as DbProjectRaw);
             await this._db.insertInto("projects").values(project).executeTakeFirstOrThrow();
             return project;
         }
@@ -570,7 +570,7 @@ export default class Database {
                 ...result
             }
             const recipe_z = DbRecipeZ.parse(recipe);
-            await this._db.insertInto("recipes").values(recipe).execute();
+            await this._db.insertInto("recipes").values(recipe_z).execute();
             return recipe_z;
         }
         catch (err) {
@@ -593,7 +593,7 @@ export default class Database {
                 favorite: 0,
             }
             const cardbox_z = DbCardBoxZ.parse(cardbox);
-            await this._db.insertInto("cardboxes").values(cardbox).execute();
+            await this._db.insertInto("cardboxes").values(cardbox_z).execute();
             return cardbox_z;
         }
         catch (err) {
@@ -613,7 +613,8 @@ export default class Database {
                 id: x.recipe_id,
                 url: x.url,
                 name: x.name,
-                image: x["image"]
+                image: x["image"],
+                totalTime: x.totalTime,
             }
             const z = DbCardBoxRecipeZ.safeParse( {
                 recipe,
@@ -679,7 +680,7 @@ export default class Database {
                 household_id,
                 name,
                 frequency,
-                lastDone: null,
+                lastDone: getJulianDate() - 1, // we said it was done yesterday
                 waitUntil: null,
             };
             const chore = DbChoreZ.parse(chore_raw);
@@ -709,6 +710,46 @@ export default class Database {
         catch (err) {
             console.error("ChoreGet", err);
             return null;
+        }
+    }
+
+    async ChorePickNextChore(house_id: HouseId): Promise<DbChore|null> {
+        try {
+            const id = HouseIdZ.safeParse(house_id);
+            if (id.success == false) return null;
+            const today = getJulianDate();
+            const result = await this._db.selectFrom("chores").selectAll().where("lastDone", "<", today).where("household_id", "==", house_id).execute();
+            if (result == undefined) return null;
+            // we now need to sort them and select the one we want
+            const sorted_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).sort((a,b)=>{
+                // The thought is how frequently is it done vs how long it's delayed, how long of a cycle is it delayed for?
+                const a_cycle = (today - a.lastDone) / a.frequency;
+                const b_cycle = (today - b.lastDone) / b.frequency;
+                return b_cycle-a_cycle
+            });
+            if (sorted_results.length == 0) return null;
+            return sorted_results[0];
+        }
+        catch (err) {
+            console.error("ChorePickNextChore", err);
+            return null;
+        }
+    }
+
+    async ChoreGetAll(house_id: HouseId): Promise<DbChore[]> {
+        try {
+            const id = HouseIdZ.safeParse(house_id);
+            if (id.success == false) return [];
+            const today = getJulianDate();
+            const result = await this._db.selectFrom("chores").selectAll().where("household_id", "==", house_id).execute();
+            if (result == undefined) return [];
+            // we now need to sort them and select the one we want
+            const sorted_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null);
+            return sorted_results;
+        }
+        catch (err) {
+            console.error("ChoreGetAll", err);
+            return [];
         }
     }
 }

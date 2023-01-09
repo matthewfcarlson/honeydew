@@ -4,7 +4,8 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { DbCardBoxRecipe, RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
+import type { DbCardBoxRecipe, DbChore, } from '../../functions/db_types'; // can I bring this in?
+import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 
 interface APIResultSuccess<T> {
@@ -73,6 +74,7 @@ interface UserStoreState {
     _user: null | AuthCheck;
     _recipeFavs: DbCardBoxRecipe[],
     _recipeToTry: DbCardBoxRecipe[],
+    _chores: DbChore[],
 }
 
 export const useUserStore = defineStore("user", {
@@ -88,7 +90,8 @@ export const useUserStore = defineStore("user", {
             _loggedIn: (window as any).logged_in || false,
             _user,
             _recipeFavs: [],
-            _recipeToTry: []
+            _recipeToTry: [],
+            _chores: []
         }
         return state;
     },
@@ -116,6 +119,14 @@ export const useUserStore = defineStore("user", {
                 toTry: state._recipeToTry,
             }
         },
+        chores: (state) => {
+            return state._chores
+        },
+        currentDate: (state)=> {
+            const date = new Date();
+            const time = date.getTime(); // the timestamp, not neccessarely using UTC as current time
+            return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
+        }
     },
     actions: {
         async fetchUser(): APIResult<AuthCheck> {
@@ -129,17 +140,6 @@ export const useUserStore = defineStore("user", {
             // Idk why the type inference is saying this is never[]
             this._user = result.data;
             return result;
-        },
-        async FetchRecipes() {
-            const favs = await QueryAPI(client.recipes.favorites.query);
-            if (favs.success) {
-                this._recipeFavs = favs.data;
-            }
-            const toTry = await QueryAPI(client.recipes.toTry.query);
-            if (toTry.success) {
-                this._recipeToTry = toTry.data;
-            }
-            console.log(favs, toTry);
         },
         async getInviteLink(): APIResult<string> {
             return await QueryAPI(client.household.invite.query);
@@ -160,6 +160,17 @@ export const useUserStore = defineStore("user", {
                 }
             }
         },
+        async FetchRecipes() {
+            const favs = await QueryAPI(client.recipes.favorites.query);
+            if (favs.success) {
+                this._recipeFavs = favs.data;
+            }
+            const toTry = await QueryAPI(client.recipes.toTry.query);
+            if (toTry.success) {
+                this._recipeToTry = toTry.data;
+            }
+            console.log(favs, toTry);
+        },
         async RecipeAdd(url: string): APIResult<boolean> {
             try {
                 const result = await client.recipes.add.query(url);
@@ -178,6 +189,39 @@ export const useUserStore = defineStore("user", {
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.mark_favored.query({ recipe_id, favored });
                 this.FetchRecipes(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        // Chores TODO: move to separate store module
+        async ChoreFetch() {
+            const chores = await QueryAPI(client.chores.all.query);
+            if (chores.success) {
+                this._chores = chores.data;
+            }
+        },
+        async ChoreAdd(name: string, frequency: number): APIResult<boolean> {
+            try {
+                const result = await client.chores.add.query({name, frequency});
+                this.ChoreFetch(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async ChoreComplete(id: string): APIResult<boolean> {
+            try {
+                const result = await client.chores.complete.query(id);
+                this.ChoreFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result

@@ -61,6 +61,14 @@ const routes = [
     component: () => import(/* webpackChunkName: "admin" */ '../views/MealsView.vue'),
     meta: {
       noAuthRequired: false,
+    },
+  },
+  {
+    path: "/recipes",
+    name: "Recipes",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/RecipesView.vue'),
+    meta: {
+      noAuthRequired: false,
     }
   },
   {
@@ -91,12 +99,12 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from)=> {
+router.beforeEach((to, from) => {
   if (useUserStore().isLoggedIn) {
     return true;
   }
   if (to.meta.noAuthRequired == undefined) return true;
-  if (to.meta.noAuthRequired == false) return {name: '400'};
+  if (to.meta.noAuthRequired == false) return { name: '400' };
 })
 
 export default router
