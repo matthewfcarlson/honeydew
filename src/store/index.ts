@@ -125,7 +125,8 @@ export const useUserStore = defineStore("user", {
         currentDate: (state)=> {
             const date = new Date();
             const time = date.getTime(); // the timestamp, not neccessarely using UTC as current time
-            return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
+            //return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
+            return Math.floor((time / 86400000) + 2440587.5);
         }
     },
     actions: {
