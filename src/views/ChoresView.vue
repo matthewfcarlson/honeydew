@@ -1,9 +1,21 @@
 <template>
-  <div class="about">
+  <div class="about container">
     <h1>This is an chores page</h1>
-    <div v-for="chore in chores" :key="chore.id">
-      {{ chore.name }}: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }} <button @click="complete_chore(chore.id)">Complete</button> <button @click="delete_chore(chore.id)">Delete</button>
-    </div>
+    <h2>Chores Per Day: {{ chores_per_day }}</h2>
+    <article class="panel">
+      <p class="panel-heading">
+        Chores
+      </p>
+      <a class="panel-block" v-if="chores.length == 0">
+        You don't have any favorites yet
+      </a>
+      <div class="panel-block" v-for="chore in chores" :key="chore.id">
+        <span>{{ chore.name }} </span>
+        <span>&nbsp;every {{ chore.frequency }} days</span>: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }}
+        <button @click="complete_chore(chore.id)">Complete</button>
+        <button @click="delete_chore(chore.id)">Delete</button>
+      </div>
+    </article>
     <hr/>
     <input v-model="chore_name" placeholder="Chore name"/>
     <input v-model="chore_freq" type="number" placeholder="Chore name"/>
@@ -32,6 +44,12 @@ export default defineComponent({
     // RecipePanelComponent
   },
   computed: {
+    chores_per_day: function () {
+      const chores = useUserStore().chores;
+      if (chores == undefined) return 0;
+      if (chores.length == 0) return 0;
+      return (chores.map((x)=>1/x.frequency).reduce((prev,x)=>prev+x, 0)).toFixed(2);
+    },
     ...mapState(useUserStore, ["userName", "chores", "currentDate"])
   },
   mounted: function () {
