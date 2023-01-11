@@ -45,7 +45,34 @@ const Router = router({
         cause: "Invalid Chore ID"
         })
     }
+    // TODO: check if this chore belongs to this household
     return await db.ChoreComplete(chore_id.data, user.id);
+  }),
+  delete: protectedProcedure.input(z.string()).query( async (ctx)=> {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const input = ctx.input;
+    const db = ctx.ctx.data.db;
+    const chore_id = ChoreIdz.safeParse(input);
+    if (chore_id.success == false) {
+        throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "Invalid Chore ID"
+        })
+    }
+    // TODO: check if this chore belongs to this household
+    return await db.ChoreDelete(chore_id.data);
   }),
   add: protectedProcedure.input(z.object({
     name: z.string(),

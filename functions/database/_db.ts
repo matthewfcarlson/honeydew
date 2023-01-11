@@ -713,6 +713,20 @@ export default class Database {
         }
     }
 
+    async ChoreDelete(id: ChoreId) {
+        try {
+            const chore_id = ChoreIdz.safeParse(id);
+            if (chore_id.success == false) return false;
+            const result = await this._db.deleteFrom("chores").where("id", "==", id).executeTakeFirstOrThrow();
+            if (result == undefined) return false;
+            return result.numDeletedRows > 0
+        }
+        catch (err) {
+            console.error("ChoreDelete", err);
+            return false;
+        }
+    }
+
     async ChorePickNextChore(house_id: HouseId): Promise<DbChore|null> {
         try {
             const id = HouseIdZ.safeParse(house_id);

@@ -2,7 +2,7 @@
   <div class="about">
     <h1>This is an chores page</h1>
     <div v-for="chore in chores" :key="chore.id">
-      {{ chore.name }}: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }} <button @click="complete_chore(chore.id)">Complete</button>
+      {{ chore.name }}: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }} <button @click="complete_chore(chore.id)">Complete</button> <button @click="delete_chore(chore.id)">Delete</button>
     </div>
     <hr/>
     <input v-model="chore_name" placeholder="Chore name"/>
@@ -47,7 +47,7 @@ export default defineComponent({
       return "a while"
     },
     add_chore: async function () {
-      const chore_frequency = Number(this.chore_freq.trim());
+      const chore_frequency = Number(this.chore_freq);
       if (Number.isNaN(chore_frequency)) {
         this.error = "Frequency must be a number";
         return;
@@ -59,6 +59,12 @@ export default defineComponent({
       }
       else {
         this.error = status.message;
+      }
+    },
+    delete_chore: async function(id:string) {
+      const status = await useUserStore().ChoreDelete(id);
+      if (status.success == false) {
+        this.error = status.message
       }
     },
     complete_chore: async function(id:string) {

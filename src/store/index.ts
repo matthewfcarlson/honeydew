@@ -231,6 +231,19 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
+        async ChoreDelete(id: string): APIResult<boolean> {
+            try {
+                const result = await client.chores.delete.query(id);
+                this.ChoreFetch(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
 
         async signUp(name: string, key?: string, turnstile: string = ""): APIResult<AuthSignupResponse> {
             const raw_body: AuthSignupRequest = {
