@@ -1,4 +1,4 @@
-export function IsValidHttpUrl(string:string) {
+export function IsValidHttpUrl(string: string) {
   let url;
   try {
     url = new URL(string);
@@ -8,7 +8,7 @@ export function IsValidHttpUrl(string:string) {
   return url.protocol === "http:" || url.protocol === "https:";
 }
 
-export const ResponseJsonBadRequest = (message?:string): Response => {
+export const ResponseJsonBadRequest = (message?: string): Response => {
   const status = 400;
   return new Response(JSON.stringify({
     status,
@@ -56,10 +56,10 @@ export const ResponseJsonNotImplementedYet = (): Response => {
   }), { status });
 };
 
-export const ResponseRedirect = (request:Request, url:string, status:number=307): Response => {
+export const ResponseRedirect = (request: Request, url: string, status: number = 307): Response => {
   const request_url = new URL(request.url);
-  const base_url= request_url.origin;
-  const redirect_url = base_url+url;
+  const base_url = request_url.origin;
+  const redirect_url = base_url + url;
   return Response.redirect(redirect_url, status);
 }
 
@@ -70,10 +70,10 @@ export const ResponseJsonMethodNotAllowed = (): Response => {
   }), { status: 405 });
 };
 
-export const ResponseJsonOk = () : Response => {
+export const ResponseJsonOk = (): Response => {
   return new Response(JSON.stringify({
     message: "ok"
-  }), {status:200})
+  }), { status: 200 })
 }
 
 /**
@@ -93,7 +93,7 @@ export async function readRequestBody(request: Request) {
     return request.text();
   } else if (contentType.includes('form')) {
     const formData = await request.formData();
-    const body:Record<string, string|File> = {};
+    const body: Record<string, string | File> = {};
     for (const entry of formData.entries()) {
       body[entry[0]] = entry[1];
     }
@@ -105,32 +105,32 @@ export async function readRequestBody(request: Request) {
   }
 }
 
-export function setCookie(response:Response, key: string, value: string, http_only:boolean = true, expires:string="Fri, 31 Dec 9999 23:59:59 GMT") {
-  const http = (http_only) ? "HttpOnly;" : ""; 
+export function setCookie(response: Response, key: string, value: string, http_only: boolean = true, expires: string = "Fri, 31 Dec 9999 23:59:59 GMT") {
+  const http = (http_only) ? "HttpOnly;" : "";
   const newCookie = `${key}=${value}; SameSite=Strict;Path=/;${http};expires=${expires};`
   response.headers.append("Set-Cookie", newCookie);
 }
-export function deleteCookie(response:Response, key: string) {
- 
+export function deleteCookie(response: Response, key: string) {
+
   const delCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;SameSite=Strict;`
   const delHttpCookie = `${key}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;HttpOnly;SameSite=Strict;`
   response.headers.append("Set-Cookie", delCookie);
   response.headers.append("Set-Cookie", delHttpCookie);
 }
-const testChars = (str:string) => /^[a-f-0-9]+$/.test(str);
-export function ConvertToUUID(x:any): string {
+const testChars = (str: string) => /^[a-f-0-9]+$/.test(str);
+export function ConvertToUUID(x: any): string {
   if (typeof x === 'string' || x instanceof String) {
-    x = x.substring(0,72).toLowerCase(); // make sure it's only 72 chars long
+    x = x.substring(0, 72).toLowerCase(); // make sure it's only 72 chars long
     if (testChars(x) == false) return '';
     return x;
   }
   return '';
 }
 
-export function ArrayBufferToHexString(buffer:ArrayBufferLike) {
+export function ArrayBufferToHexString(buffer: ArrayBufferLike) {
   return [...new Uint8Array(buffer)]
-  .map(x => x.toString(16).padStart(2, '0'))
-  .join('');
+    .map(x => x.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -139,19 +139,19 @@ export function ArrayBufferToHexString(buffer:ArrayBufferLike) {
  * @param {string} hexString - hex representation of bytes
  * @return {ArrayBuffer} - The bytes in an ArrayBuffer.
  */
-export function hexStringToArrayBuffer(hexString:string) {
+export function hexStringToArrayBuffer(hexString: string) {
   // remove the leading 0x
   hexString = hexString.replace(/^0x/, '');
 
   // ensure even number of characters
   if (hexString.length % 2 != 0) {
-      console.warn('WARNING: expecting an even number of characters in the hexString');
+    console.warn('WARNING: expecting an even number of characters in the hexString');
   }
 
   // check for some non-hex characters
   const bad = hexString.match(/[G-Z\s]/i);
   if (bad) {
-      console.warn('WARNING: found non-hex characters', bad);
+    console.warn('WARNING: found non-hex characters', bad);
   }
 
   // split the string into pairs of octets
@@ -162,8 +162,8 @@ export function hexStringToArrayBuffer(hexString:string) {
   }
 
   // convert the octets to integers
-  const integers = pairs.map(function(s:string) {
-      return parseInt(s, 16);
+  const integers = pairs.map(function (s: string) {
+    return parseInt(s, 16);
   });
 
   const array = new Uint8Array(integers);
@@ -222,8 +222,51 @@ export function pickRandomUserIconAndColor() {
 
 // Based on https://github.com/tolu/ISO8601-duration
 import { parse, toSeconds } from "iso8601-duration";
-export function parseISO8601ToMinutes(durationString:string): number|null {
+export function parseISO8601ToMinutes(durationString: string): number | null {
   const duration = parse(durationString);
   const seconds = toSeconds(duration);
-  return Math.ceil(seconds/60); // round up
+  return Math.ceil(seconds / 60); // round up
+}
+
+// returns 0 if we don't know
+export function parseUnstructuredTimeToMinutes(raw_text: string): number {
+  // basically we just figure out some regexes
+  // first we split if it has any commas
+  // First we convert things
+  const text = raw_text.replace("¼", ".25").replace("½", ".5").replace("¾", ".75");
+  {
+    const minutes = new RegExp('([0-9]+) minutes$')
+    const min_match = minutes.exec(text)
+    if (min_match != null) {
+      return Number(min_match[1]);
+    }
+  }
+  {
+    const minutes = new RegExp('([0-9]+) minutes, plus ([0-9]+) minutes?([a-z ]*)$')
+    const min_match = minutes.exec(text)
+    if (min_match != null) {
+      return Number(min_match[1]) + Number(min_match[2]);
+    }
+  }
+  {
+    const hours = new RegExp('([0-9\\.]+) hours?$')
+    const hours_match = hours.exec(text);
+    if (hours_match != null) {
+      console.error(text, hours_match)
+      return Number(hours_match[1])*60;
+    }
+  }
+  {
+    const hours = new RegExp('([0-9\\.]+) to ([0-9\\.]+) hours( on low)?(on high)?$')
+    const hours_match = hours.exec(text);
+    if (hours_match != null) {
+      console.error(text, hours_match)
+      return Number(hours_match[2])*60;
+    }
+  }
+
+
+  throw new Error("Don't know to parse " + text)
+
+  return 0;
 }
