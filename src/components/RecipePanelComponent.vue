@@ -56,8 +56,12 @@ export default defineComponent({
       if (time == 0) return "instant"
       if (time < 60) return time + " min"
       const hours = Math.floor(time / 60);
+      if ((time - hours * 60) == 0 ) {
+        if (hours == 1) return "1 hr";
+      else return hours + " hrs";
+      }
       if (hours == 1) return hours + " hr, " + (time - hours * 60) + " min";
-      else return hours + " hours, " + (time - hours * 60);
+      else return hours + " hrs, " + (time - hours * 60);
     },
   },
   methods: {
