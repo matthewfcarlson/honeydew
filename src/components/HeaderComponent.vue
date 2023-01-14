@@ -5,7 +5,7 @@
                 <img src="/images/text_logo.png" width="142">
             </a>
 
-            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+            <a role="button" class="navbar-burger" @click="handleBurger" :class="{'is-active':burgerOut}" aria-label="menu" aria-expanded="false"
                 data-target="navbarBasicExample">
                 <span aria-hidden="true"></span>
                 <span aria-hidden="true"></span>
@@ -13,7 +13,7 @@
             </a>
         </div>
 
-        <div id="navbarBasicExample" class="navbar-menu">
+        <div id="navbarBasicExample" class="navbar-menu" :class="{'is-active':burgerOut}">
             <div class="navbar-start">
                 <template v-if="isLoggedIn">
 
@@ -82,6 +82,7 @@ export default defineComponent({
     },
     data() {
         return {
+            burgerOut: false
         }
 
     },
@@ -89,6 +90,9 @@ export default defineComponent({
         ...mapState(useUserStore, ["isLoggedIn", "userName"])
     },
     methods: {
+        handleBurger: function() {
+            this.burgerOut = !this.burgerOut;
+        },
     }
 
 });
