@@ -591,6 +591,7 @@ export default class Database {
                 household_id: house_id,
                 lastMade: null,
                 favorite: 0,
+                meal_prep: 0,
             }
             const cardbox_z = DbCardBoxZ.parse(cardbox);
             await this._db.insertInto("cardboxes").values(cardbox_z).execute();
@@ -601,6 +602,20 @@ export default class Database {
             return null;
         }
     }
+
+    async CardBoxRemoveRecipe(recipe_id: RecipeId, house_id: HouseId) {
+        try {
+            const r_id = RecipeIdZ.parse(recipe_id);
+            const h_id = HouseIdZ.parse(house_id);
+            const result = await this._db.deleteFrom("cardboxes").where("recipe_id", "==", r_id).where("household_id", "==", h_id).executeTakeFirst();
+            return result.numDeletedRows > 0
+        }
+        catch (err) {
+            console.error("CardBoxRemoveRecipe", err);
+            return false;
+        }
+    }
+    
 
     async CardBoxGetFavorites(house_id: HouseId, favorites: boolean = true): Promise<DbCardBoxRecipe[]> {
         const id_parse = HouseIdZ.safeParse(house_id);
@@ -638,6 +653,22 @@ export default class Database {
         }
         catch (err) {
             console.error("CardBoxSetFavorite", err);
+            return false;
+        }
+    }
+
+    async CardBoxSetMealPrep(recipe_id: RecipeId, house_id: HouseId, prepared: boolean): Promise<boolean> {
+        try {
+            // Just make sure there is at least one
+            const cardbox_raw = await this._db.selectFrom("cardboxes").selectAll().where("recipe_id", "==", recipe_id).where("household_id", "==", house_id).executeTakeFirst();
+            if (cardbox_raw == undefined) {
+                return false;
+            }
+            await this._db.updateTable("cardboxes").where("recipe_id", "==", recipe_id).where("household_id", "==", house_id).set({ meal_prep: (prepared ? 1 : 0) }).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("CardBoxSetMealPrep", err);
             return false;
         }
     }

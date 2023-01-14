@@ -1,3 +1,4 @@
+import { cp } from "fs";
 import { Kysely, Migration, MigrationProvider, sql } from "kysely";
 
 const HoneydewVersion1 = {
@@ -76,7 +77,20 @@ const HoneydewVersion1 = {
     }
 }
 
+const HoneydewVersion2 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CARDBOXES"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn("meal_prep", "integer", (col)=>col.notNull().defaultTo(0))
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
-    HoneydewVersion1
+    HoneydewVersion1,
+    HoneydewVersion2,
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

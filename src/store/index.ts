@@ -188,7 +188,45 @@ export const useUserStore = defineStore("user", {
         async RecipeFavorite(id: string, favored: boolean): APIResult<boolean> {
             try {
                 const recipe_id = RecipeIdZ.parse(id);
+                if (favored){
+                    // First remove it from to try
+                    const index = this.recipes.toTry.findIndex((x)=>x.recipe_id == recipe_id);
+                    if (index != -1) this.recipes.toTry.splice(index, 1);
+                }
+                else {
+                    // First remove it from favorites
+                    const index = this.recipes.favorites.findIndex((x)=>x.recipe_id == recipe_id);
+                    if (index != -1) this.recipes.favorites.splice(index, 1);
+                }
                 const result = await client.recipes.mark_favored.query({ recipe_id, favored });
+                this.FetchRecipes(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async RecipeRemove(id: string): APIResult<boolean> {
+            try {
+                const recipe_id = RecipeIdZ.parse(id);
+                const result = await client.recipes.remove.query(recipe_id);
+                this.FetchRecipes(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async RecipeMealPrep(id: string, prepared: boolean): APIResult<boolean> {
+            try {
+                const recipe_id = RecipeIdZ.parse(id);
+                const result = await client.recipes.mark_meal_prep.query({ recipe_id, prepared });
                 this.FetchRecipes(); // kick off a request to refresh this
                 return {
                     success: true,

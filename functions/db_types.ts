@@ -152,7 +152,8 @@ export const DbCardBoxZRaw = z.object({
     recipe_id: RecipeIdZ,
     household_id: HouseIdZ,
     lastMade: z.number().nonnegative().nullable(), // stored as julian day numbers
-    favorite: z.number(),
+    favorite: z.number().nonnegative(),
+    meal_prep: z.number().nonnegative(), // meal prep 0-1
 });
 export const DbCardBoxZ = DbCardBoxZRaw.brand<"Cardbox">();
 export type DbCardBoxRaw = z.infer<typeof DbCardBoxZRaw>;

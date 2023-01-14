@@ -58,6 +58,44 @@ const Router = router({
     // TODO: check if cardbox exists?
     return await db.CardBoxSetFavorite(input.recipe_id, user.household, input.favored);
   }),
+  mark_meal_prep: protectedProcedure.input(z.object({recipe_id:RecipeIdZ, prepared:z.boolean()})).query( async (ctx)=> {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const input = ctx.input;
+    const db = ctx.ctx.data.db;
+    // TODO: check if cardbox exists?
+    return await db.CardBoxSetMealPrep(input.recipe_id, user.household, input.prepared);
+  }),
+  remove: protectedProcedure.input(RecipeIdZ).query( async (ctx)=> {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const input = ctx.input;
+    const db = ctx.ctx.data.db;
+    // TODO: check if cardbox exists?
+    return await db.CardBoxRemoveRecipe(input, user.household);
+  }),
   add: protectedProcedure.input(z.string().url()).query( async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({

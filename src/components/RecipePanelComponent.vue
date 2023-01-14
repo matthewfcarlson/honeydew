@@ -8,25 +8,34 @@
     <div class="media-content">
       <div class="content">
         <p>
-          <strong>{{ recipe.recipe.name }}</strong> <small>@{{ source }}</small> <small>{{ time }}</small>
+          <strong>{{ recipe.recipe.name }}</strong> |
+          <small>@{{ source }}</small> | 
+          <small v-if="recipe.meal_prep"> Meal Prep</small>
+          <small v-else>{{ time }}</small>
           <br>
-          olive oil, onion, spicy italian sausages, chicken broth, orecchiette pasta, arugula,  Parmigiano-Reggiano cheese
+          Example ingredients: olive oil, onion, spicy italian sausages, chicken broth, orecchiette pasta, arugula,
+          Parmigiano-Reggiano cheese
         </p>
       </div>
-      <nav class="level is-mobile">
+      <nav class="level is-mobile is-size-5">
         <div class="level-left">
-          <a class="level-item">
+          <a class="level-item" title="Edit Recipe (TBD)">
             <span class="icon is-small"><i class="fas fa-edit"></i></span>
           </a>
-          <a class="level-item" :href="recipe.recipe.url" target="_blank">
+          <a class="level-item" title="Read Recipe" :href="recipe.recipe.url" target="_blank">
             <span class="icon is-small"><i class="fab fa-readme"></i></span>
           </a>
+          <a @click="markFavorite(recipe.recipe_id, false)" class="level-item" v-if="recipe.favorite"><i
+              class="fa-solid fa-heart"></i></a>
+          <a @click="markFavorite(recipe.recipe_id, true)" v-else class="level-item"><i
+              class="fa-regular fa-heart"></i></a>
+          <a @click="markMealPrep(recipe.recipe_id, false)" class="level-item" v-if="recipe.meal_prep"><i
+              class="far fa-calendar-check"></i></a>
+          <a @click="markMealPrep(recipe.recipe_id, true)" v-else class="level-item"><i class="far fa-calendar"></i></a>
+
+          <a @click="removeRecipe(recipe.recipe_id)" class="level-item"><i class="far fa-trash-can"></i></a>
         </div>
       </nav>
-    </div>
-    <div class="media-right">
-      <a @click="markFavorite(recipe.recipe_id, false)" v-if="recipe.favorite"><i class="fa-solid fa-heart"></i></a>
-      <a @click="markFavorite(recipe.recipe_id, true)" v-else><i class="fa-regular fa-heart"></i></a>
     </div>
   </a>
 </template>
@@ -56,9 +65,9 @@ export default defineComponent({
       if (time == 0) return "instant"
       if (time < 60) return time + " min"
       const hours = Math.floor(time / 60);
-      if ((time - hours * 60) == 0 ) {
+      if ((time - hours * 60) == 0) {
         if (hours == 1) return "1 hr";
-      else return hours + " hrs";
+        else return hours + " hrs";
       }
       if (hours == 1) return hours + " hr, " + (time - hours * 60) + " min";
       else return hours + " hrs, " + (time - hours * 60);
@@ -67,6 +76,24 @@ export default defineComponent({
   methods: {
     markFavorite: async function (recipe_id: string, favored: boolean) {
       const status = await useUserStore().RecipeFavorite(recipe_id, favored);
+      if (status.success == true) {
+        return;
+      }
+      else {
+        //this.error = status.message;
+      }
+    },
+    markMealPrep: async function (recipe_id: string, prepared: boolean) {
+      const status = await useUserStore().RecipeMealPrep(recipe_id, prepared);
+      if (status.success == true) {
+        return;
+      }
+      else {
+        //this.error = status.message;
+      }
+    },
+    removeRecipe: async function (recipe_id: string) {
+      const status = await useUserStore().RecipeRemove(recipe_id);
       if (status.success == true) {
         return;
       }
@@ -89,7 +116,9 @@ export default defineComponent({
 
 .recipe-block img {
   overflow: hidden;
-  aspect-ratio: 1; /* will make width equal to height (500px container) */
-  object-fit: cover; /* use the one you need */
+  aspect-ratio: 1;
+  /* will make width equal to height (500px container) */
+  object-fit: cover;
+  /* use the one you need */
 }
 </style>

@@ -1,14 +1,6 @@
 <template>
   <div class="meals container">
     <p v-if="error.length != 0">{{ error }}</p>
-    <article class="panel is-primary">
-      <p class="panel-heading">
-        Meals For This Week
-      </p>
-      <a class="panel-block">
-        TO BE IMPLEMENTED
-      </a>
-    </article>
 
     <article class="panel is-success">
       <p class="panel-heading">
@@ -21,13 +13,14 @@
       <a class="panel-block" v-if="recipes.favorites.length == 0">
         You don't have any favorites yet
       </a>
-      <RecipePanelComponent v-for="recipe in recipes.favorites" :recipe="recipe" :key="recipe.recipe_id"/>
+      <RecipePanelComponent v-for="recipe in recipes.favorites" :recipe="recipe" :key="recipe.recipe_id" />
     </article>
+
     <article class="panel is-info">
       <p class="panel-heading">
         To Try
       </p>
-      <RecipePanelComponent v-for="recipe in recipes.toTry" :recipe="recipe" :key="recipe.recipe_id"/>
+      <RecipePanelComponent v-for="recipe in recipes.toTry" :recipe="recipe" :key="recipe.recipe_id" />
       <a class="panel-block" v-if="recipes.toTry.length == 0">
         You don't have any favorites yet
       </a>
@@ -36,10 +29,11 @@
     <div class="field has-addons">
       <label class="label">Add recipe</label>
       <div class="control is-expanded">
-        <input class="input" v-model="recipe_link" type="text" placeholder="Recipe URL">
+        <input class="input" v-model="recipe_link" type="text" placeholder="Recipe URL" :disabled="thinking">
       </div>
       <div class="control">
-        <button class="button is-primary" @click="add_recipe">Add</button>
+        <button class="button is-primary" disabled="true" v-if="thinking">Thinking</button>
+        <button class="button is-primary" @click="add_recipe" v-else>Add</button>
       </div>
     </div>
 
@@ -60,6 +54,7 @@ export default defineComponent({
     return {
       recipe_link: "",
       error: "",
+      thinking: false,
     }
 
   },
@@ -74,6 +69,7 @@ export default defineComponent({
   },
   methods: {
     add_recipe: async function () {
+      this.thinking = true;
       const status = await useUserStore().RecipeAdd(this.recipe_link);
       if (status.success == true) {
         this.recipe_link = "";
@@ -81,6 +77,7 @@ export default defineComponent({
       else {
         this.error = status.message;
       }
+      this.thinking = false;
     },
   }
 });
