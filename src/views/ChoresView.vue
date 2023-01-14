@@ -1,17 +1,18 @@
 <template>
   <div class="about container">
-    <h1>This is an chores page</h1>
     <h2>Chores Per Day: {{ chores_per_day }}</h2>
+    <h2>Chores Per Day Per Person ({{ household_members }}): {{ chores_per_day_per_pers }}</h2>
     <article class="panel">
       <p class="panel-heading">
         Chores
       </p>
       <a class="panel-block" v-if="chores.length == 0">
-        You don't have any favorites yet
+        You don't have any chores yet
       </a>
       <div class="panel-block" v-for="chore in chores" :key="chore.id">
         <span>{{ chore.name }} </span>
         <span>&nbsp;every {{ chore.frequency }} days</span>: Last done {{ lastDoneToTime(currentDate, chore.lastDone) }}
+        <br/>
         <button @click="complete_chore(chore.id)">Complete</button>
         <button @click="delete_chore(chore.id)">Delete</button>
       </div>
@@ -26,9 +27,19 @@
 
 <script lang="ts">
 
-import { defineComponent } from 'vue';
+import { defineComponent, computed } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
+
+const household_members = computed(()=>{
+  return useUserStore().household?.members.length||1
+});
+const chores_per_day = computed(()=>{
+  const chores = useUserStore().chores;
+      if (chores == undefined) return 0;
+      if (chores.length == 0) return 0;
+      return (chores.map((x)=>1/x.frequency).reduce((prev,x)=>prev+x, 0));
+});
 
 export default defineComponent({
   name: 'ChoreView',
@@ -44,11 +55,14 @@ export default defineComponent({
     // RecipePanelComponent
   },
   computed: {
+    household_members: function () {
+      return household_members.value;
+    },
     chores_per_day: function () {
-      const chores = useUserStore().chores;
-      if (chores == undefined) return 0;
-      if (chores.length == 0) return 0;
-      return (chores.map((x)=>1/x.frequency).reduce((prev,x)=>prev+x, 0)).toFixed(2);
+      return chores_per_day.value.toFixed(2);
+    },
+    chores_per_day_per_pers: function () {
+     return (chores_per_day.value / household_members.value).toFixed(2);
     },
     ...mapState(useUserStore, ["userName", "chores", "currentDate"])
   },
