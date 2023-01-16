@@ -121,6 +121,12 @@ const Router = router({
     if (cardbox == null) return false;
     return true;
   }),
+  meal_plan: protectedProcedure.query(async (ctx)=> {
+    return []
+  }),
+  create_meal_plan: protectedProcedure.query(async (ctx)=> {
+    return []
+  }),
 });
 
 export default Router;

@@ -2,6 +2,19 @@
   <div class="meals container">
     <p v-if="error.length != 0">{{ error }}</p>
 
+    <article class="panel is-primary">
+      <p class="panel-heading">
+        Meals For This Week
+      </p>
+      <a class="panel-block" v-if="mealPlan.length == 0">
+        <p>You don't have a meal plan yet. </p>
+        <div class="form">
+          <button class="button is-primary" disabled="true" v-if="thinking">Thinking</button>
+          <button class="button is-primary" @click="generate_meal_plan" v-else>Generate Meal Plan</button>
+        </div>
+      </a>
+    </article>
+
     <article class="panel is-success">
       <p class="panel-heading">
         Favorites
@@ -62,10 +75,10 @@ export default defineComponent({
     RecipePanelComponent
   },
   computed: {
-    ...mapState(useUserStore, ["userName", "recipes"])
+    ...mapState(useUserStore, ["userName", "recipes", "mealPlan"])
   },
   mounted: function () {
-    useUserStore().FetchRecipes();
+    useUserStore().RecipeFetch();
   },
   methods: {
     add_recipe: async function () {
@@ -79,6 +92,18 @@ export default defineComponent({
       }
       this.thinking = false;
     },
+    generate_meal_plan: async function () {
+      this.thinking=true;
+      const status = await useUserStore().RecipeMealPlan();
+      if (status.success == true) {
+        console.log(status.data);
+      }
+      else {
+        this.error = status.message;
+      }
+      this.thinking = false;
+
+    }
   }
 });
 </script>

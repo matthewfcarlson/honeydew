@@ -22,18 +22,18 @@
           <a class="level-item" title="Edit Recipe (TBD)">
             <span class="icon is-small"><i class="fas fa-edit"></i></span>
           </a>
-          <a class="level-item" title="Read Recipe" :href="recipe.recipe.url" target="_blank">
-            <span class="icon is-small"><i class="fab fa-readme"></i></span>
+          <a class="level-item has-text-success" title="Read Recipe" :href="recipe.recipe.url" target="_blank">
+            <i class="fab fa-readme"></i>
           </a>
-          <a @click="markFavorite(recipe.recipe_id, false)" class="level-item" v-if="recipe.favorite"><i
+          <a @click="markFavorite(recipe.recipe_id, false)" class="level-item has-text-danger" v-if="recipe.favorite"><i
               class="fa-solid fa-heart"></i></a>
-          <a @click="markFavorite(recipe.recipe_id, true)" v-else class="level-item"><i
+          <a @click="markFavorite(recipe.recipe_id, true)" v-else class="level-item has-text-info has-text-danger"><i
               class="fa-regular fa-heart"></i></a>
-          <a @click="markMealPrep(recipe.recipe_id, false)" class="level-item" v-if="recipe.meal_prep"><i
+          <a @click="markMealPrep(recipe.recipe_id, false)" class="level-item has-text-primary" v-if="recipe.meal_prep"><i
               class="far fa-calendar-check"></i></a>
-          <a @click="markMealPrep(recipe.recipe_id, true)" v-else class="level-item"><i class="far fa-calendar"></i></a>
+          <a @click="markMealPrep(recipe.recipe_id, true)" v-else class="level-item has-text-info" ><i class="far fa-calendar"></i></a>
 
-          <a @click="removeRecipe(recipe.recipe_id)" class="level-item"><i class="far fa-trash-can"></i></a>
+          <a @click="removeRecipe(recipe.recipe_id)" class="level-item has-text-danger"><i class="far fa-trash-can"></i></a>
         </div>
       </nav>
     </div>
@@ -84,7 +84,7 @@ export default defineComponent({
       }
     },
     markMealPrep: async function (recipe_id: string, prepared: boolean) {
-      const status = await useUserStore().RecipeMealPrep(recipe_id, prepared);
+      const status = await useUserStore().RecipeMarkMealPrep(recipe_id, prepared);
       if (status.success == true) {
         return;
       }

@@ -122,6 +122,9 @@ export const useUserStore = defineStore("user", {
         chores: (state) => {
             return state._chores
         },
+        mealPlan: (state)=> {
+            return []
+        },
         currentDate: (state)=> {
             const date = new Date();
             const time = date.getTime(); // the timestamp, not neccessarely using UTC as current time
@@ -161,7 +164,7 @@ export const useUserStore = defineStore("user", {
                 }
             }
         },
-        async FetchRecipes() {
+        async RecipeFetch() {
             const favs = await QueryAPI(client.recipes.favorites.query);
             if (favs.success) {
                 this._recipeFavs = favs.data;
@@ -175,7 +178,7 @@ export const useUserStore = defineStore("user", {
         async RecipeAdd(url: string): APIResult<boolean> {
             try {
                 const result = await client.recipes.add.query(url);
-                this.FetchRecipes(); // kick off a request to refresh this
+                this.RecipeFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result
@@ -199,7 +202,7 @@ export const useUserStore = defineStore("user", {
                     if (index != -1) this.recipes.favorites.splice(index, 1);
                 }
                 const result = await client.recipes.mark_favored.query({ recipe_id, favored });
-                this.FetchRecipes(); // kick off a request to refresh this
+                this.RecipeFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result
@@ -213,7 +216,7 @@ export const useUserStore = defineStore("user", {
             try {
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.remove.query(recipe_id);
-                this.FetchRecipes(); // kick off a request to refresh this
+                this.RecipeFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result
@@ -223,14 +226,30 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async RecipeMealPrep(id: string, prepared: boolean): APIResult<boolean> {
+        async RecipeMarkMealPrep(id: string, prepared: boolean): APIResult<boolean> {
             try {
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.mark_meal_prep.query({ recipe_id, prepared });
-                this.FetchRecipes(); // kick off a request to refresh this
+                this.RecipeFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async RecipeMealPlan(): APIResult<any[]> {
+            return QueryAPI(client.recipes.create_meal_plan.query);
+        },
+        async MealPlanFetch(): APIResult<boolean> {
+            try {
+                const result = await client.recipes.meal_plan.query();
+                console.log(result);
+                return {
+                    success: true,
+                    data: true
                 }
             }
             catch (err) {

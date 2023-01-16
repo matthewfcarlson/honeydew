@@ -17,14 +17,9 @@
             <div class="navbar-start">
                 <template v-if="isLoggedIn">
 
-                    <router-link to="meals" class="navbar-item">
+                    <router-link to="recipes" class="navbar-item">
                         <i class="fa-solid fa-utensils"></i>&nbsp;
                         Meals
-                    </router-link>
-
-                    <router-link to="recipes" class="navbar-item">
-                        <i class="fas fa-archive"></i>&nbsp;
-                        Recipes
                     </router-link>
 
                     <router-link to="chores" class="navbar-item">

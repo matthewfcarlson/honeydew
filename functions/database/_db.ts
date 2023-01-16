@@ -615,7 +615,6 @@ export default class Database {
             return false;
         }
     }
-    
 
     async CardBoxGetFavorites(house_id: HouseId, favorites: boolean = true): Promise<DbCardBoxRecipe[]> {
         const id_parse = HouseIdZ.safeParse(house_id);

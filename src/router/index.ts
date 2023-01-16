@@ -56,14 +56,6 @@ const routes = [
     }
   },
   {
-    path: "/meals",
-    name: "Meals",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/MealsView.vue'),
-    meta: {
-      noAuthRequired: false,
-    },
-  },
-  {
     path: "/recipes",
     name: "Recipes",
     component: () => import(/* webpackChunkName: "admin" */ '../views/RecipesView.vue'),

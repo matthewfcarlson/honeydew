@@ -55,27 +55,6 @@ export interface DbDataObj {
     id: DbIds
 }
 
-enum RecipeType {
-    PASTA,
-    SLOW_COOKER,
-    MEAT,
-    SOUP,
-    VEGGIES,
-}
-
-// const DbRecipeZ = z.object({
-//     id: z.string().uuid(),
-//     url: z.string().min(5),
-//     picture_url: z.string().min(5).or(z.null()),
-//     ingredients: z.set(z.string()),
-//     last_made: z.number().positive(),
-//     category: z.nativeEnum(RecipeType),
-//     household: z.string().uuid(),
-// });
-// export type DbRecipe = z.infer<typeof DbRecipeZ>;
-
-
-
 // -------------------------------------------------
 // Data Types
 
@@ -89,7 +68,6 @@ export const DbUserZRaw = z.object({
     _recoverykey: z.string().max(255),
     _chat_id: z.number().nullable(),
 })
-// TODO: should chat ID be an array that's chained together as needed?
 export const DbUserZ = DbUserZRaw.brand<"User">()
 export type DbUser = z.infer<typeof DbUserZ>;
 export type DbUserRaw = z.infer<typeof DbUserZRaw>;
