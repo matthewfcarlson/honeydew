@@ -50,7 +50,10 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     const redirect = '<head><meta http-equiv="Refresh" content="0; URL=/household" /></head>';
 
-    const response = new Response(redirect);
+    const response = new Response(redirect, {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+
+    })
 
     setCookie(response, TEMP_TOKEN, generic_token, false);
     setCookie(response, DEVICE_TOKEN, refresh_token);
