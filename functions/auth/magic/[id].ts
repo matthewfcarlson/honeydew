@@ -11,7 +11,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
     if (id == null || id == undefined) return ResponseJsonMissingData();
     if (context.data.userid != null) {
-        return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k="+id)
+        return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k=" + id)
     }
     const db = context.data.db as Database;
     const user = context.data.user
@@ -43,12 +43,15 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         // tokens do not expire just because why not?
     }, secret);
     const generic_token = await jwt.sign({
-       id: magic_user.id,
-       name: magic_user.name,
-       exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
-   }, secret);
+        id: magic_user.id,
+        name: magic_user.name,
+        exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
+    }, secret);
 
-    const response = ResponseRedirect(context.request,"/household");
+    const redirect = '<head><meta http-equiv="Refresh" content="0; URL=/household" /></head>';
+
+    const response = new Response(redirect);
+
     setCookie(response, TEMP_TOKEN, generic_token, false);
     setCookie(response, DEVICE_TOKEN, refresh_token);
     return response;
