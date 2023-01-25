@@ -3,7 +3,7 @@ import jwt from '@tsndr/cloudflare-worker-jwt'
 import Database from "../../database/_db";
 import { ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect, setCookie } from "../../_utils";
 import { GiveNewTemporaryCookie } from "../signup";
-import { AuthSignupResponse, DEVICE_TOKEN } from "../auth_types";
+import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from "../auth_types";
 import { DbMagicKeyZ } from "../../db_types";
 
 
@@ -42,15 +42,14 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         id: magic_user.id,
         // tokens do not expire just because why not?
     }, secret);
+    const generic_token = await jwt.sign({
+       id: magic_user.id,
+       name: magic_user.name,
+       exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
+   }, secret);
 
-
-    const result: AuthSignupResponse = {
-        user_id: magic_user.id, recovery_key: magic_user._recoverykey, household: magic_user.household
-    }
-    const info = JSON.stringify(result, null, 2);
     const response = ResponseRedirect(context.request,"/household");
-    // Give the generic cookie
-    await GiveNewTemporaryCookie(context.env, response, magic_user);
+    setCookie(response, TEMP_TOKEN, generic_token, false);
     setCookie(response, DEVICE_TOKEN, refresh_token);
     return response;
 }
