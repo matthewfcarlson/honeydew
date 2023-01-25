@@ -1,7 +1,7 @@
 import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKeyId, MagicKeyIdZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -21,6 +21,18 @@ interface DataBaseData {
 
 const uuidv4 = () => (crypto as any).randomUUID();
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+function makeid(length:number) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+~_$@';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
+    }
+    return result;
+}
 
 export default class Database {
     private _sql: D1Database;
@@ -94,6 +106,11 @@ export default class Database {
 
     private async setDBJson(x: DbDataObj, expirationTtl = 0) {
         await this._kv.put(x.id, JSON.stringify(x), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
+    }
+    private async setDBRaw(k:DbIds, v: object, expirationTtl: number|null = null) {
+        if (expirationTtl == null) await this._kv.put(k, JSON.stringify(v), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
+        else if (expirationTtl == 0) await this._kv.put(k, JSON.stringify(v)); // all keys created expire in 6 hours
+        else await this._kv.put(k, JSON.stringify(v), { expirationTtl }); // all keys created expire in 6 hours
     }
 
     private async deleteKey(key: DbIds) {
@@ -211,6 +228,66 @@ export default class Database {
         if (await this.UserExists(user_id) == false) return false;
         await this._db.updateTable("users").where("id", "==", user_id).set({ _chat_id: chat_id }).execute();
         return true;
+    }
+
+    private async UserMagicKeyGenerateId(): Promise<DbMagicKey|null> {
+        // The magic key is very similar to a user recovery key but is temporary
+        // TODO: should recovery keys be long lasting magic keys?
+        let count = 0;
+        while (count < 50) {
+            count ++;
+            const attempted_id = DbMagicKeyZ.safeParse(makeid(50));
+            if (attempted_id.success == false) {
+                console.error("UserMagicKeyGenerateId", "Failed to create key");
+                return null;
+            }
+            if (await this.UserMagicKeyExists(attempted_id.data) == false) return attempted_id.data;
+        }
+        return null;
+    }
+    async UserMagicKeyCreate(user_id:UserId): Promise<DbMagicKey|null> {
+        if (await this.UserExists(user_id) == false) return null;
+        const key = await this.UserMagicKeyGenerateId();
+        if (key == null) return null;
+        const id = this.UserMagicKeyGetId(key);
+        if (id == null) return null;
+        await this.setDBRaw(id, user_id, 60 * 60); //set up the magic key to correspond to the user ID, expire in one hour
+        return key;
+    }
+
+    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKeyId|null {
+        const attempted_id = MagicKeyIdZ.safeParse("MK:"+magic_key);
+        if (attempted_id.success == false) return null;
+        return attempted_id.data;
+    }
+
+    async UserMagicKeyExists(magic_key:DbMagicKey): Promise<boolean> {
+        const id = this.UserMagicKeyGetId(magic_key);
+        if (id == null) return false;
+        const result = await this.queryDBRaw(id);
+        if (result == null) return false;
+        return true;
+    }
+
+    async UserMagicKeyConsume(magic_key:DbMagicKey): Promise<DbUser|null> {
+        const id = this.UserMagicKeyGetId(magic_key);
+        if (id == null) return null;
+        const result = await this.queryDBJson(id);
+        if (result == null) return null;
+        // Keep track of this promise so we can make sure it gets done later
+        const promise = this.deleteKey(id);
+        const user_id = UserIdZ.safeParse(result);
+        if (user_id.success == false) {
+            // This is an error, log it
+            console.error("UserMagicKeyConsume", "Unable to parse information in magic key", result);
+            await promise;
+            return null;
+        }
+        // Query the user
+        const user = await this.UserGet(user_id.data);
+        // make sure to wait for this to get deleted
+        await promise;
+        return user;
     }
 
     async HouseholdGenerateUUID() {
@@ -471,7 +548,8 @@ export default class Database {
                 requirement2
             };
             const task: DbTask = DbTaskZ.parse(taskZ);
-            await this.setDBJson(task);
+            
+            
             return task;
         }
         catch (err) {

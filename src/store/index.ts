@@ -148,6 +148,9 @@ export const useUserStore = defineStore("user", {
         async getInviteLink(): APIResult<string> {
             return await QueryAPI(client.household.invite.query);
         },
+        async getMagicLink(): APIResult<string> {
+            return await QueryAPI(client.me.magic_link.query);
+        },
         async signOut(): APIResult<string> {
             try {
                 await axios.get("/auth/signout");

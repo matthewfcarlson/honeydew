@@ -252,7 +252,6 @@ export function parseUnstructuredTimeToMinutes(raw_text: string): number {
     const hours = new RegExp('([0-9\\.]+) hours?( on low)?( on high)?$')
     const hours_match = hours.exec(text);
     if (hours_match != null) {
-      console.error(text, hours_match)
       return Number(hours_match[1])*60;
     }
   }
@@ -260,8 +259,7 @@ export function parseUnstructuredTimeToMinutes(raw_text: string): number {
     const hours = new RegExp('([0-9\\.]+) to ([0-9\\.]+) hours( on low)?(on high)?$')
     const hours_match = hours.exec(text);
     if (hours_match != null) {
-      console.error(text, hours_match)
-      return Number(hours_match[2])*60;
+      return Number(hours_match[2])*60; // select the second one?
     }
   }
 

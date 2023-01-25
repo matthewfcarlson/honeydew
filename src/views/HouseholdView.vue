@@ -36,6 +36,18 @@
             </span>
             <span>Signout</span>
         </router-link>
+        <button @click="getMagicLink" class="button is-success is-rounded  is-large" v-if="magic_link == ''">
+            <span class="icon is-left">
+                <i class="fas fa-magic" aria-hidden="true"></i>
+            </span>
+            <span>Generate Magic Link</span>
+        </button>
+        <div class="has-text-justified is-flex-direction-column is-align-items-center" v-else>
+            <div class="has-text-justified">{{ magic_link }}</div>
+            <div>
+                <button class="button is-round" @click="copyMagicLink">Copy to Clipboard</button>
+            </div>
+        </div>
     </div>
 </template>
   
@@ -52,6 +64,7 @@ export default defineComponent({
         return {
             invite_link: "",
             error: "",
+            magic_link: "",
         }
 
     },
@@ -70,12 +83,31 @@ export default defineComponent({
                 this.error = "Could not copy to clipboard";
             }
         },
+        copyMagicLink: async function () {
+            try {
+                await navigator.clipboard.writeText(this.magic_link);
+            }
+            catch {
+                this.error = "Could not copy to clipboard";
+            }
+        },
         get_invite: async function () {
             this.invite_link = "";
             this.error = "";
             const invite = await useUserStore().getInviteLink();
             if (invite.success == true) {
                 this.invite_link = invite.data;
+            }
+            else {
+                this.error = invite.message;
+            }
+        },
+        getMagicLink: async function () {
+            this.magic_link = "";
+            this.error = "";
+            const invite = await useUserStore().getMagicLink();
+            if (invite.success == true) {
+                this.magic_link = invite.data;
             }
             else {
                 this.error = invite.message;

@@ -48,8 +48,12 @@ export const ChoreIdz = z.string({
 }).length(38).startsWith("C:", { message: "Must start with C:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ChoreId">()
 export type ChoreId = z.infer<typeof ChoreIdz>;
 
+export const DbMagicKeyZ = z.string().length(50).brand<"MagicKey">();
+export type DbMagicKey = z.infer<typeof DbMagicKeyZ>;
+export const MagicKeyIdZ = z.string().length(53).startsWith("MK:").brand<"MagicKeyId">();
+export type MagicKeyId = z.infer<typeof MagicKeyIdZ>;
 
-export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId | ChoreId;
+export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId | ChoreId | MagicKeyId;
 
 export interface DbDataObj {
     id: DbIds
@@ -71,6 +75,7 @@ export const DbUserZRaw = z.object({
 export const DbUserZ = DbUserZRaw.brand<"User">()
 export type DbUser = z.infer<typeof DbUserZ>;
 export type DbUserRaw = z.infer<typeof DbUserZRaw>;
+
 
 
 export const DbHouseholdRawZ = z.object({

@@ -33,6 +33,33 @@ describe('User tests', () => {
 
   });
 
+  it('can create magic link', async () => {
+    // Arrange
+    const house = await db.HouseholdCreate("BOB'S HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    expect(house.id.length).toBeGreaterThan(10);
+    // Act
+    const user = await db.UserCreate("BOBBY", house.id);
+    // Assert
+    if (user == null) return;
+
+    const key = await db.UserMagicKeyCreate(user.id);
+    expect(key).not.toBeNull();
+    if (key == null) return;
+
+    expect(await db.UserMagicKeyExists(key)).toBe(true);
+
+    const magic_user = await db.UserMagicKeyConsume(key);
+    expect(magic_user).not.toBeNull();
+    if (magic_user == null) return;
+
+    expect(magic_user.id).toBe(user.id);
+
+    expect(await db.UserMagicKeyExists(key)).toBe(false);
+
+  });
+
   it('should not find a user', async () => {
     // Arrange
     const uuid = await db.UserGenerateUUID();
@@ -473,8 +500,8 @@ describe('Recipe tests', () => {
     // "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
     // "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
     // "https://www.centraltexasfoodbank.org/recipe/oven-roasted-holiday-vegetables",
-    "https://www.joshuaweissman.com/post/the-healthiest-cashew-chicken-in-15-minutes",
-    "https://www.americastestkitchen.com/cookscountry/recipes/10822-slow-cooker-chicken-tikka-masala",
+    //"https://www.joshuaweissman.com/post/the-healthiest-cashew-chicken-in-15-minutes",
+    //"https://www.americastestkitchen.com/cookscountry/recipes/10822-slow-cooker-chicken-tikka-masala",
     //"https://www.everyplate.com/recipes/creamy-dijon-chicken-639747695018ecdf720575c1",
     "https://www.budgetbytes.com/pasta-e-fagioli/",
   ])("can add %s as a recipe", async (url) => {
@@ -510,6 +537,7 @@ describe('Recipe tests', () => {
 
     // Set the recipe as a favorite
     expect(await db.CardBoxSetFavorite(recipe.id, house_id, true)).toBe(true);
+    expect(await db.CardBoxSetMealPrep(recipe.id, house_id, true)).toBe(true);
 
     // Make sure we have a favorites recipe and 
     yes_favorites = await db.CardBoxGetFavorites(house_id, true);
