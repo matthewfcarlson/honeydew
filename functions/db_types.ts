@@ -81,15 +81,24 @@ export type DbUser = z.infer<typeof DbUserZ>;
 export type DbUserRaw = z.infer<typeof DbUserZRaw>;
 
 
-
 export const DbHouseholdRawZ = z.object({
     id: HouseIdZ,
     name: z.string().max(255),
-    members: z.array(UserIdZ)
+    members: z.array(UserIdZ),
 })
 export const DbHouseholdZ = DbHouseholdRawZ.brand<"Household">();
 export type DbHouseholdRaw = z.infer<typeof DbHouseholdRawZ>;
 export type DbHousehold = z.infer<typeof DbHouseholdZ>;
+
+export const DbHouseAutoAssignmentRawZ = z.object({
+    house_id: HouseIdZ,
+    choreAssignHour: z.number().lt(24).nonnegative(), // the hour that chores should be assigned automatically
+    choreLastAssignTime: z.number().nonnegative(), // the last time chores were automatically assigned
+});
+export const DbHouseAutoAssignmentZ = DbHouseAutoAssignmentRawZ.brand<"House Auto Assign">();
+export type DbHouseAutoAssignmentRaw = z.infer<typeof DbHouseAutoAssignmentRawZ>;
+export type DbHouseAutoAssignment = z.infer<typeof DbHouseAutoAssignmentZ>;
+
 
 export const DbHouseKeyZRaw = z.object({
     id: HouseKeyIdz,

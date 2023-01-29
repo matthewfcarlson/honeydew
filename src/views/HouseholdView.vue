@@ -48,6 +48,13 @@
                 <button class="button is-round" @click="copyMagicLink">Copy to Clipboard</button>
             </div>
         </div>
+        <hr/>
+        <div class="box block">
+            The hour that you want to be assigned new chores (UTC)
+            <input class="input" type="number" v-model="autoassign_hour"/>
+            <button class="button is-round" @click="setAutoassignTime">Set Autoassign Time</button>
+        </div>
+
     </div>
 </template>
   
@@ -65,6 +72,7 @@ export default defineComponent({
             invite_link: "",
             error: "",
             magic_link: "",
+            autoassign_hour: 8,
         }
 
     },
@@ -91,7 +99,7 @@ export default defineComponent({
                 this.error = "Could not copy to clipboard";
             }
         },
-        get_invite: async function () {
+        get_invite: async function() {
             this.invite_link = "";
             this.error = "";
             const invite = await useUserStore().getInviteLink();
@@ -100,6 +108,18 @@ export default defineComponent({
             }
             else {
                 this.error = invite.message;
+            }
+        },
+        setAutoassignTime: async function () {
+            this.invite_link = "";
+            this.error = "";
+            const result = await useUserStore().HouseholdSetSyncTime(this.autoassign_hour);
+            if (result.success == false) {
+                // not sure why typescript is being dumb here and no picking up the fact that message will be valid here?
+                this.error = (result as any).message;
+            }
+            else {
+                this.error = "successfully set time"
             }
         },
         getMagicLink: async function () {

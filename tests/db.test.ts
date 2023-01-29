@@ -237,6 +237,37 @@ describe('Household tests', () => {
   });
 });
 
+describe('House auto assign tests', () => {
+  it('can create schedule', async () => {
+    // Arrange
+    const house = await db.HouseholdCreate("BOBBY'S HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const hour = 2;
+
+    // Create the auto assignment
+    expect(await db.HouseAutoAssignExists(house.id)).toBe(false);
+    expect(await db.HouseAutoAssignSetTime(house.id, hour)).toBe(true);
+    expect(await db.HouseAutoAssignExists(house.id)).toBe(true);
+    expect(await db.HouseAutoAssignGetHour(house.id)).toBe(hour);
+    // then check to make sure it is ready
+    {
+      expect((await db.HouseAutoAssignGetHousesReadyForHour(hour+1))).toHaveLength(0)
+      const houses = await db.HouseAutoAssignGetHousesReadyForHour(hour);
+      expect(houses).toHaveLength(1);
+      expect(houses[0]).toBe(house.id);
+    }
+    // mark the house as scheduled
+    await db.HouseAutoAssignMarkComplete(house.id);
+    {
+      const houses = await db.HouseAutoAssignGetHousesReadyForHour(hour);
+      expect(houses).toHaveLength(0);
+    }
+
+
+  });
+});
+
 describe('Project tests', () => {
   it('can create and delete project', async () => {
     // Arrange
@@ -539,7 +570,7 @@ describe('Recipe tests', () => {
     expect(await db.CardBoxSetFavorite(recipe.id, house_id, true)).toBe(true);
     expect(await db.CardBoxSetMealPrep(recipe.id, house_id, true)).toBe(true);
 
-    // Make sure we have a favorites recipe and 
+    // Make sure we have a favorites recipe and
     yes_favorites = await db.CardBoxGetFavorites(house_id, true);
     not_favorites = await db.CardBoxGetFavorites(house_id, false);
     expect(yes_favorites).not.toBeNull();

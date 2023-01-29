@@ -1,7 +1,7 @@
 import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -17,12 +17,13 @@ interface DataBaseData {
     recipes: DbRecipeRaw
     cardboxes: DbCardBoxRaw
     chores: DbChoreRaw
+    houseautoassign: DbHouseAutoAssignmentRaw
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-function makeid(length:number) {
+function makeid(length: number) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+~_$@';
     const charactersLength = characters.length;
@@ -107,7 +108,7 @@ export default class Database {
     private async setKVJson(x: KVDataObj, expirationTtl = 0) {
         await this._kv.put(x.id, JSON.stringify(x), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
     }
-    private async setKVRaw(k:KVIds, v: object, expirationTtl: number|null = null) {
+    private async setKVRaw(k: KVIds, v: object, expirationTtl: number | null = null) {
         if (expirationTtl == null) await this._kv.put(k, JSON.stringify(v), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
         else if (expirationTtl == 0) await this._kv.put(k, JSON.stringify(v)); // all keys created expire in 6 hours
         else await this._kv.put(k, JSON.stringify(v), { expirationTtl }); // all keys created expire in 6 hours
@@ -230,12 +231,12 @@ export default class Database {
         return true;
     }
 
-    private async UserMagicKeyGenerateId(): Promise<DbMagicKey|null> {
+    private async UserMagicKeyGenerateId(): Promise<DbMagicKey | null> {
         // The magic key is very similar to a user recovery key but is temporary
         // TODO: should recovery keys be long lasting magic keys?
         let count = 0;
         while (count < 50) {
-            count ++;
+            count++;
             const attempted_id = DbMagicKeyZ.safeParse(makeid(50));
             if (attempted_id.success == false) {
                 console.error("UserMagicKeyGenerateId", "Failed to create key");
@@ -245,7 +246,7 @@ export default class Database {
         }
         return null;
     }
-    async UserMagicKeyCreate(user_id:UserId): Promise<DbMagicKey|null> {
+    async UserMagicKeyCreate(user_id: UserId): Promise<DbMagicKey | null> {
         if (await this.UserExists(user_id) == false) return null;
         const key = await this.UserMagicKeyGenerateId();
         if (key == null) return null;
@@ -255,13 +256,13 @@ export default class Database {
         return key;
     }
 
-    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKVKey|null {
-        const attempted_id = MagicKVKeyZ.safeParse("MK:"+magic_key);
+    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKVKey | null {
+        const attempted_id = MagicKVKeyZ.safeParse("MK:" + magic_key);
         if (attempted_id.success == false) return null;
         return attempted_id.data;
     }
 
-    async UserMagicKeyExists(magic_key:DbMagicKey): Promise<boolean> {
+    async UserMagicKeyExists(magic_key: DbMagicKey): Promise<boolean> {
         const id = this.UserMagicKeyGetId(magic_key);
         if (id == null) return false;
         const result = await this.queryKVRaw(id);
@@ -269,7 +270,7 @@ export default class Database {
         return true;
     }
 
-    async UserMagicKeyConsume(magic_key:DbMagicKey): Promise<DbUser|null> {
+    async UserMagicKeyConsume(magic_key: DbMagicKey): Promise<DbUser | null> {
         const id = this.UserMagicKeyGetId(magic_key);
         if (id == null) return null;
         const result = await this.queryKVJson(id);
@@ -356,6 +357,83 @@ export default class Database {
         catch (err) {
             console.error("HouseholdCreate", err);
             return null;
+        }
+
+    }
+
+    async HouseAutoAssignExists(raw_id: HouseId): Promise<boolean> {
+        const result = await this.HouseAutoAssignGetHour(raw_id);
+        if (result == null) return false;
+        return true;
+    }
+
+    async HouseAutoAssignGetHour(raw_id: HouseId): Promise<number | null> {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            const result = await this._db.selectFrom("houseautoassign").select("choreAssignHour").where("house_id", "==", id).executeTakeFirst();
+            if (result == undefined) return null;
+            return result.choreAssignHour;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignGetHour", err);
+            return null;
+        }
+    }
+
+    async HouseAutoAssignSetTime(raw_id: HouseId, hour: number): Promise<boolean> {
+        try {
+            if (hour >= 24 || hour <= 0) return false;
+            const id = HouseIdZ.parse(raw_id);
+            const existing_hour = await this.HouseAutoAssignGetHour(id);
+            if (existing_hour == hour) return true;
+            if (existing_hour == null) {
+                // create a new assignment
+                const raw_assignment: DbHouseAutoAssignmentRaw = {
+                    house_id: id,
+                    choreAssignHour: hour,
+                    choreLastAssignTime: 0
+                };
+                const assignment = DbHouseAutoAssignmentZ.parse(raw_assignment);
+                await this._db.insertInto("houseautoassign").values(assignment).executeTakeFirstOrThrow();
+            }
+            else {
+                // otherwise modify the existing one
+                await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreAssignHour: hour }).executeTakeFirstOrThrow();
+            }
+            return true
+        }
+        catch (err) {
+            console.error("HouseAutoAssignSetTime", err);
+            return false;
+        }
+    }
+
+    async HouseAutoAssignGetHousesReadyForHour(hour: number, timestamp: number|null = null): Promise<HouseId[]> {
+        try {
+            if (timestamp == null) timestamp = (getJulianDate() - 0.5);
+            const raw_results = await this._db.selectFrom("houseautoassign").select("house_id").where("choreAssignHour", "==", hour).where("choreLastAssignTime","<", timestamp).execute();
+            if (raw_results == undefined) return [];
+            const results = raw_results
+                            .map((x)=>HouseIdZ.safeParse(x.house_id))
+                            .map((x) => (x.success) ? x.data : null)
+                            .filter((x): x is HouseId => x != null)
+            return results;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignMarkComplete", err);
+            return [];
+        }
+    }
+
+    async HouseAutoAssignMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
+        try {
+            if (timestamp == null) timestamp = getJulianDate();
+            await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreLastAssignTime: timestamp }).executeTakeFirstOrThrow();
+            return true;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignMarkComplete", err);
+            return false;
         }
     }
 
@@ -679,9 +757,9 @@ export default class Database {
     async CardBoxGetFavorites(house_id: HouseId, favorites: boolean = true): Promise<DbCardBoxRecipe[]> {
         const id_parse = HouseIdZ.safeParse(house_id);
         if (id_parse.success == false) return []
-        const cardbox = await this._db.selectFrom(["cardboxes", "recipes"]).selectAll("cardboxes").selectAll("recipes").where("household_id", "==", house_id).where("favorite", "==",favorites?1:0).whereRef("cardboxes.recipe_id", "==", "recipes.id").execute();
-        const results:DbCardBoxRecipe[] = [];
-        cardbox.forEach((x)=> {
+        const cardbox = await this._db.selectFrom(["cardboxes", "recipes"]).selectAll("cardboxes").selectAll("recipes").where("household_id", "==", house_id).where("favorite", "==", favorites ? 1 : 0).whereRef("cardboxes.recipe_id", "==", "recipes.id").execute();
+        const results: DbCardBoxRecipe[] = [];
+        cardbox.forEach((x) => {
             const cardbox: DbCardBoxRaw = x
             const recipe: DbRecipeRaw = {
                 id: x.recipe_id,
@@ -690,7 +768,7 @@ export default class Database {
                 image: x["image"],
                 totalTime: x.totalTime,
             }
-            const z = DbCardBoxRecipeZ.safeParse( {
+            const z = DbCardBoxRecipeZ.safeParse({
                 recipe,
                 ...cardbox,
             });
@@ -758,7 +836,7 @@ export default class Database {
         return id
     }
 
-    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated:number=1): Promise<DbChore | null> {
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1): Promise<DbChore | null> {
         try {
             const id = await this.ChoreGenerateUUID();
             if (id == null) {
@@ -790,7 +868,7 @@ export default class Database {
         await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: getJulianDate() }).execute();
         return true;
     }
-    async ChoreAssignTo(id: ChoreId, user: UserId|null): Promise<boolean> {
+    async ChoreAssignTo(id: ChoreId, user: UserId | null): Promise<boolean> {
         if (await this.ChoreExists(id) == false) return false;
         // Validate userId
         if (user != null && UserIdZ.safeParse(user).success == false) return false;
@@ -826,26 +904,33 @@ export default class Database {
         }
     }
 
-    async ChorePickNextChore(house_id: HouseId, user_id:UserId): Promise<DbChore|null> {
+    async ChorePickNextChore(house_id: HouseId, user_id: UserId): Promise<DbChore | null> {
         try {
             const id = HouseIdZ.safeParse(house_id);
             if (id.success == false) return null;
             const today = getJulianDate();
-            const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", today).where("household_id", "==", house_id).where((qb)=>qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", today));
+            const last_signed_time = today - 0.5;
+            const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", last_signed_time).where("household_id", "==", house_id).where((qb) => qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", last_signed_time));
             const result = await query.execute();
             if (result == undefined || result.length == 0) {
                 return null;
             }
             // we now need to sort them and select the one we want
-            const filtered_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).filter((x)=>x.doneBy == null || x.doneBy == user_id);
+            const filtered_results = result
+                .map((x) => DbChoreZ.safeParse(x))
+                .map((x) => (x.success) ? x.data : null)
+                .filter((x): x is DbChore => x != null)
+                .filter((x) => x.doneBy == null || x.doneBy == user_id)
+                .filter((x) => (x.lastDone + x.frequency) < today);
+            // TODO: filter out any chores that were done more recently than their frequency, ie don't need to get done again
             if (filtered_results.length == 0) {
                 return null;
             }
-            const sorted_results = filtered_results.sort((a,b)=>{
+            const sorted_results = filtered_results.sort((a, b) => {
                 // The thought is how frequently is it done vs how long it's delayed, how long of a cycle is it delayed for?
                 const a_cycle = (today - a.lastDone) / a.frequency;
                 const b_cycle = (today - b.lastDone) / b.frequency;
-                return b_cycle-a_cycle
+                return b_cycle - a_cycle
             });
             return sorted_results[0];
         }
@@ -856,13 +941,13 @@ export default class Database {
     }
 
     // First check if we need to 
-    async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id:UserId, telegram_id:string|number|null): Promise<DbChore|null> {
+    async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id: UserId, telegram_id: string | number | null): Promise<DbChore | null> {
         try {
             // First validate user_id
             const user_id = UserIdZ.parse(raw_user_id);
             const house_id = HouseIdZ.parse(raw_house_id);
             // see if we already have one cached
-            const kv_key = UserChoreCacheKVKeyZ.parse("CC:"+user_id);
+            const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
             const raw_cached_chore_id = await this.queryKVJson(kv_key);
             if (raw_cached_chore_id != null) {
                 const chore_id = ChoreIdz.parse(raw_cached_chore_id);
@@ -878,13 +963,13 @@ export default class Database {
             const promises = [];
             const today = getJulianDate();
             // Make sure to set the last time assigned to today
-            const update_query = this._db.updateTable("chores").where("id", "==", chore.id).set({"lastTimeAssigned": today});
-            promises.push(this.setKVRaw(kv_key, chore.id,(60*60*23))); // it lasts 23 hours
+            const update_query = this._db.updateTable("chores").where("id", "==", chore.id).set({ "lastTimeAssigned": today });
+            promises.push(this.setKVRaw(kv_key, chore.id, (60 * 60 * 23))); // it lasts 23 hours
             promises.push(update_query.execute());
-            if (telegram_id != null){
+            if (telegram_id != null) {
                 const text = `Hey, today you should ${chore.name}`
                 // TODO: add options for completing the task from telegram
-                promises.push(this.GetTelegram().sendTextMessage(telegram_id,text));
+                promises.push(this.GetTelegram().sendTextMessage(telegram_id, text));
             }
             await Promise.all(promises);
             return chore;
@@ -894,12 +979,12 @@ export default class Database {
             return null;
         }
     }
-    async ChoreSkipCurrentChore(raw_user_id:UserId): Promise<boolean> {
+    async ChoreSkipCurrentChore(raw_user_id: UserId): Promise<boolean> {
         try {
             // First validate user_id
             const user_id = UserIdZ.parse(raw_user_id);
             // delete if we have one cached
-            const kv_key = UserChoreCacheKVKeyZ.parse("CC:"+user_id);
+            const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
             await this.deleteKey(kv_key);
             return true;
         }
@@ -917,7 +1002,7 @@ export default class Database {
             const result = await this._db.selectFrom("chores").selectAll().where("household_id", "==", house_id).execute();
             if (result == undefined) return [];
             // we now need to sort them and select the one we want
-            const sorted_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null);
+            const sorted_results = result.map((x) => DbChoreZ.safeParse(x)).map((x) => (x.success) ? x.data : null).filter((x): x is DbChore => x != null);
             return sorted_results;
         }
         catch (err) {

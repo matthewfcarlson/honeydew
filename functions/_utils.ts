@@ -181,8 +181,8 @@ export function hexStringToArrayBuffer(hexString: string) {
 
 export function getJulianDate(): number {
   const date = new Date();
-  const time = date.getTime(); // the timestamp, not neccessarely using UTC as current time
-  return Math.floor((time / 86400000) + 2440587.5);
+  const time = date.getTime(); // the timestamp, not necessarily using UTC as current time
+  return (time / 86400000) + 2440587.5;
 }
 
 export const user_colors = [

@@ -147,7 +147,7 @@ export const useUserStore = defineStore("user", {
             const date = new Date();
             const time = date.getTime(); // the timestamp, not necessarily using UTC as current time
             //return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
-            return Math.floor((time / 86400000) + 2440587.5);
+            return (time / 86400000) + 2440587.5;
         }
     },
     actions: {
@@ -191,6 +191,19 @@ export const useUserStore = defineStore("user", {
                     success: false,
                     message: "TBI"
                 }
+            }
+        },
+
+        async HouseholdSetSyncTime(hour:number){
+            try {
+                const result = await client.household.setAutoAssign.query(hour);
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
             }
         },
         async RecipeFetch() {

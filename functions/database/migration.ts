@@ -104,10 +104,25 @@ const HoneydewVersion3 = {
         }
     }
 }
+const HoneydewVersion4 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "HOUSEAUTOASSIGN"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('house_id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('choreAssignHour', "integer", (col)=>col.defaultTo(0)) // hour in UTC (0-23 that this should be triggered in)
+                .addColumn('choreLastAssignTime', "integer", (col)=>col.defaultTo(0)) // stored as julian day numbers
+                .execute()
+        }
+    }
+}
 
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
-    HoneydewVersion3
+    HoneydewVersion3,
+    HoneydewVersion4,
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;
