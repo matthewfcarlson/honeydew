@@ -913,7 +913,7 @@ export default class Database {
             const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", last_signed_time).where("household_id", "==", house_id).where((qb) => qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", last_signed_time));
             const result = await query.execute();
             if (result == undefined || result.length == 0) {
-                return null;
+                console.warn("No chores to pick from")
             }
             // we now need to sort them and select the one we want
             const filtered_results = result
@@ -924,6 +924,7 @@ export default class Database {
                 .filter((x) => (x.lastDone + x.frequency) < today);
             // TODO: filter out any chores that were done more recently than their frequency, ie don't need to get done again
             if (filtered_results.length == 0) {
+                console.warn("Filtered out all the ones that haven't been done")
                 return null;
             }
             const sorted_results = filtered_results.sort((a, b) => {

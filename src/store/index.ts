@@ -301,8 +301,9 @@ export const useUserStore = defineStore("user", {
         // Chores TODO: move to separate store module
         async ChoreFetch() {
             const current_chore = await QueryAPI(client.chores.next.query);
-            if (current_chore.success ) {
+            if (current_chore.success) {
                 this._currentChore = current_chore.data;
+                console.log("New current chore", current_chore.data);
             }
             const chores = await QueryAPI(client.chores.all.query);
             if (chores.success) {
@@ -357,6 +358,12 @@ export const useUserStore = defineStore("user", {
             catch (err) {
                 return handleError(err);
             }
+        },
+        async ChoreGetAnother() {
+            const result = await QueryAPI(client.chores.another.query);
+            this._currentChore = null;
+            this.ChoreFetch();
+            return result;
         },
         async ChoreDelete(id: string): APIResult<boolean> {
             try {

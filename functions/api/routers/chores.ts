@@ -39,6 +39,25 @@ const Router = router({
     const db = ctx.ctx.data.db;
     return await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
   }),
+  another: protectedProcedure.query(async (ctx) => {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const db = ctx.ctx.data.db;
+    const result = await db.ChoreSkipCurrentChore(user.id);
+    if (result == false) return false;
+    return await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
+  }),
   complete: protectedProcedure.input(z.string()).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({
@@ -111,6 +130,7 @@ const Router = router({
     const input = ctx.input;
     const db = ctx.ctx.data.db;
     const chore = await db.ChoreCreate(input.name, user.household, input.frequency);
+    await (db as any)._db.updateTable("chores").set({lastDone: 10, lastTimeAssigned:10}).execute();
     if (chore == null) throw new TRPCError({
       code: "NOT_FOUND",
       cause: "Chore was not found"

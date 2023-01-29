@@ -5,13 +5,13 @@ import { getJulianDate } from "../../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
-    // query all the users who want to be assigned a new chore
-    // First 
+    // first get the current date that we generated this
+    // TODO: we could use KV to make sure we aren't running too often?
     const date = new Date();
     const hour = date.getUTCHours();
 
-    // first query the database for all the households that need to get processed
-    // Maybe this should return a list of users instead so we don't need to do this stupid dance
+    // then query the database for all the households that need to get processed
+    // TODO: Maybe this should return a list of users instead so we don't need to do this stupid dance
     const households = await db.HouseAutoAssignGetHousesReadyForHour(hour);
     const promises: Promise<any>[] = [];
     let total_processed = 0;
@@ -30,6 +30,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         });
         promises.push(new_promise);
     })
+    // make sure to wait on all the results
     const results = await Promise.allSettled(promises);
     const data = {
         total_processed,
@@ -38,6 +39,6 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         households,
         results,
     }
-
+    // return the data in a somewhat sane manner
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
 }

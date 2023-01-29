@@ -6,28 +6,39 @@
     </section>
 
     <div v-if="error != ''">{{ error }}</div>
-    <div class="box" >
+    <div class="box">
       <div class="title is-4">Chore</div>
       <template v-if="currentChore != null">
-      <div>Today you need to:</div>
-      <div>
-        <TaskIcon :task_name="currentChore.name" />
-        <span class="subtitle is-4"> {{ currentChore.name }} </span>
+        <div>Today you need to:</div>
+        <div>
+          <TaskIcon :task_name="currentChore.name" />
+          <span class="subtitle is-4"> {{ currentChore.name }} </span>
+        </div>
+        <div v-if="(currentChore.lastDone + 1) < currentDate">
+          <button class="button is-primary" @click="complete_chore(currentChore?.id || null)">
+            <i class="far fa-check-circle"></i> &nbsp;
+            Mark Done Today
+          </button>
+          <button class="button is-warning" @click="complete_chore(currentChore?.id || null)">
+            <i class="fas fa-minus-circle"></i> &nbsp;
+            Still Clean
+          </button>
+        </div>
+        <div v-else class="text-success">
+          <button class="button disable is-success" disabled>
+            <i class="fas fa-check-circle"></i>
+            Already Done!
+          </button>
+          <button class="button is-danger" @click="another_chore">
+            <i class="fas fa-fire"></i> &nbsp;
+            Give Me Another
+          </button>
+        </div>
+      </template>
+      <div v-else class="text-info">
+        <i class="fas fa-forward"></i>
+        No Chore Today
       </div>
-      <div v-if="currentChore.lastDone != currentDate">
-        <button class="button is-primary" @click="complete_chore(currentChore?.id || null)">
-          <i class="far fa-check-circle"></i> &nbsp; 
-          Mark Done Today</button>
-      </div>
-      <div v-else class="text-success">
-        <i class="fas fa-check-circle"></i>
-        Already Done!
-      </div>
-    </template>
-    <div v-else class="text-info">
-      <i class="fas fa-forward"></i>
-      No Chore Today
-    </div>
     </div>
 
     <!-- <div class="card is-rounded">
@@ -187,6 +198,12 @@ export default defineComponent({
         return;
       }
       const status = await useUserStore().ChoreComplete(id);
+      if (status.success == false) {
+        this.error = status.message
+      }
+    },
+    another_chore : async function () {
+      const status = await useUserStore().ChoreGetAnother();
       if (status.success == false) {
         this.error = status.message
       }
