@@ -52,7 +52,7 @@ const Router = router({
         name: household.name,
         members: (await Promise.all(household.members.map(x => db.UserGet(x)))).filter((x) => x != null).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }) || [],
     };
-    const currentChore = await db.ChoreGetNextChore(user.household, user.id);
+    const currentChore = await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
     const result: AuthCheck = {
       name: user.name,
       icon: user.icon,

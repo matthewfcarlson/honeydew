@@ -604,7 +604,7 @@ describe('Chore tests', () => {
       if (chore1 == null || chore2 == null || chore5 == null) return;
       expect((await db.ChoreGetAll(house_id)).length).toBe(4);
 
-      const chore_select_1 = await db.ChoreGetNextChore(house_id, user_id);
+      const chore_select_1 = await db.ChoreGetNextChore(house_id, user_id, null);
       expect(chore_select_1).not.toBeNull();
       if (chore_select_1 == null) return;
       expect(chore_select_1.id).toBe(chore1.id);
@@ -613,7 +613,7 @@ describe('Chore tests', () => {
 
       // Since we cached this chore, it should keep track of our chore
       {
-        const chore_select_2 = await db.ChoreGetNextChore(house_id, user_id);
+        const chore_select_2 = await db.ChoreGetNextChore(house_id, user_id, null);
         expect(chore_select_2).not.toBeNull();
         if (chore_select_2 == null) return;
         expect(chore_select_2.id).toBe(chore1.id);
@@ -623,7 +623,7 @@ describe('Chore tests', () => {
       expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
       // Now get another chore
       {
-        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id, null);
         expect(chore_select_3).not.toBeNull();
         if (chore_select_3 == null) return;
         expect(chore_select_3.id).toBe(chore2.id);
@@ -632,7 +632,7 @@ describe('Chore tests', () => {
       expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
       // Now get another chore
       {
-        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id, null);
         expect(chore_select_3).not.toBeNull();
         if (chore_select_3 == null) return;
         expect(chore_select_3.id).toBe(chore5.id);
@@ -641,7 +641,7 @@ describe('Chore tests', () => {
       expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
       // We shouldn't be able to get another chore since they've all been assigned recently
       {
-        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id, null);
         expect(chore_select_3).toBeNull();
       }
     }

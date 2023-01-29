@@ -287,10 +287,10 @@ export const useUserStore = defineStore("user", {
         },
         // Chores TODO: move to separate store module
         async ChoreFetch() {
-            // const current_chore = await QueryAPI(client.chores.next.query);
-            // if (current_chore.success ) {
-            //     this._currentChore = current_chore.data;
-            // }
+            const current_chore = await QueryAPI(client.chores.next.query);
+            if (current_chore.success ) {
+                this._currentChore = current_chore.data;
+            }
             const chores = await QueryAPI(client.chores.all.query);
             if (chores.success) {
                 const augmented_chores = chores.data.map((x)=> {

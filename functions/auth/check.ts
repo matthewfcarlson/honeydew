@@ -25,7 +25,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     if (api_house == null) {
         return ResponseJsonNotImplementedYet();
     }
-    const currentChore = await db.ChoreGetNextChore(user.household, user.id);
+    const currentChore = await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
     const results: AuthCheck = {
         name: user.name,
         household: api_house,

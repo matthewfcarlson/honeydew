@@ -37,7 +37,7 @@ const Router = router({
       })
     }
     const db = ctx.ctx.data.db;
-    return await db.ChoreGetNextChore(user.household, user.id);
+    return await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
   }),
   complete: protectedProcedure.input(z.string()).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {

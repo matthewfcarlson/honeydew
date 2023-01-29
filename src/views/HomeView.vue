@@ -6,8 +6,9 @@
     </section>
 
     <div v-if="error != ''">{{ error }}</div>
-    <div class="box" v-if="currentChore != null">
+    <div class="box" >
       <div class="title is-4">Chore</div>
+      <template v-if="currentChore != null">
       <div>Today you need to:</div>
       <div>
         <TaskIcon :task_name="currentChore.name" />
@@ -22,6 +23,11 @@
         <i class="fas fa-check-circle"></i>
         Already Done!
       </div>
+    </template>
+    <div v-else class="text-info">
+      <i class="fas fa-forward"></i>
+      No Chore Today
+    </div>
     </div>
 
     <!-- <div class="card is-rounded">

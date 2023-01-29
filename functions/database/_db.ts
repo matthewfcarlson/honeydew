@@ -833,12 +833,11 @@ export default class Database {
             const today = getJulianDate();
             const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", today).where("household_id", "==", house_id).where((qb)=>qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", today));
             const result = await query.execute();
-            if (result == undefined) {
-                console.warn("ChorePickNextChore", "result is undefined");
+            if (result == undefined || result.length == 0) {
                 return null;
             }
             // we now need to sort them and select the one we want
-            const filtered_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).filter((x)=>x.doneBy == null || x.doneBy != user_id);
+            const filtered_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).filter((x)=>x.doneBy == null || x.doneBy == user_id);
             if (filtered_results.length == 0) {
                 return null;
             }
@@ -857,7 +856,7 @@ export default class Database {
     }
 
     // First check if we need to 
-    async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id:UserId): Promise<DbChore|null> {
+    async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id:UserId, telegram_id:string|number|null): Promise<DbChore|null> {
         try {
             // First validate user_id
             const user_id = UserIdZ.parse(raw_user_id);
@@ -872,7 +871,7 @@ export default class Database {
                     console.warn("ChoreGetNextChore", "Deleting marking as we couldn't find this chore", chore_id, kv_key);
                     await this.deleteKey(kv_key);
                 }
-                return chore;
+                else return chore;
             }
             const chore = await this.ChorePickNextChore(house_id, user_id);
             if (chore == null) return null;
@@ -882,6 +881,11 @@ export default class Database {
             const update_query = this._db.updateTable("chores").where("id", "==", chore.id).set({"lastTimeAssigned": today});
             promises.push(this.setKVRaw(kv_key, chore.id,(60*60*23))); // it lasts 23 hours
             promises.push(update_query.execute());
+            if (telegram_id != null){
+                const text = `Hey, today you should ${chore.name}`
+                // TODO: add options for completing the task from telegram
+                promises.push(this.GetTelegram().sendTextMessage(telegram_id,text));
+            }
             await Promise.all(promises);
             return chore;
         }
