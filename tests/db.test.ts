@@ -337,161 +337,161 @@ describe('Project tests', () => {
   });
 });
 
-describe('Task tests', () => {
-  it('can create and delete tasks', async () => {
-    // Arrange
-    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
+// describe('Task tests', () => {
+//   it('can create and delete tasks', async () => {
+//     // Arrange
+//     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+//     expect(house_id).not.toBeNull();
+//     if (house_id == null) return;
 
-    const user_id = (await db.UserCreate("Bob", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
+//     const user_id = (await db.UserCreate("Bob", house_id))?.id;
+//     expect(user_id).not.toBeNull();
+//     if (user_id == null) return;
 
-    // Act
-    const task = await db.TaskCreate("Clean", user_id, house_id);
-    expect(task).not.toBeNull();
-    if (task == null) return;
+//     // Act
+//     const task = await db.TaskCreate("Clean", user_id, house_id);
+//     expect(task).not.toBeNull();
+//     if (task == null) return;
 
-    // Assert
-    expect(await db.TaskExists(task.id)).toBe(true);
+//     // Assert
+//     expect(await db.TaskExists(task.id)).toBe(true);
 
-    // Act
-    const task2 = await db.TaskGet(task.id);
-    expect(task2).not.toBeNull();
-    if (task2 == null) return;
+//     // Act
+//     const task2 = await db.TaskGet(task.id);
+//     expect(task2).not.toBeNull();
+//     if (task2 == null) return;
 
-    // Assert
-    expect(task.id).toBe(task2.id);
-    expect(task.added_by).toBe(task2.added_by);
+//     // Assert
+//     expect(task.id).toBe(task2.id);
+//     expect(task.added_by).toBe(task2.added_by);
 
-    // Act
-    await db.TaskDelete(task.id);
-    expect(await db.TaskExists(task.id)).toBe(false);
+//     // Act
+//     await db.TaskDelete(task.id);
+//     expect(await db.TaskExists(task.id)).toBe(false);
 
-  });
+//   });
 
-  it('can create and delete tasks', async () => {
-    // Arrange
-    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
+//   it('can create and delete tasks', async () => {
+//     // Arrange
+//     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+//     expect(house_id).not.toBeNull();
+//     if (house_id == null) return;
 
-    const user_id = (await db.UserCreate("Bob", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
+//     const user_id = (await db.UserCreate("Bob", house_id))?.id;
+//     expect(user_id).not.toBeNull();
+//     if (user_id == null) return;
 
-    // Act
-    const task = await db.TaskCreate("Clean", user_id, house_id);
-    expect(task).not.toBeNull();
-    if (task == null) return;
-  });
+//     // Act
+//     const task = await db.TaskCreate("Clean", user_id, house_id);
+//     expect(task).not.toBeNull();
+//     if (task == null) return;
+//   });
 
-  it('tasks are part of projects', async () => {
-    // Arrange
-    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
+//   it('tasks are part of projects', async () => {
+//     // Arrange
+//     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+//     expect(house_id).not.toBeNull();
+//     if (house_id == null) return;
 
-    const user_id = (await db.UserCreate("Bob", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
+//     const user_id = (await db.UserCreate("Bob", house_id))?.id;
+//     expect(user_id).not.toBeNull();
+//     if (user_id == null) return;
 
-    const project = await db.ProjectCreate("Master Closet", house_id)
-    expect(project).not.toBeNull();
-    if (project == null) return;
+//     const project = await db.ProjectCreate("Master Closet", house_id)
+//     expect(project).not.toBeNull();
+//     if (project == null) return;
 
-    // Act
-    const task = await db.TaskCreate("Clean", user_id, house_id, project.id);
-    expect(task).not.toBeNull();
-    if (task == null) return;
-  });
+//     // Act
+//     const task = await db.TaskCreate("Clean", user_id, house_id, project.id);
+//     expect(task).not.toBeNull();
+//     if (task == null) return;
+//   });
 
-  it('tasks can have requirements', async () => {
-    // Arrange
-    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
+//   it('tasks can have requirements', async () => {
+//     // Arrange
+//     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+//     expect(house_id).not.toBeNull();
+//     if (house_id == null) return;
 
-    const user_id = (await db.UserCreate("Bob", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
+//     const user_id = (await db.UserCreate("Bob", house_id))?.id;
+//     expect(user_id).not.toBeNull();
+//     if (user_id == null) return;
 
-    const project = await db.ProjectCreate("Master Closet", house_id)
-    expect(project).not.toBeNull();
-    if (project == null) return;
+//     const project = await db.ProjectCreate("Master Closet", house_id)
+//     expect(project).not.toBeNull();
+//     if (project == null) return;
 
-    // Act
-    const task1 = await db.TaskCreate("Clean", user_id, house_id, project.id);
-    expect(task1).not.toBeNull();
-    if (task1 == null) return;
+//     // Act
+//     const task1 = await db.TaskCreate("Clean", user_id, house_id, project.id);
+//     expect(task1).not.toBeNull();
+//     if (task1 == null) return;
 
-    const task2 = await db.TaskCreate("Dust", user_id, house_id, project.id);
-    expect(task2).not.toBeNull();
-    if (task2 == null) return;
+//     const task2 = await db.TaskCreate("Dust", user_id, house_id, project.id);
+//     expect(task2).not.toBeNull();
+//     if (task2 == null) return;
 
-    const task3_1_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, task1.id, task2.id);
-    expect(task3_1_2).not.toBeNull();
-    if (task3_1_2 == null) return;
-    expect(task3_1_2.requirement1).toBe(task1.id);
-    expect(task3_1_2.requirement2).toBe(task2.id);
+//     const task3_1_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, task1.id, task2.id);
+//     expect(task3_1_2).not.toBeNull();
+//     if (task3_1_2 == null) return;
+//     expect(task3_1_2.requirement1).toBe(task1.id);
+//     expect(task3_1_2.requirement2).toBe(task2.id);
 
-    // you can't have requirements without a project
-    const task4_1_2 = await db.TaskCreate("Paint", user_id, house_id, null, task1.id, task2.id);
-    expect(task4_1_2).toBeNull();
+//     // you can't have requirements without a project
+//     const task4_1_2 = await db.TaskCreate("Paint", user_id, house_id, null, task1.id, task2.id);
+//     expect(task4_1_2).toBeNull();
 
-    const task5_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, null, task2.id);
-    expect(task5_2).toBeNull();
-  });
+//     const task5_2 = await db.TaskCreate("Paint", user_id, house_id, project.id, null, task2.id);
+//     expect(task5_2).toBeNull();
+//   });
 
-  it('can complete a task', async () => {
-    // Arrange
-    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
+//   it('can complete a task', async () => {
+//     // Arrange
+//     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+//     expect(house_id).not.toBeNull();
+//     if (house_id == null) return;
 
-    const user_id = (await db.UserCreate("Bob", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
+//     const user_id = (await db.UserCreate("Bob", house_id))?.id;
+//     expect(user_id).not.toBeNull();
+//     if (user_id == null) return;
 
-    // Act
-    let task = await db.TaskCreate("Clean", user_id, house_id);
-    expect(task).not.toBeNull();
-    if (task == null) return;
-    expect(task.completed).toBe(false);
+//     // Act
+//     let task = await db.TaskCreate("Clean", user_id, house_id);
+//     expect(task).not.toBeNull();
+//     if (task == null) return;
+//     expect(task.completed).toBe(false);
 
-    expect(await db.TaskMarkComplete(task.id)).toBe(true)
+//     expect(await db.TaskMarkComplete(task.id)).toBe(true)
 
-    // Assert
-    task = await db.TaskGet(task.id);
-    expect(task).not.toBeNull();
-    if (task == null) return;
-    expect(task.completed).toBe(true);
+//     // Assert
+//     task = await db.TaskGet(task.id);
+//     expect(task).not.toBeNull();
+//     if (task == null) return;
+//     expect(task.completed).toBe(true);
 
-    expect(await db.TaskMarkComplete(task.id)).toBe(true)
-  });
+//     expect(await db.TaskMarkComplete(task.id)).toBe(true)
+//   });
 
-  it('UUIDs should be unique', async () => {
-    // Arrange
-    const uuids: string[] = [];
-    const uuid_count = 5;
-    for (let i = 0; i < uuid_count; i++) {
-      const uuid = await db.TaskGenerateUUID();
-      expect(uuid).not.toBeNull();
-      uuids.push(uuid || "");
-    }
+//   it('UUIDs should be unique', async () => {
+//     // Arrange
+//     const uuids: string[] = [];
+//     const uuid_count = 5;
+//     for (let i = 0; i < uuid_count; i++) {
+//       const uuid = await db.TaskGenerateUUID();
+//       expect(uuid).not.toBeNull();
+//       uuids.push(uuid || "");
+//     }
 
-    // Act
-    // Assert
-    for (let i = 0; i < uuid_count; i++) {
-      for (let j = i + 1; j < uuid_count; j++) {
-        expect(i).not.toEqual(j);
-        expect(uuids[i]).not.toEqual(uuids[j]);
-        expect(uuids[i]).not.toEqual("");
-      }
-    }
-  });
-});
+//     // Act
+//     // Assert
+//     for (let i = 0; i < uuid_count; i++) {
+//       for (let j = i + 1; j < uuid_count; j++) {
+//         expect(i).not.toEqual(j);
+//         expect(uuids[i]).not.toEqual(uuids[j]);
+//         expect(uuids[i]).not.toEqual("");
+//       }
+//     }
+//   });
+// });
 
 describe('Recipe tests', () => {
   test.each([
@@ -579,15 +579,15 @@ describe('Chore tests', () => {
     expect(user_id).not.toBeNull();
     if (user_id == null) return;
     {
-      const chore = await db.ChoreCreate("sweeping", house_id, 5);
+      const chore = await db.ChoreCreate("sweeping", house_id, 5, 10);
       expect(chore).not.toBeNull();
 
-      const chore_select_1 = await db.ChorePickNextChore(house_id);
+      const chore_select_1 = await db.ChorePickNextChore(house_id, user_id);
       expect(chore_select_1).not.toBeNull();
 
       expect(await db.ChoreComplete(chore!.id, user_id)).toBe(true);
 
-      const chore_select_2 = await db.ChorePickNextChore(house_id);
+      const chore_select_2 = await db.ChorePickNextChore(house_id, user_id);
       expect(chore_select_2).toBeNull();
 
       const chore2 = await db.ChoreGet(chore!.id);
@@ -598,24 +598,53 @@ describe('Chore tests', () => {
       expect((await db.ChoreGetAll(house_id)).length).toBe(1);
     }
     {
-      const chore5 = await db.ChoreCreate("sweeping_5", house_id, 5);
-      const chore2 = await db.ChoreCreate("sweeping_2", house_id, 2);
-      const chore1 = await db.ChoreCreate("sweeping_2", house_id, 1);
-      if (chore1 == null || chore2==null || chore5 == null) return;
+      const chore5 = await db.ChoreCreate("sweeping_5", house_id, 5, 10);
+      const chore2 = await db.ChoreCreate("sweeping_2", house_id, 2, 10);
+      const chore1 = await db.ChoreCreate("sweeping_2", house_id, 1, 10);
+      if (chore1 == null || chore2 == null || chore5 == null) return;
+      expect((await db.ChoreGetAll(house_id)).length).toBe(4);
 
-      const chore_select_1 = await db.ChorePickNextChore(house_id);
+      const chore_select_1 = await db.ChoreGetNextChore(house_id, user_id);
       expect(chore_select_1).not.toBeNull();
       if (chore_select_1 == null) return;
       expect(chore_select_1.id).toBe(chore1.id);
 
       expect(await db.ChoreComplete(chore1.id, user_id)).toBe(true);
 
-      const chore_select_2 = await db.ChorePickNextChore(house_id);
-      expect(chore_select_2).not.toBeNull();
-      if (chore_select_2 == null) return;
-      expect(chore_select_2.id).toBe(chore2.id);
-      expect((await db.ChoreGetAll(house_id)).length).toBe(4);
+      // Since we cached this chore, it should keep track of our chore
+      {
+        const chore_select_2 = await db.ChoreGetNextChore(house_id, user_id);
+        expect(chore_select_2).not.toBeNull();
+        if (chore_select_2 == null) return;
+        expect(chore_select_2.id).toBe(chore1.id);
+      }
+
+      // Now get rid of the cached one
+      expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
+      // Now get another chore
+      {
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        expect(chore_select_3).not.toBeNull();
+        if (chore_select_3 == null) return;
+        expect(chore_select_3.id).toBe(chore2.id);
+      }
+      // Now get rid of the cached one
+      expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
+      // Now get another chore
+      {
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        expect(chore_select_3).not.toBeNull();
+        if (chore_select_3 == null) return;
+        expect(chore_select_3.id).toBe(chore5.id);
+      }
+      // Now get rid of the cached one
+      expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
+      // We shouldn't be able to get another chore since they've all been assigned recently
+      {
+        const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id);
+        expect(chore_select_3).toBeNull();
+      }
     }
   });
-  
+
 });

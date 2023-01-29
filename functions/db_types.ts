@@ -44,19 +44,23 @@ export type RecipeId = z.infer<typeof RecipeIdZ>;
 
 export const ChoreIdz = z.string({
     required_error: "ChoreId is required",
-    invalid_type_error: "ChoreId must start with R:"
+    invalid_type_error: "ChoreId must start with C:"
 }).length(38).startsWith("C:", { message: "Must start with C:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ChoreId">()
 export type ChoreId = z.infer<typeof ChoreIdz>;
 
 export const DbMagicKeyZ = z.string().length(50).brand<"MagicKey">();
 export type DbMagicKey = z.infer<typeof DbMagicKeyZ>;
-export const MagicKeyIdZ = z.string().length(53).startsWith("MK:").brand<"MagicKeyId">();
-export type MagicKeyId = z.infer<typeof MagicKeyIdZ>;
+export const MagicKVKeyZ = z.string().length(53).startsWith("MK:").brand<"MagicKVKey">();
+export type MagicKVKey = z.infer<typeof MagicKVKeyZ>;
 
-export type DbIds = UserId | HouseId | HouseKeyId | ProjectId | TaskId | RecipeId | ChoreId | MagicKeyId;
+export const UserChoreCacheKVKeyZ = z.string().length(41).startsWith("CC:U:").brand<"UserChoreCacheKVKey">();
+export type UserChoreCacheKVKey = z.infer<typeof UserChoreCacheKVKeyZ>;
 
-export interface DbDataObj {
-    id: DbIds
+export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
+export type KVIds = UserChoreCacheKVKey | MagicKVKey | HouseKeyId;
+
+export interface KVDataObj {
+    id: KVIds
 }
 
 // -------------------------------------------------
@@ -154,6 +158,8 @@ export const DbChoreZRaw = z.object({
     frequency: z.number().positive(),
     lastDone: z.number().nonnegative(),  // stored as julian day numbers
     waitUntil: z.number().nonnegative().nullable(), // stored as julian day numbers
+    doneBy: UserIdZ.nullable(), // the last user to do it
+    lastTimeAssigned: z.number().nonnegative().nullable(), // julian day when it was last assigned
 });
 export const DbChoreZ = DbChoreZRaw.brand<"Chore">();
 export type DbChoreRaw = z.infer<typeof DbChoreZRaw>;

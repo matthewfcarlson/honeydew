@@ -1,7 +1,7 @@
 import { TelegramAPI } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, DbDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbIds, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKeyId, MagicKeyIdZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -86,7 +86,7 @@ export default class Database {
         await this._kv.delete("SQLDB_MIGRATIONLOCK");
     }
 
-    private async queryDBRaw(key: DbIds) {
+    private async queryKVRaw(key: KVIds) {
         if (key == "") {
             console.error("DB_QUERYRAW", "We tries to query the database with an empty key");
         }
@@ -94,26 +94,26 @@ export default class Database {
         return results;
     }
 
-    private async queryDBJson(key: DbIds) {
+    private async queryKVJson(key: KVIds) {
         const results = await this._kv.get(key, { type: 'json' });
         return results;
     }
 
-    private async queryDBMeta(key: DbIds) {
+    private async queryKVMeta(key: KVIds) {
         const results = await this._kv.getWithMetadata(key);
         return results;
     }
 
-    private async setDBJson(x: DbDataObj, expirationTtl = 0) {
+    private async setKVJson(x: KVDataObj, expirationTtl = 0) {
         await this._kv.put(x.id, JSON.stringify(x), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
     }
-    private async setDBRaw(k:DbIds, v: object, expirationTtl: number|null = null) {
+    private async setKVRaw(k:KVIds, v: object, expirationTtl: number|null = null) {
         if (expirationTtl == null) await this._kv.put(k, JSON.stringify(v), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
         else if (expirationTtl == 0) await this._kv.put(k, JSON.stringify(v)); // all keys created expire in 6 hours
         else await this._kv.put(k, JSON.stringify(v), { expirationTtl }); // all keys created expire in 6 hours
     }
 
-    private async deleteKey(key: DbIds) {
+    private async deleteKey(key: KVIds) {
         await this._kv.delete(key);
     }
 
@@ -251,12 +251,12 @@ export default class Database {
         if (key == null) return null;
         const id = this.UserMagicKeyGetId(key);
         if (id == null) return null;
-        await this.setDBRaw(id, user_id, 60 * 60); //set up the magic key to correspond to the user ID, expire in one hour
+        await this.setKVRaw(id, user_id, 60 * 60); //set up the magic key to correspond to the user ID, expire in one hour
         return key;
     }
 
-    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKeyId|null {
-        const attempted_id = MagicKeyIdZ.safeParse("MK:"+magic_key);
+    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKVKey|null {
+        const attempted_id = MagicKVKeyZ.safeParse("MK:"+magic_key);
         if (attempted_id.success == false) return null;
         return attempted_id.data;
     }
@@ -264,7 +264,7 @@ export default class Database {
     async UserMagicKeyExists(magic_key:DbMagicKey): Promise<boolean> {
         const id = this.UserMagicKeyGetId(magic_key);
         if (id == null) return false;
-        const result = await this.queryDBRaw(id);
+        const result = await this.queryKVRaw(id);
         if (result == null) return false;
         return true;
     }
@@ -272,7 +272,7 @@ export default class Database {
     async UserMagicKeyConsume(magic_key:DbMagicKey): Promise<DbUser|null> {
         const id = this.UserMagicKeyGetId(magic_key);
         if (id == null) return null;
-        const result = await this.queryDBJson(id);
+        const result = await this.queryKVJson(id);
         if (result == null) return null;
         // Keep track of this promise so we can make sure it gets done later
         const promise = this.deleteKey(id);
@@ -363,7 +363,7 @@ export default class Database {
     async HouseKeyExists(id: HouseKeyId) {
         const housekey_id = HouseKeyIdz.safeParse(id);
         if (housekey_id.success == false) return null;
-        const existing = await this.queryDBRaw(housekey_id.data);
+        const existing = await this.queryKVRaw(housekey_id.data);
         if (existing != null) return true;
         return false;
     }
@@ -378,7 +378,7 @@ export default class Database {
                 generated_by: creator
             }
             const housekey = DbHouseKeyZ.parse(raw);
-            await this.setDBJson(housekey);
+            await this.setKVJson(housekey);
             return housekey;
         }
         catch (err) {
@@ -390,7 +390,7 @@ export default class Database {
     async HouseKeyGet(id: HouseKeyId) {
         const housekey_id = HouseKeyIdz.safeParse(id);
         if (housekey_id.success == false) return null;
-        const raw = await this.queryDBJson(housekey_id.data);
+        const raw = await this.queryKVJson(housekey_id.data);
         if (raw == null) return null;
         const results = DbHouseKeyZ.safeParse(raw);
         if (results.success) return results.data;
@@ -468,7 +468,6 @@ export default class Database {
         const project_id = ProjectIdZ.safeParse(id);
         if (project_id.success == false) return false;
         await this._db.deleteFrom("projects").where("id", "==", project_id.data).execute();
-        await this.deleteKey(id);
         return true;
     }
 
@@ -518,8 +517,7 @@ export default class Database {
     async TaskExists(id: TaskId): Promise<boolean> {
         const task_id = TaskIdZ.safeParse(id);
         if (task_id.success == false) return false;
-        const existing = await this.queryDBRaw(task_id.data);
-        if (existing != null) return true;
+        throw new Error("Not Implemented");
         return false;
     }
 
@@ -548,8 +546,7 @@ export default class Database {
                 requirement2
             };
             const task: DbTask = DbTaskZ.parse(taskZ);
-            
-            
+            throw new Error("Not Implemented");
             return task;
         }
         catch (err) {
@@ -561,14 +558,8 @@ export default class Database {
     async TaskGet(id: TaskId): Promise<DbTask | null> {
         const task_id = TaskIdZ.safeParse(id);
         if (task_id.success == false) return null;
-
-        const raw = await this.queryDBJson(id);
-        if (raw == null) return null;
-        const results = DbTaskZ.safeParse(raw);
-        if (results.success == false) {
-            return null;
-        }
-        return results.data;
+        throw new Error("Not Implemented");
+        return null;
     }
 
     async TaskMarkComplete(id: TaskId): Promise<boolean> {
@@ -577,21 +568,12 @@ export default class Database {
             console.error("TaskComplete", "Unable to parse task id")
             return false;
         }
-
-        const task = await this.TaskGet(id);
-        if (task == null) {
-            console.error("TaskComplete", "Unable to find task");
-            return false;
-        }
-        if (task.completed == false) {
-            task.completed = true;
-            await this.setDBJson(task);
-        }
-        return true;
+        throw new Error("Not Implemented");
+        return false;
     }
 
     async TaskDelete(id: TaskId) {
-        await this.deleteKey(id);
+        throw new Error("Not Implemented");
     }
 
     async RecipeExists(id: RecipeId | null, url?: string) {
@@ -776,7 +758,7 @@ export default class Database {
         return id
     }
 
-    async ChoreCreate(name: string, household_id: HouseId, frequency: number): Promise<DbChore | null> {
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated:number=1): Promise<DbChore | null> {
         try {
             const id = await this.ChoreGenerateUUID();
             if (id == null) {
@@ -788,8 +770,10 @@ export default class Database {
                 household_id,
                 name,
                 frequency,
-                lastDone: getJulianDate() - 1, // we said it was done yesterday
+                lastDone: getJulianDate() - back_dated, // the default is we said it was done yesterday
                 waitUntil: null,
+                doneBy: null,
+                lastTimeAssigned: null,
             };
             const chore = DbChoreZ.parse(chore_raw);
             await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
@@ -804,6 +788,13 @@ export default class Database {
     async ChoreComplete(id: ChoreId, user: UserId): Promise<boolean> {
         if (await this.ChoreExists(id) == false) return false;
         await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: getJulianDate() }).execute();
+        return true;
+    }
+    async ChoreAssignTo(id: ChoreId, user: UserId|null): Promise<boolean> {
+        if (await this.ChoreExists(id) == false) return false;
+        // Validate userId
+        if (user != null && UserIdZ.safeParse(user).success == false) return false;
+        await this._db.updateTable("chores").where("id", "==", id).set({ doneBy: user }).execute();
         return true;
     }
 
@@ -835,26 +826,82 @@ export default class Database {
         }
     }
 
-    async ChorePickNextChore(house_id: HouseId): Promise<DbChore|null> {
+    async ChorePickNextChore(house_id: HouseId, user_id:UserId): Promise<DbChore|null> {
         try {
             const id = HouseIdZ.safeParse(house_id);
             if (id.success == false) return null;
             const today = getJulianDate();
-            const result = await this._db.selectFrom("chores").selectAll().where("lastDone", "<", today).where("household_id", "==", house_id).execute();
-            if (result == undefined) return null;
+            const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", today).where("household_id", "==", house_id).where((qb)=>qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", today));
+            const result = await query.execute();
+            if (result == undefined) {
+                console.warn("ChorePickNextChore", "result is undefined");
+                return null;
+            }
             // we now need to sort them and select the one we want
-            const sorted_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).sort((a,b)=>{
+            const filtered_results = result.map((x)=>DbChoreZ.safeParse(x)).map((x)=>(x.success)?x.data:null).filter((x): x is DbChore=>x!=null).filter((x)=>x.doneBy == null || x.doneBy != user_id);
+            if (filtered_results.length == 0) {
+                return null;
+            }
+            const sorted_results = filtered_results.sort((a,b)=>{
                 // The thought is how frequently is it done vs how long it's delayed, how long of a cycle is it delayed for?
                 const a_cycle = (today - a.lastDone) / a.frequency;
                 const b_cycle = (today - b.lastDone) / b.frequency;
                 return b_cycle-a_cycle
             });
-            if (sorted_results.length == 0) return null;
             return sorted_results[0];
         }
         catch (err) {
             console.error("ChorePickNextChore", err);
             return null;
+        }
+    }
+
+    // First check if we need to 
+    async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id:UserId): Promise<DbChore|null> {
+        try {
+            // First validate user_id
+            const user_id = UserIdZ.parse(raw_user_id);
+            const house_id = HouseIdZ.parse(raw_house_id);
+            // see if we already have one cached
+            const kv_key = UserChoreCacheKVKeyZ.parse("CC:"+user_id);
+            const raw_cached_chore_id = await this.queryKVJson(kv_key);
+            if (raw_cached_chore_id != null) {
+                const chore_id = ChoreIdz.parse(raw_cached_chore_id);
+                const chore = await this.ChoreGet(chore_id);
+                if (chore == null) {
+                    console.warn("ChoreGetNextChore", "Deleting marking as we couldn't find this chore", chore_id, kv_key);
+                    await this.deleteKey(kv_key);
+                }
+                return chore;
+            }
+            const chore = await this.ChorePickNextChore(house_id, user_id);
+            if (chore == null) return null;
+            const promises = [];
+            const today = getJulianDate();
+            // Make sure to set the last time assigned to today
+            const update_query = this._db.updateTable("chores").where("id", "==", chore.id).set({"lastTimeAssigned": today});
+            promises.push(this.setKVRaw(kv_key, chore.id,(60*60*23))); // it lasts 23 hours
+            promises.push(update_query.execute());
+            await Promise.all(promises);
+            return chore;
+        }
+        catch (err) {
+            console.error("ChoreGetNextChore", err);
+            return null;
+        }
+    }
+    async ChoreSkipCurrentChore(raw_user_id:UserId): Promise<boolean> {
+        try {
+            // First validate user_id
+            const user_id = UserIdZ.parse(raw_user_id);
+            // delete if we have one cached
+            const kv_key = UserChoreCacheKVKeyZ.parse("CC:"+user_id);
+            await this.deleteKey(kv_key);
+            return true;
+        }
+        catch (err) {
+            console.error("ChoreSkipCurrentChore", err);
+            return false;
         }
     }
 

@@ -89,8 +89,25 @@ const HoneydewVersion2 = {
     }
 }
 
+const HoneydewVersion3 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CHORES"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('lastTimeAssigned', "integer", (col)=>col.defaultTo(null)) // stored as julian day numbers
+                .execute()
+            await db.schema
+                .alterTable(table_name)
+                .addColumn("doneBy", "varchar(40)", (col)=>col.defaultTo(null)) // this is the person that always does it
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
+    HoneydewVersion3
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

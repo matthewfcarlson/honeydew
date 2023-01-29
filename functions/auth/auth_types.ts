@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HouseIdZ, UserIdZ } from "../db_types";
+import { DbChoreZ, HouseIdZ, UserIdZ } from "../db_types";
 
 // TODO: move over to the database types
 
@@ -41,6 +41,7 @@ export const AuthCheckZ = z.object({
     task: z.any(),
     color: z.string().min(7),
     icon: z.string(),
+    currentChore: DbChoreZ.nullable()
 }).strict()
 export type AuthCheck = z.infer<typeof AuthCheckZ>;
 

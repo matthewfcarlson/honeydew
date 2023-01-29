@@ -1,9 +1,9 @@
 <template>
     <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
-            <a class="navbar-item" href="/">
+            <router-link class="navbar-item" to="/">
                 <img src="/images/text_logo.png" width="142">
-            </a>
+            </router-link>
 
             <a role="button" class="navbar-burger" @click="handleBurger" :class="{'is-active':burgerOut}" aria-label="menu" aria-expanded="false"
                 data-target="navbarBasicExample">

@@ -2,7 +2,7 @@
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { AuthCheck, AuthHousehold } from '../../auth/auth_types';
+import { AuthCheck, AuthCheckZ, AuthHousehold } from '../../auth/auth_types';
 const Router = router({
   magic_link: protectedProcedure.query(async (ctx)=> {
     if (ctx.ctx.data.user == null) {
@@ -52,14 +52,16 @@ const Router = router({
         name: household.name,
         members: (await Promise.all(household.members.map(x => db.UserGet(x)))).filter((x) => x != null).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }) || [],
     };
+    const currentChore = await db.ChoreGetNextChore(user.household, user.id);
     const result: AuthCheck = {
       name: user.name,
       icon: user.icon,
       id: user.id,
       color: user.color,
       household: apihouse,
+      currentChore,
     };
-    return result;
+    return AuthCheckZ.parse(result);
   }),
 });
 

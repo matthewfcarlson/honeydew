@@ -5,7 +5,26 @@
       <p class="subtitle">Here's what's going on today</p>
     </section>
 
-    <div class="card is-rounded">
+    <div v-if="error != ''">{{ error }}</div>
+    <div class="box" v-if="currentChore != null">
+      <div class="title is-4">Chore</div>
+      <div>Today you need to:</div>
+      <div>
+        <TaskIcon :task_name="currentChore.name" />
+        <span class="subtitle is-4"> {{ currentChore.name }} </span>
+      </div>
+      <div v-if="currentChore.lastDone != currentDate">
+        <button class="button is-primary" @click="complete_chore(currentChore?.id || null)">
+          <i class="far fa-check-circle"></i> &nbsp; 
+          Mark Done Today</button>
+      </div>
+      <div v-else class="text-success">
+        <i class="fas fa-check-circle"></i>
+        Already Done!
+      </div>
+    </div>
+
+    <!-- <div class="card is-rounded">
       <header class="card-header is-info">
         <p class="card-header-title">
           Today's Meal
@@ -126,19 +145,20 @@
         The tasks that other people in the house have
       </a>
 
-    </article>
+    </article> -->
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-//import HelloWorld from '@/components/HelloWorld.vue'; // @ is an alias to /src
+import { mapState } from "pinia";
 import { useUserStore } from "@/store";
+import TaskIcon from "@/components/TaskIconComponent.vue";
 
 export default defineComponent({
   name: 'HomeView',
   components: {
-
+    TaskIcon
   },
   computed: {
     household_name: function () {
@@ -146,12 +166,26 @@ export default defineComponent({
       if (household == null) return "";
       return household.name;
     },
+    ...mapState(useUserStore, ["currentDate", "currentChore"])
   },
   data() {
     return {
+      error: ""
     }
 
   },
+  methods: {
+    complete_chore: async function (id: string | null) {
+      if (id == null) {
+        this.error = "Chore ID is null";
+        return;
+      }
+      const status = await useUserStore().ChoreComplete(id);
+      if (status.success == false) {
+        this.error = status.message
+      }
+    }
+  }
 });
 </script>
 
@@ -163,14 +197,17 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @import "../assets/variables.scss";
-.container > * {
+
+.container>* {
   margin-bottom: 2rem;
 }
 
-.card-footer a{
-  font-weight:700;
+.card-footer a {
+  font-weight: 700;
 }
+
 @import "../../node_modules/bulma/sass/utilities/_all.sass";
+
 @each $type in $sailwind_types {
   .card-footer a.is-#{$type} {
     background-color: map-get($sailwind_colors, $type);

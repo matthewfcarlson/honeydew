@@ -31,6 +31,14 @@ export const ResponseJsonNotFound = (): Response => {
   }), { status });
 };
 
+export const ResponseJsonServerError = (data:unknown): Response => {
+  const status = 500;
+  return new Response(JSON.stringify({
+    message: "Server Error",
+    data,
+  }), { status });
+}
+
 export const ResponseJsonAccessDenied = (): Response => {
   const status = 403;
   return new Response(JSON.stringify({

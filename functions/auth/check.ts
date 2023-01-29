@@ -1,7 +1,7 @@
 import { HoneydewPagesFunction } from "../types";
 import Database from "../database/_db";
-import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonNotFound, ResponseJsonNotImplementedYet } from "../_utils";
-import { AuthCheck, AuthHousehold, TEMP_TOKEN } from "./auth_types";
+import { deleteCookie, ResponseJsonAccessDenied, ResponseJsonMissingData, ResponseJsonNotFound, ResponseJsonNotImplementedYet, ResponseJsonServerError } from "../_utils";
+import { AuthCheck, AuthCheckZ, AuthHousehold, TEMP_TOKEN } from "./auth_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
@@ -15,6 +15,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         deleteCookie(response, TEMP_TOKEN);
         return response;
     }
+    // given that this is used every single time and likely doesn't change that frequently, perhaps cache this for an hour?
     const household = await db.HouseholdGet(user.household);
     const api_house: AuthHousehold | null = (household == null) ? null : {
         id: household.id,
@@ -24,15 +25,17 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     if (api_house == null) {
         return ResponseJsonNotImplementedYet();
     }
+    const currentChore = await db.ChoreGetNextChore(user.household, user.id);
     const results: AuthCheck = {
         name: user.name,
         household: api_house,
         id: user.id,
         color: user.color,
         icon: user.icon,
-        // TODO: get current task
-        task: null
+        currentChore,
     }
+    const final_results = AuthCheckZ.safeParse(results);
+    if (final_results.success == false) return ResponseJsonServerError(final_results.error);
     const result_json = JSON.stringify(results);
     // Should we provide information 
     return new Response("window.logged_in = true; window.user_data = " + result_json, { headers: { "Content-Type": "application/javascript" } },)
