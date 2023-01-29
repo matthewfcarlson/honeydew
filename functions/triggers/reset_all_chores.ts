@@ -1,0 +1,1 @@
+////await (db as any)._db.updateTable("chores").set({lastDone: 10, lastTimeAssigned:10}).execute();
