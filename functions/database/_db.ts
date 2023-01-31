@@ -122,6 +122,7 @@ export default class Database {
         try {
             const user_id = UserIdZ.safeParse(id);
             if (user_id.success == false) return null;
+            // TODO: cache the user?
             const raw = await this._db.selectFrom("users").selectAll().where("id", "==", id).executeTakeFirstOrThrow();
             const results = DbUserZ.safeParse(raw);
             if (results.success == false) return null;
@@ -136,6 +137,7 @@ export default class Database {
     async UserExists(id: UserId) {
         const user_id = UserIdZ.safeParse(id);
         if (user_id.success == false) return null;
+        // TODO: cache whether the user exists or not?
         const result = await this._db.selectFrom("users").select("id").where("id", "==", id).executeTakeFirst();
         if (result == undefined) return false;
         return true;
@@ -312,6 +314,7 @@ export default class Database {
     async HouseholdExists(id: HouseId) {
         const household_id = HouseIdZ.safeParse(id);
         if (household_id.success == false) return null;
+        // TODO: cache the household?
         const result = await this._db.selectFrom("households").select("id").where("id", "==", id).executeTakeFirst();
         if (result == undefined) return false;
         return true;
@@ -319,6 +322,7 @@ export default class Database {
 
     async HouseholdGet(id: HouseId) {
         const household_id = HouseIdZ.safeParse(id);
+        // TODO: cache the household?
         if (household_id.success == false) return null;
         const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
         // TODO use a join to get what I want from the DB?
@@ -337,14 +341,20 @@ export default class Database {
         return results.data;
     }
 
-    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string) {
+    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, exclude_user?:UserId) {
         try {
             const id = HouseIdZ.parse(raw_id);
-            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=", null).execute();
+            let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=", null);
+            if (exclude_user != undefined) {
+                const exclude_id = UserIdZ.parse(exclude_user);
+                query = query.where("id", "!=", exclude_id);
+            }
+            const raw_results = await query.execute();
             if (raw_results == undefined) return true;
             const telegram = this.GetTelegram();
+            const results = raw_results.filter((x): x is { _chat_id: number } => x._chat_id != null)
             // Send a message to the whole household
-            const promises = raw_results.filter((x): x is { _chat_id: number } => x._chat_id != null).map((x) => telegram.sendTextMessage(x._chat_id, message));
+            const promises = results.map((x) => telegram.sendTextMessage(x._chat_id, message));
             await Promise.allSettled(promises);
             return true;
         }

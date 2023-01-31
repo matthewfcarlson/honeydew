@@ -9,10 +9,18 @@ module.exports = {
   },
   testEnvironment: 'miniflare',
   testRegex: '/tests/.*\\.(test|spec)?\\.(ts|tsx)$',
+  collectCoverage: true,
   collectCoverageFrom: [
     "functions/*.ts",
+    "functions/database/*.ts",
+    "functions/api/*.ts",
     // "src/*.ts"
   ],
+  coverageThreshold: {
+    global: {
+      lines: 90
+    }
+  },
   testEnvironmentOptions: {
     bindings: { KEY: "value" },
     kvNamespaces: ["HONEYDEW"],
