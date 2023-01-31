@@ -1,4 +1,3 @@
-import { DbProject } from "functions/db_types";
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { describe, expect, test } from '@jest/globals';

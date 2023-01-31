@@ -1,4 +1,4 @@
-import { number, z } from "zod";
+import { z } from "zod";
 // UUID looks like this: 42598872-8a5b-44c7-a6ca-1be5e0f21518 = 36 characters
 // -------------------------------------------------
 // ID Types

@@ -161,7 +161,7 @@ export default class Database {
         return userId
     }
 
-    async UserCreate(name: string, household: HouseId) {
+    async UserCreate(name: string, household: HouseId): Promise<DbUser|null> {
         const id = await this.UserGenerateUUID();
         if (id == null) {
             console.error("UserCreate", "We were not able to create a new user");
@@ -188,7 +188,7 @@ export default class Database {
             console.error("UserCreate", "Failed to set error");
             return null;
         }
-        return user;
+        return db_user;
     }
 
     async UserSetHousehold(user_id: UserId, household_id: HouseId): Promise<boolean> {

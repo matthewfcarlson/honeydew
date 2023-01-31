@@ -20,7 +20,7 @@ const Router = router({
         cause: "Unable to generate new magic link"
       })
     }
-    const request_url = new URL(ctx.ctx.req.url);
+    const request_url = new URL(ctx.ctx.url);
     const base_url = request_url.host;
     const link = `https://${base_url}/auth/magic/${key}`
     return link;

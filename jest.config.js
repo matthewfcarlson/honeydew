@@ -12,8 +12,8 @@ module.exports = {
   collectCoverage: true,
   collectCoverageFrom: [
     "functions/*.ts",
-    "functions/database/*.ts",
-    "functions/api/*.ts",
+    "functions/database/**/*.ts",
+    "functions/api/**/*.ts",
     // "src/*.ts"
   ],
   // coverageThreshold: {

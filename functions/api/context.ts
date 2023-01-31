@@ -1,9 +1,18 @@
 import { inferAsyncReturnType } from '@trpc/server';
 import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { HoneydewPageData, HoneydewPageEnv } from '../types';
-export function createContext<Params extends string = any>(pages_context:EventContext<HoneydewPageEnv, Params, HoneydewPageData>) {
-  return ({ req }: FetchCreateContextFnOptions) => {
-    return { req, data:pages_context.data, env:pages_context.env };
+
+export async function createInnerContext(data:HoneydewPageData, env:HoneydewPageEnv, url:string) {
+  return {
+    data,
+    env,
+    url
   }
 }
-export type Context = inferAsyncReturnType<inferAsyncReturnType<typeof createContext>>;
+export type Context = inferAsyncReturnType<typeof createInnerContext>;
+
+export async function createContextFactory(data: HoneydewPageData, env:HoneydewPageEnv) {
+  return async (opts:FetchCreateContextFnOptions)=> {
+    return await createInnerContext(data, env, opts.req.url);
+  }
+}

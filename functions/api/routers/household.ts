@@ -48,7 +48,7 @@ const Router = router({
   invite: protectedProcedure.query(async ({ ctx }) => {
     const database = ctx.data.db as Database;
     const user = ctx.data.user;
-    const url = new URL(ctx.req.url);
+    const url = new URL(ctx.url);
     const link = await GenerateInviteLink(database, user, url, ctx.env.JWT_SECRET);
     return link
   }),
