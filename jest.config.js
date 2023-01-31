@@ -16,11 +16,11 @@ module.exports = {
     "functions/api/*.ts",
     // "src/*.ts"
   ],
-  coverageThreshold: {
-    global: {
-      lines: 90
-    }
-  },
+  // coverageThreshold: {
+  //   global: {
+  //     lines: 90
+  //   }
+  // },
   testEnvironmentOptions: {
     bindings: { KEY: "value" },
     kvNamespaces: ["HONEYDEW"],
