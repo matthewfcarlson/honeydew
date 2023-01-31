@@ -443,6 +443,19 @@ export default class Database {
         }
     }
 
+    async HouseAutoAssignMarkAssigned(house_id: HouseId,timestamp: number | null = null): Promise<boolean> {
+        try {
+            const id = HouseIdZ.parse(house_id);
+            if (timestamp == null) timestamp = getJulianDate() + 0.05 // ahead about an hour
+            await this._db.updateTable("houseautoassign").where("house_id", "==", house_id).set({choreLastAssignTime: timestamp}).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignMarkAssigned", err);
+            return false;
+        }
+    }
+
     async HouseAutoAssignGetUsersReadyForGivenHour(hour: number, timestamp: number | null = null) {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
