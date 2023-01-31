@@ -1,5 +1,7 @@
 # honeydew
 
+[![Build & Test](https://github.com/matthewfcarlson/honeydew/actions/workflows/nightly.yml/badge.svg?branch=main)](https://github.com/matthewfcarlson/honeydew/actions/workflows/nightly.yml)
+
 ## Project setup
 ```
 npm install
