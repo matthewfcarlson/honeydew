@@ -92,7 +92,6 @@ const Router = router({
     }
     const input = ctx.input;
     const db = ctx.ctx.data.db;
-    // TODO: check if cardbox exists?
     return await db.CardBoxRemoveRecipe(input, user.household);
   }),
   add: protectedProcedure.input(z.string().url()).query( async (ctx) => {

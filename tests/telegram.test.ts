@@ -75,7 +75,7 @@ describe('Telegram tests', () => {
     const chat_id = 20;
     const tuser_id = 10;
     expect(await db.UserRegisterTelegram(user.id, chat_id, tuser_id)).toBe(true);
-    const url = "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/"
+    const url = "https://www.debugscraper.com/telegram-recipe"
     // TODO: create function that handles this?
     const update1: TelegramUpdateMessage = {
       message: {
@@ -159,9 +159,9 @@ describe('Telegram tests', () => {
 
     // Now create a chore
     expect(message_count).toBe(0);
-    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING")).toBe(true);
+    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING", false)).toBe(true);
     expect(message_count).toBe(2);
-    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING", user2.id)).toBe(true);
+    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING", false, user2.id)).toBe(true);
     expect(message_count).toBe(3);
   });
 });

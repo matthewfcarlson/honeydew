@@ -163,9 +163,15 @@ const Router = router({
       code: "NOT_FOUND",
       cause: "Chore was not found"
     });
-    // Assign the user to the chore
+    // If the chore doesn't belong to you, don't do it
     if (chore.household_id != user.household) return false;
-    // TODO: check to make sure the assigned user is in the household as well?
+    // check to make sure the assigned user is in the household as well?
+    if (assignee_id != null && assignee_id != user.id) {
+      const assignee = await db.UserGet(assignee_id);
+      if (assignee == null) return false;
+      if (assignee.household != user.household) return false;
+    }
+    // Assign the user to the chore
     const result = await db.ChoreAssignTo(chore_id, assignee_id);
     return result;
   }),

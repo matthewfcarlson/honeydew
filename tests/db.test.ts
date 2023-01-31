@@ -525,7 +525,9 @@ describe('Project tests', () => {
 
 describe('Recipe tests', () => {
   test.each([
-    "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/",
+    "https://www.debugscraper.com/arrayed-recipe"
+    // Enable these recipes as needed to test things but they're expensive in terms of time
+    //"https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/",
     // "https://www.kingarthurbaking.com/recipes/english-muffin-toasting-bread-recipe",
     // "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
     // "https://www.seriouseats.com/spicy-spring-sicilian-pizza-recipe",
@@ -533,7 +535,7 @@ describe('Recipe tests', () => {
     //"https://www.joshuaweissman.com/post/the-healthiest-cashew-chicken-in-15-minutes",
     //"https://www.americastestkitchen.com/cookscountry/recipes/10822-slow-cooker-chicken-tikka-masala",
     //"https://www.everyplate.com/recipes/creamy-dijon-chicken-639747695018ecdf720575c1",
-    "https://www.budgetbytes.com/pasta-e-fagioli/",
+    //"https://www.budgetbytes.com/pasta-e-fagioli/",
   ])("can add %s as a recipe", async (url) => {
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
@@ -546,7 +548,7 @@ describe('Recipe tests', () => {
   });
 
   it("can add recipe to cardbox", async () => {
-    const url = "https://www.allrecipes.com/recipe/239047/one-pan-orecchiette-pasta/";
+    const url = "https://www.debugscraper.com/test-recipe";
     const recipe = await db.RecipeCreateIfNotExists(url)
     expect(recipe).not.toBeNull();
     if (recipe == null) return;

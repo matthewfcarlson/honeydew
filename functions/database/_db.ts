@@ -341,7 +341,7 @@ export default class Database {
         return results.data;
     }
 
-    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, exclude_user?:UserId) {
+    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, use_markdown:boolean = false, exclude_user?:UserId) {
         try {
             const id = HouseIdZ.parse(raw_id);
             let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id);
@@ -357,8 +357,9 @@ export default class Database {
             const telegram = this.GetTelegram();
             const users = raw_results.map((x)=>x._chat_id).filter((x): x is number => x != null)
             // Send a message to the whole household
-            const promises = users.map((x) => telegram.sendTextMessage(x, message));
-            const result = await Promise.all(promises)
+            const parse_mode = (use_markdown) ? "MarkdownV2": undefined;
+            const promises = users.map((x) => telegram.sendTextMessage(x, message, undefined, undefined, parse_mode));
+            await Promise.all(promises)
             return true;
         }
         catch (err) {
@@ -451,7 +452,7 @@ export default class Database {
             return results;
         }
         catch (err) {
-            console.error("HouseAutoAssignMarkComplete", err);
+            console.error("HouseAutoAssignGetHousesReadyForHour", err);
             return [];
         }
     }
@@ -500,7 +501,7 @@ export default class Database {
             return results;
         }
         catch (err) {
-            console.error("HouseAutoAssignMarkComplete", err);
+            console.error("HouseAutoAssignGetUsersReadyForGivenHour", err);
             return [];
         }
     }
@@ -826,7 +827,7 @@ export default class Database {
             const r_id = RecipeIdZ.parse(recipe_id);
             const h_id = HouseIdZ.parse(house_id);
             const result = await this._db.deleteFrom("cardboxes").where("recipe_id", "==", r_id).where("household_id", "==", h_id).executeTakeFirst();
-            return result.numDeletedRows > 0
+            return true; //result.numDeletedRows > 0
         }
         catch (err) {
             console.error("CardBoxRemoveRecipe", err);
@@ -943,10 +944,35 @@ export default class Database {
         }
     }
 
-    async ChoreComplete(id: ChoreId, user: UserId): Promise<boolean> {
-        if (await this.ChoreExists(id) == false) return false;
-        await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: getJulianDate() }).execute();
-        return true;
+    async ChoreComplete(id: ChoreId, raw_user: UserId): Promise<boolean> {
+        try{
+            if (await this.ChoreExists(id) == false) return false;
+            const user_id = UserIdZ.parse(raw_user);
+            const timestamp = getJulianDate();
+            const chore = await this.ChoreGet(id);
+            if (chore == null) return false;
+            let telegram_promise: Promise<any>|null = null;
+            // Get user and make sure they're in the right household?
+            const user = await this.UserGet(user_id);
+            if (user == null) return false;
+            if (user.household != chore.household_id) {
+                console.error("ChoreComplete", user, "tried to complete chore:", chore);
+                return false;
+            }
+            // If the timestamp was last done at least an hour ago let people know it was done
+            if ((timestamp - 0.05) > chore.lastDone) {
+                // TODO: update the leaderboard?
+                const message = `*${user.name}* just completed _${chore.name}_`;
+                telegram_promise = this.HouseholdTelegramMessageAllMembers(chore.household_id, message, true, user_id);
+            }
+            
+            await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: timestamp }).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("ChoreComplete", err);
+            return false;
+        }
     }
     async ChoreAssignTo(id: ChoreId, user: UserId | null): Promise<boolean> {
         if (await this.ChoreExists(id) == false) return false;
