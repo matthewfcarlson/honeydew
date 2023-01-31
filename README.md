@@ -1,6 +1,7 @@
 # honeydew
 
 [![Build & Test](https://github.com/matthewfcarlson/honeydew/actions/workflows/nightly.yml/badge.svg?branch=main)](https://github.com/matthewfcarlson/honeydew/actions/workflows/nightly.yml)
+[![codecov](https://codecov.io/gh/matthewfcarlson/honeydew/branch/main/graph/badge.svg?token=2Z964S6LB5)](https://codecov.io/gh/matthewfcarlson/honeydew)
 
 ## Project setup
 ```

@@ -5,6 +5,7 @@ module.exports = {
     "ts-jest": {
       tsconfig: "tests/tsconfig.json",
       useESM: true,
+      isolatedModules: true
     },
   },
   testEnvironment: 'miniflare',
