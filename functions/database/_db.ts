@@ -321,6 +321,7 @@ export default class Database {
         const household_id = HouseIdZ.safeParse(id);
         if (household_id.success == false) return null;
         const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
+        // TODO use a join to get what I want from the DB?
         if (sql_data == undefined) return null;
         const members_raw = await this._db.selectFrom("users").select("id").where("household", "==", household_id.data).execute();
         const members = members_raw.map((x) => x.id);
@@ -334,6 +335,23 @@ export default class Database {
             return null;
         }
         return results.data;
+    }
+
+    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message:string) {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=",null).execute();
+            if (raw_results == undefined) return true;
+            const telegram = this.GetTelegram();
+            // Send a message to the whole household
+            const promises = raw_results.filter((x): x is {_chat_id:number}=>x._chat_id!=null).map((x)=>telegram.sendTextMessage(x._chat_id, message));
+            await Promise.allSettled(promises);
+            return true;
+        }
+        catch (err) {
+            console.error("HouseholdTelegramMessageAllMembers", err);
+            return false;
+        }
     }
 
     async HouseholdCreate(name: string) {
@@ -408,15 +426,51 @@ export default class Database {
         }
     }
 
-    async HouseAutoAssignGetHousesReadyForHour(hour: number, timestamp: number|null = null): Promise<HouseId[]> {
+    async HouseAutoAssignGetHousesReadyForHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
-            const raw_results = await this._db.selectFrom("houseautoassign").select("house_id").where("choreAssignHour", "==", hour).where("choreLastAssignTime","<", timestamp).execute();
+            const raw_results = await this._db.selectFrom("houseautoassign").select("house_id").where("choreAssignHour", "==", hour).where("choreLastAssignTime", "<", timestamp).execute();
             if (raw_results == undefined) return [];
             const results = raw_results
-                            .map((x)=>HouseIdZ.safeParse(x.house_id))
-                            .map((x) => (x.success) ? x.data : null)
-                            .filter((x): x is HouseId => x != null)
+                .map((x) => HouseIdZ.safeParse(x.house_id))
+                .map((x) => (x.success) ? x.data : null)
+                .filter((x): x is HouseId => x != null)
+            return results;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignMarkComplete", err);
+            return [];
+        }
+    }
+
+    async HouseAutoAssignGetUsersReadyForGivenHour(hour: number, timestamp: number | null = null) {
+        try {
+            if (timestamp == null) timestamp = (getJulianDate() - 0.5);
+            const assignment_query = this._db.selectFrom("houseautoassign").where("choreAssignHour", "==", hour).where("choreLastAssignTime", "<", timestamp);
+            const joined_query = assignment_query.innerJoin("users", "users.household", "houseautoassign.house_id").select(["users._chat_id", "users.id", "houseautoassign.house_id as house_id"]);
+            const raw_results = await joined_query.execute();
+            if (raw_results == undefined) return [];
+            interface JoinedResults {
+                chat_id: number|null,
+                house_id: HouseId,
+                user_id: UserId,
+            }
+            const results = raw_results
+                .map((x) => {
+                    return {
+                        chat_id: x._chat_id,
+                        house_id: HouseIdZ.safeParse(x.house_id),
+                        user_id: UserIdZ.safeParse(x.id)
+                    }
+                })
+                .map((x) => {
+                    return {
+                        chat_id: x.chat_id,
+                        house_id: (x.house_id.success) ? x.house_id.data : null,
+                        user_id: (x.user_id.success) ? x.user_id.data : null,
+                    }
+                })
+                .filter((x): x is JoinedResults => x.house_id != null && x.user_id != null)
             return results;
         }
         catch (err) {

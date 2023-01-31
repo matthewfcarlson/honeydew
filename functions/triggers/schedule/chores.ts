@@ -10,35 +10,26 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const date = new Date();
     const hour = date.getUTCHours();
 
-    // then query the database for all the households that need to get processed
-    // TODO: Maybe this should return a list of users instead so we don't need to do this stupid dance
-    const households = await db.HouseAutoAssignGetHousesReadyForHour(hour);
-    const promises: Promise<any>[] = [];
-    let total_processed = 0;
-
-    households.forEach((house_id)=>{
-        // TODO: maybe make a method that can get us chat IDs so we don't need to make extra trips to the DB
-        const new_promise = db.HouseholdGet(house_id).then((household)=>{
-            if (household == null) return;
-            return Promise.all(household.members.map((user_id)=>{
-                return db.UserGet(user_id).then((user)=>{
-                    if (user == null) return;
-                    total_processed += 1;
-                    return db.ChoreGetNextChore(house_id, user_id, user._chat_id);
-                });
-            }));
-        });
-        promises.push(new_promise);
+    // then query the database for all the users that need to get processed
+    const users = await db.HouseAutoAssignGetUsersReadyForGivenHour(hour);
+    const promises = users.map((x)=>{
+        return db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id);
     })
-    // make sure to wait on all the results
+
+    // // make sure to wait on all the results
     const results = await Promise.allSettled(promises);
-    const data = {
-        total_processed,
+    const data = (context.env.PRODUCTION == "true") ?
+    {
         hour_processed: hour,
         timestamp: date,
-        households,
-        results,
-    }
-    // return the data in a somewhat sane manner
+        count: users.length,
+    }:
+    {
+        hour_processed: hour,
+        timestamp: date,
+        count: users.length,
+        users,
+        results
+    };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
 }
