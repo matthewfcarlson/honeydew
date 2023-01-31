@@ -1,4 +1,4 @@
-name: NodeJS with Webpack
+name: Build & Test
 
 on:
   push:
@@ -28,8 +28,17 @@ jobs:
 
     - name: Build
       run: |
-        npm build
+        npm run build
     
     - name: Test
       run: |
-        npm build
+        npm run test
+    - name: Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        files: ./coverage/ # optional
+        flags: unittests # optional
+        name: codecov-umbrella # optional
+        fail_ci_if_error: true # optional (default = false)
+        verbose: true # optional (default = false)
