@@ -120,13 +120,49 @@ describe('Telegram tests', () => {
     const chat_id = 420;
     const tuser_id = 69;
     expect(await db.UserRegisterTelegram(user.id, chat_id, tuser_id)).toBe(true);
-    
+
     // Now create a chore
     expect(got_message).toBe(false);
     await db.ChoreCreate("Break your bones", household.id, 1, 10);
     await db.ChoreGetNextChore(household.id, user.id, tuser_id);
 
     expect(got_message).toBe(true);
+  });
+
+  it('can send message to whole household', async () => {
+    let message_count = 0;
+    telegram.registerListener(async (x) => {
+      // I don't check for anything more fancy
+      //console.error(x);
+      if (x.type == "POST" && x.method == "sendMessage") {
+        const text = x.data.text as string;
+        if (text.includes("TESTING")) {
+          message_count += 1;
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+    const household = await db.HouseholdCreate("Temp housing");
+    if (household == null) return;
+
+    const user = await db.UserCreate("Bob", household.id);
+    if (user == null) return;
+    const chat_id = 420;
+    const tuser_id = 69;
+    expect(await db.UserRegisterTelegram(user.id, chat_id, tuser_id)).toBe(true);
+
+    const user2 = await db.UserCreate("Joe", household.id);
+    if (user2 == null) return;
+    const chat2_id = 204;
+    const tuser2_id = 96;
+    expect(await db.UserRegisterTelegram(user2.id, chat2_id, tuser2_id)).toBe(true);
+
+    // Now create a chore
+    expect(message_count).toBe(0);
+    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING")).toBe(true);
+    expect(message_count).toBe(2);
+    expect(await db.HouseholdTelegramMessageAllMembers(household.id, "TESTING", user2.id)).toBe(true);
+    expect(message_count).toBe(3);
   });
 });
 
@@ -155,6 +191,6 @@ describe('Telegram callback tests', () => {
     expect(payload.user_id).toBe(user_id);
 
     expect(await db.TelegramCallbackExists(id)).toBe(false);
-    
+
   });
 });

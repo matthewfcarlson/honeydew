@@ -344,18 +344,21 @@ export default class Database {
     async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, exclude_user?:UserId) {
         try {
             const id = HouseIdZ.parse(raw_id);
-            let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=", null);
+            let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id);
             if (exclude_user != undefined) {
                 const exclude_id = UserIdZ.parse(exclude_user);
                 query = query.where("id", "!=", exclude_id);
             }
             const raw_results = await query.execute();
-            if (raw_results == undefined) return true;
+            if (raw_results == undefined) {
+                console.warn("HouseholdTelegramMessageAllMembers", `no members of ${raw_id} are registered on telegram`)
+                return true;
+            }
             const telegram = this.GetTelegram();
-            const results = raw_results.filter((x): x is { _chat_id: number } => x._chat_id != null)
+            const users = raw_results.map((x)=>x._chat_id).filter((x): x is number => x != null)
             // Send a message to the whole household
-            const promises = results.map((x) => telegram.sendTextMessage(x._chat_id, message));
-            await Promise.allSettled(promises);
+            const promises = users.map((x) => telegram.sendTextMessage(x, message));
+            const result = await Promise.all(promises)
             return true;
         }
         catch (err) {
