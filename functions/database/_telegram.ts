@@ -1,3 +1,4 @@
+import { number, z } from "zod";
 export interface TelegramAPIResponse {
     ok: boolean;
     result: any;
@@ -13,6 +14,22 @@ function isTelegramX(x: unknown): x is TelegramMessage {
     // if (y.id === undefined) return false;
     return true;
 }
+
+const TelegramSendMessageParseModeZ = z.union([z.literal("MarkdownV2"), z.literal("HTML")])
+type TelegramSendMessageParseMode = z.infer<typeof TelegramSendMessageParseModeZ>;
+const TelegramSendMessageZ = z.object({
+    chat_id: z.union([z.number(), z.string().startsWith("@")]),
+    message_thread_id: z.number().optional(),
+    text: z.string().max(4096).min(1),
+    parse_mode: TelegramSendMessageParseModeZ.optional(),
+    disable_web_page_preview: z.boolean().optional(),
+    disable_notification: z.boolean().optional(),
+    protect_content: z.boolean().optional(),
+    reply_to_message_id: z.number().optional(),
+    allow_sending_without_reply: z.boolean().optional(),
+    reply_markup: z.any().optional() // todo: make this make sense
+});
+type TelegramSendMessage = z.infer<typeof TelegramSendMessageZ>;
 
 export interface TelegramCallbackQuery {
     id: string;
@@ -248,12 +265,13 @@ export class TelegramAPI {
         return updates;
     }
 
-    public async sendTextMessage(chat_id: string | number, text: string, reply_to_message?: number, reply_markup?: TelegramInlineKeyboardMarkup) {
-        const data = {
+    public async sendTextMessage(chat_id: string | number, text: string, reply_to_message?: number, reply_markup?: TelegramInlineKeyboardMarkup, parse_mode?: TelegramSendMessageParseMode) {
+        const data: TelegramSendMessage = {
             chat_id,
             text,
             reply_to_message_id: reply_to_message,
             reply_markup,
+            parse_mode,
         };
         const results = await this.requestPost('sendMessage', data);
         if (results == false) return false;

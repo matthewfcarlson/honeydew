@@ -99,4 +99,62 @@ describe('Telegram tests', () => {
     // Look for a recipe that got added
     expect(await db.RecipeExists(null, url)).toBe(true);
   });
+
+  it('message should come when we get a new task', async () => {
+    let got_message = false;
+    telegram.registerListener(async (x) => {
+      // I don't check for anything more fancy
+      //console.error(x);
+      if (x.type == "POST" && x.method == "sendMessage") {
+        const text = x.data.text as string;
+        if (text.includes("chore")) {
+          got_message = true;
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+    const household = await db.HouseholdCreate("Temp housing");
+    if (household == null) return;
+    const user = await db.UserCreate("Bob", household.id);
+    if (user == null) return;
+    const chat_id = 420;
+    const tuser_id = 69;
+    expect(await db.UserRegisterTelegram(user.id, chat_id, tuser_id)).toBe(true);
+    
+    // Now create a chore
+    expect(got_message).toBe(false);
+    await db.ChoreCreate("Break your bones", household.id, 1, 10);
+    await db.ChoreGetNextChore(household.id, user.id, tuser_id);
+
+    expect(got_message).toBe(true);
+  });
+});
+
+
+describe('Telegram callback tests', () => {
+  it('can create and consume callback', async () => {
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+    const id = await db.TelegramCallbackCreate({
+      user_id,
+      type: "ANOTHER_CHORE"
+    });
+    expect(id).not.toBeNull();
+    if (id == null) return;
+
+    expect(await db.TelegramCallbackExists(id)).toBe(true);
+
+    const payload = await db.TelegramCallbackConsume(id);
+    expect(payload).not.toBeNull();
+    if (payload == null) return;
+    expect(payload.user_id).toBe(user_id);
+
+    expect(await db.TelegramCallbackExists(id)).toBe(false);
+    
+  });
 });

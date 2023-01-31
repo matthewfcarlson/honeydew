@@ -1,6 +1,6 @@
 import Database from "../../database/_db";
 import { TelegramCallbackQuery, TelegramInlineKeyboardMarkup, TelegramUpdateCallbackQuery, TelegramUpdateMessage } from "../../database/_telegram";
-import { DbUser } from "../../db_types";
+import { DbUser, TelegramCallbackKVKeyZ } from "../../db_types";
 import { IsValidHttpUrl, ResponseJsonBadRequest, ResponseJsonOk } from "../../_utils";
 
 async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user: DbUser) {
@@ -35,7 +35,7 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
             inline_keyboard: [[
                 {
                     text: "Refresh My Memory",
-                    url: "https://honeydew.matthewc.dev/auth/telegram/"+chat.id
+                    url: "https://honeydew.matthewc.dev/auth/telegram/"+chat.id,
                 },
             ]]
         };
@@ -50,25 +50,22 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
     return ResponseJsonOk()
 }
 
-export async function HandleTelegramUpdateCallbackQuery(database: Database, message: TelegramUpdateCallbackQuery) {
+export async function HandleTelegramUpdateCallbackQuery(db: Database, message: TelegramUpdateCallbackQuery) {
     //await context.env.HONEYDEW.put("telegram_callback", JSON.stringify(message));
-    const uuid = message.callback_query.data;
-    if (uuid != null) {
-        // const key = `inlinereply:${uuid}`;
-        // const value = await context.env.HONEYDEW.get(key)
-        // console.error("querying", key);
-        // const kv_data = JSON.parse(value || "");
-        // if (kv_data != null) {
-        //     const results = await Promise.all([
-        //         ta.sendTextMessage(kv_data.chat_id, `TASK COMPLETED: ${kv_data.task}`, kv_data.message_id),
-        //         ta.clearMessageReplyMarkup(kv_data.chat_id, kv_data.message_id)
-        //     ]);
-        //     if (results[0] == false || results[1] == false) console.error("callback promises", results);
-        // }
-        // console.error("KV DATA: ", key, kv_data);
+    try {
+        const uuid = message.callback_query.data;
+        if (uuid == null) throw new Error("No Message ID");
+        console.error("TelegramUpdateCallbackQuery", "recieved ", uuid);
+        // TODO: modify the message so that it has no buttons
+        const callback_key = TelegramCallbackKVKeyZ.parse(uuid);
+        const payload = await db.TelegramCallbackConsume(callback_key);
+        if (payload == null) {
+            console.error("TelegramUpdateCallbackQuery", `unable to find callback ${uuid}`)
+            return ResponseJsonOk();
+        }
     }
-    else {
-        console.error("TelegramUpdateCallbackQuery", "no message id")
+    catch (err) {
+        console.error("TelegramUpdateCallbackQuery", err);
     }
     return ResponseJsonOk();
 }

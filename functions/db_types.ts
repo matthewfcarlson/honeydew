@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { number, z } from "zod";
 // UUID looks like this: 42598872-8a5b-44c7-a6ca-1be5e0f21518 = 36 characters
 // -------------------------------------------------
 // ID Types
@@ -21,8 +21,8 @@ export const HouseIdZ = z.string({
 }).length(38).startsWith("H:", { message: "Must start with H:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"HouseId">()
 export type HouseId = z.infer<typeof HouseIdZ>;
 
-export const HouseKeyIdz = z.string().length(39).startsWith("HK:", { message: "Must start with HK:" }).refine(endsWithUuid).brand<"HousekeyId">();
-export type HouseKeyId = z.infer<typeof HouseKeyIdz>;
+export const HouseKeyKVKeyZ = z.string().length(39).startsWith("HK:", { message: "Must start with HK:" }).refine(endsWithUuid).brand<"HouseKeyKVKey">();
+export type HouseKeyKVKey = z.infer<typeof HouseKeyKVKeyZ>;
 
 export const ProjectIdZ = z.string({
     required_error: "ProjectID is required",
@@ -56,8 +56,29 @@ export type MagicKVKey = z.infer<typeof MagicKVKeyZ>;
 export const UserChoreCacheKVKeyZ = z.string().length(41).startsWith("CC:U:").brand<"UserChoreCacheKVKey">();
 export type UserChoreCacheKVKey = z.infer<typeof UserChoreCacheKVKeyZ>;
 
+export const TelegramCallbackKVKeyZ = z.string().length(39).startsWith("TC:").brand<"TelegramCallbackKVKey">();
+export type TelegramCallbackKVKey = z.infer<typeof TelegramCallbackKVKeyZ>;
+
+const TelegramCallbackKVPayloadBaseZ = z.object({
+    user_id:UserIdZ
+})
+const TelegramCallbackKVPayloadCompleteChoreZ = TelegramCallbackKVPayloadBaseZ.extend({
+    type: z.literal("COMPLETE_CHORE"),
+    chore_id: ChoreIdz,
+});
+const TelegramCallbackKVPayloadAnotherChoreZ = TelegramCallbackKVPayloadBaseZ.extend({
+    type: z.literal("ANOTHER_CHORE"),
+});
+export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
+    TelegramCallbackKVPayloadCompleteChoreZ,
+    TelegramCallbackKVPayloadAnotherChoreZ,
+]);
+
+export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
+
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
-export type KVIds = UserChoreCacheKVKey | MagicKVKey | HouseKeyId;
+export type KVIds = UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey;
+
 
 export interface KVDataObj {
     id: KVIds
@@ -101,7 +122,7 @@ export type DbHouseAutoAssignment = z.infer<typeof DbHouseAutoAssignmentZ>;
 
 
 export const DbHouseKeyZRaw = z.object({
-    id: HouseKeyIdz,
+    id: HouseKeyKVKeyZ,
     house: HouseIdZ,
     generated_by: UserIdZ
 });

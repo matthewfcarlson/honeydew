@@ -1,4 +1,4 @@
-import { HouseKeyIdz, UserId } from "../../db_types";
+import { HouseKeyKVKeyZ, UserId } from "../../db_types";
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";

@@ -1,4 +1,4 @@
-import { HouseKeyIdz, UserId } from "../../db_types";
+import { HouseKeyKVKeyZ, UserId } from "../../db_types";
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
 import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
@@ -31,7 +31,7 @@ export async function VerifyHouseKeyCode(id:string, db:Database, secret_key:stri
     const hash_digest = await crypto.subtle.digest("SHA-256", hash_data);
     const hash_text = ArrayBufferToHexString(hash_digest).substring(0,16);
 
-    const house_key_data = HouseKeyIdz.safeParse(key_id);
+    const house_key_data = HouseKeyKVKeyZ.safeParse(key_id);
     if (house_key_data.success == false) {
         console.error("VerifyHouseKeyCode key is not valid");
         return false;

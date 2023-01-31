@@ -1,7 +1,7 @@
-import { TelegramAPI } from "./_telegram";
+import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyId, HouseKeyIdz, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -337,14 +337,14 @@ export default class Database {
         return results.data;
     }
 
-    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message:string) {
+    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string) {
         try {
             const id = HouseIdZ.parse(raw_id);
-            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=",null).execute();
+            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("_chat_id", "!=", null).execute();
             if (raw_results == undefined) return true;
             const telegram = this.GetTelegram();
             // Send a message to the whole household
-            const promises = raw_results.filter((x): x is {_chat_id:number}=>x._chat_id!=null).map((x)=>telegram.sendTextMessage(x._chat_id, message));
+            const promises = raw_results.filter((x): x is { _chat_id: number } => x._chat_id != null).map((x) => telegram.sendTextMessage(x._chat_id, message));
             await Promise.allSettled(promises);
             return true;
         }
@@ -451,7 +451,7 @@ export default class Database {
             const raw_results = await joined_query.execute();
             if (raw_results == undefined) return [];
             interface JoinedResults {
-                chat_id: number|null,
+                chat_id: number | null,
                 house_id: HouseId,
                 user_id: UserId,
             }
@@ -492,9 +492,9 @@ export default class Database {
     }
 
     // Housekeys are a KV concept
-    async HouseKeyExists(id: HouseKeyId) {
-        const housekey_id = HouseKeyIdz.safeParse(id);
-        if (housekey_id.success == false) return null;
+    async HouseKeyExists(id: HouseKeyKVKey): Promise<boolean> {
+        const housekey_id = HouseKeyKVKeyZ.safeParse(id);
+        if (housekey_id.success == false) return false;
         const existing = await this.queryKVRaw(housekey_id.data);
         if (existing != null) return true;
         return false;
@@ -502,7 +502,7 @@ export default class Database {
 
     async HouseKeyCreate(house: HouseId, creator: UserId): Promise<DbHouseKey | null> {
         try {
-            const id = HouseKeyIdz.parse("HK:" + uuidv4());
+            const id = HouseKeyKVKeyZ.parse("HK:" + uuidv4());
             if (await this.HouseKeyExists(id)) return null;
             const raw: DbHouseKeyRaw = {
                 id,
@@ -519,8 +519,8 @@ export default class Database {
         return null;
     }
 
-    async HouseKeyGet(id: HouseKeyId) {
-        const housekey_id = HouseKeyIdz.safeParse(id);
+    async HouseKeyGet(id: HouseKeyKVKey) {
+        const housekey_id = HouseKeyKVKeyZ.safeParse(id);
         if (housekey_id.success == false) return null;
         const raw = await this.queryKVJson(housekey_id.data);
         if (raw == null) return null;
@@ -529,7 +529,7 @@ export default class Database {
         return null;
     }
 
-    async HouseKeyDelete(id: HouseKeyId) {
+    async HouseKeyDelete(id: HouseKeyKVKey) {
         await this.deleteKey(id);
     }
 
@@ -967,7 +967,7 @@ export default class Database {
             const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", last_signed_time).where("household_id", "==", house_id).where((qb) => qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", last_signed_time));
             const result = await query.execute();
             if (result == undefined || result.length == 0) {
-                console.warn("No chores to pick from")
+                return null;
             }
             // we now need to sort them and select the one we want
             const filtered_results = result
@@ -978,7 +978,6 @@ export default class Database {
                 .filter((x) => (x.lastDone + x.frequency) < today);
             // TODO: filter out any chores that were done more recently than their frequency, ie don't need to get done again
             if (filtered_results.length == 0) {
-                console.warn("Filtered out all the ones that haven't been done")
                 return null;
             }
             const sorted_results = filtered_results.sort((a, b) => {
@@ -1022,9 +1021,30 @@ export default class Database {
             promises.push(this.setKVRaw(kv_key, chore.id, (60 * 60 * 23))); // it lasts 23 hours
             promises.push(update_query.execute());
             if (telegram_id != null) {
-                const text = `Hey, today you should ${chore.name}`
-                // TODO: add options for completing the task from telegram
-                promises.push(this.GetTelegram().sendTextMessage(telegram_id, text));
+                // TODO: escape the name
+                const text = `Hey, today your chore is: *${chore.name}*`
+                const payload: TelegramCallbackKVPayload = {
+                    user_id,
+                    type:"COMPLETE_CHORE",
+                    chore_id: chore.id
+                }
+                const payload_key = await this.TelegramCallbackCreate(payload);
+                if (payload_key == null) {
+                    promises.push(this.GetTelegram().sendTextMessage(telegram_id, text, undefined, undefined, "MarkdownV2"));
+                }
+                else {
+                    // TODO: add options for completing the task from 
+                    const keyboard: TelegramInlineKeyboardMarkup = {
+                        inline_keyboard: [[
+                            {
+                                text: "Did The Chore",
+                                callback_data: payload_key
+                            },
+                        ]]
+                    };
+                    promises.push(this.GetTelegram().sendTextMessage(telegram_id, text, undefined, keyboard, "MarkdownV2"));
+                }
+                
             }
             await Promise.all(promises);
             return chore;
@@ -1063,6 +1083,55 @@ export default class Database {
         catch (err) {
             console.error("ChoreGetAll", err);
             return [];
+        }
+    }
+
+    // Telegram callback items
+    async TelegramCallbackExists(raw_id: TelegramCallbackKVKey): Promise<boolean> {
+        const id = TelegramCallbackKVKeyZ.safeParse(raw_id);
+        if (id.success == false) return false;
+        const existing = await this.queryKVRaw(id.data);
+        if (existing != null) return true;
+        return false;
+    }
+
+    private async TelegramCallbackGenerateUUID(): Promise<TelegramCallbackKVKey | null> {
+        let count = 0;
+        while (count < 50) {
+            count++;
+            const attempted_id = TelegramCallbackKVKeyZ.safeParse("TC:" + uuidv4());
+            if (attempted_id.success == false) {
+                console.error("TelegramCallbackGenerateUUID", "Failed to create key");
+                return null;
+            }
+            if (await this.TelegramCallbackExists(attempted_id.data) == false) return attempted_id.data;
+        }
+        return null;
+    }
+
+    async TelegramCallbackCreate(raw_payload: TelegramCallbackKVPayload): Promise<TelegramCallbackKVKey | null> {
+        try {
+            const id = await this.TelegramCallbackGenerateUUID();
+            if (id == null) return null;
+            const payload = TelegramCallbackKVPayloadZ.parse(raw_payload);
+            await this.setKVRaw(id, payload, 60*60*24); // callbacks last for one day
+            return id;
+        }
+        catch (err) {
+            console.error("TelegramCallbackCreate", err);
+            return null;
+        }
+    }
+    async TelegramCallbackConsume(raw_id: TelegramCallbackKVKey): Promise<TelegramCallbackKVPayload | null> {
+        try {
+            const id = TelegramCallbackKVKeyZ.parse(raw_id);
+            const raw_payload = await this.queryKVJson(id);
+            await this.deleteKey(id);
+            return TelegramCallbackKVPayloadZ.parse(raw_payload);
+        }
+        catch (err) {
+            console.error("TelegramCallbackConsume", err);
+            return null;
         }
     }
 }
