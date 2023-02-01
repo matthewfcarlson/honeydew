@@ -22,13 +22,14 @@
         }}
         </span>
       </div>
-      <button @click="complete_chore(chore.id)">Mark Done Today</button>
-      <button @click="delete_chore(chore.id)">Delete</button>
+      <button class="button is-small is-success" @click="complete_chore(chore.id)">Mark Done Today</button>
+      <button class="button is-small is-danger" @click="delete_chore(chore.id)">Delete</button>
       Assign to:
-      <button @click="assign_chore(chore.id, null)">Anyone</button>
-      <button v-for="member in household_members" :key="member.userid" @click="assign_chore(chore.id, member.userid)">{{
+      <button class="button is-small is-info" @click="assign_chore(chore.id, null)">Anyone</button>
+      <button class="button is-small is-primary" v-for="member in household_members" :key="member.userid" @click="assign_chore(chore.id, member.userid)">{{
         member.name
       }}</button>
+      Assigned to:
       {{ chore.doneByName }}
     </div>
     <hr />
