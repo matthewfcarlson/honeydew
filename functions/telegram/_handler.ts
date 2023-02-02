@@ -1,7 +1,7 @@
-import Database from "../../database/_db";
-import { TelegramAnswerCallbackQuery, TelegramCallbackQuery, TelegramInlineKeyboardMarkup, TelegramUpdateCallbackQuery, TelegramUpdateMessage } from "../../database/_telegram";
-import { DbUser, TelegramCallbackKVKeyZ, TelegramCallbackKVPayload } from "../../db_types";
-import { IsValidHttpUrl, ResponseJsonBadRequest, ResponseJsonOk } from "../../_utils";
+import Database from "../database/_db";
+import { TelegramAnswerCallbackQuery, TelegramCallbackQuery, TelegramInlineKeyboardMarkup, TelegramUpdateCallbackQuery, TelegramUpdateMessage } from "../database/_telegram";
+import { DbUser, TelegramCallbackKVKeyZ, TelegramCallbackKVPayload } from "../db_types";
+import { IsValidHttpUrl, ResponseJsonBadRequest, ResponseJsonOk } from "../_utils";
 
 async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user: DbUser) {
     const text = msg.message.text || 'N/A';

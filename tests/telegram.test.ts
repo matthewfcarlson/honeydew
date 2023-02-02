@@ -1,5 +1,5 @@
 import { DbProject } from "functions/db_types";
-import { HandleTelegramUpdate } from "../functions/api/telegram/webhook"
+import { HandleTelegramUpdate } from "../functions/telegram/webhook"
 import { MockedTelegramAPI, MockedTelegramRequest, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";

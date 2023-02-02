@@ -1,7 +1,7 @@
-import { readRequestBody, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonOk } from "../../_utils";
-import {TelegramAPI, isTelegramUpdateCallbackQuery, isTelegramUpdateMessage } from "../../database/_telegram";
-import { HoneydewPagesFunction } from "../../types";
-import Database from "../../database/_db";
+import { readRequestBody, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonOk } from "../_utils";
+import {TelegramAPI, isTelegramUpdateCallbackQuery, isTelegramUpdateMessage } from "../database/_telegram";
+import { HoneydewPagesFunction } from "../types";
+import Database from "../database/_db";
 import { HandleTelegramUpdateCallbackQuery, HandleTelegramUpdateMessage } from "./_handler";
 
 // TODO: move this somewhere else so the auth middleware handlers don't run
