@@ -48,7 +48,7 @@
 import { defineComponent, computed } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
-import TaskIconComponent from '@/components/TaskIconComponent.vue';
+import TaskIconComponent from '@/components/ChoreIconComponent.vue';
 
 const household_members = computed(() => {
   const household = useUserStore().household;

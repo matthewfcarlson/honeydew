@@ -170,7 +170,7 @@
 import { defineComponent } from 'vue';
 import { mapState } from "pinia";
 import { useUserStore } from "@/store";
-import TaskIcon from "@/components/TaskIconComponent.vue";
+import TaskIcon from "@/components/ChoreIconComponent.vue";
 
 export default defineComponent({
   name: 'HomeView',
