@@ -26,6 +26,28 @@ const luminance = (r:number, g:number, b:number) => {
   return (a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722)
 }
 
+function hashCode(str: string): number {
+    var h: number = 0;
+    for (var i = 0; i < str.length; i++) {
+        h = 31 * h + str.charCodeAt(i);
+    }
+    return h % 0xFFFFFFFF
+}
+
+// TODO: make this in a common place
+export const chore_colors = [
+  "#76C4AE",
+  "#9FC2BA",
+  "#BEE9E4",
+  "#7CE0F9",
+  "#CAECCF",
+  "#D3D2B5",
+  "#CABD80",
+  "#E1CEB1",
+  "#DDB0A0",
+  "#D86C70",
+]
+
 export default defineComponent({
     name: 'ChoreIcon',
     props: {
@@ -41,7 +63,11 @@ export default defineComponent({
     computed: {
         color: function() {
             // TODO: generate color based on name?
-            return "#003366"
+            if (this.chore_name == "") return "#003366";
+            const chore_index = hashCode(this.chore_name);
+            const color = chore_colors[chore_index % chore_colors.length];
+            console.log(chore_index, color)
+            return color;
         },
         icon: function() {
             if (this.chore_name == "") {

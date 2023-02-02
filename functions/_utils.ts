@@ -224,6 +224,10 @@ export function getRandomValueFromArray<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+export function getSemirandomValueFromArray<T>(list: T[], seed:number): T {
+  return list[Math.floor(seed % list.length)];
+}
+
 export function pickRandomUserIconAndColor() {
   return [getRandomValueFromArray(user_icons), getRandomValueFromArray(user_colors)]
 }

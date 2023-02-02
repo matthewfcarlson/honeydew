@@ -11,7 +11,7 @@
       <template v-if="currentChore != null">
         <div>Today you need to:</div>
         <div>
-          <TaskIcon :task_name="currentChore.name" />
+          <ChoreIconComponent :chore_name="currentChore.name" />
           <span class="subtitle is-4"> {{ currentChore.name }} </span>
         </div>
         <div v-if="(currentChore.lastDone + 1) < currentDate">
@@ -170,12 +170,12 @@
 import { defineComponent } from 'vue';
 import { mapState } from "pinia";
 import { useUserStore } from "@/store";
-import TaskIcon from "@/components/ChoreIconComponent.vue";
+import ChoreIconComponent from "@/components/ChoreIconComponent.vue";
 
 export default defineComponent({
   name: 'HomeView',
   components: {
-    TaskIcon
+    ChoreIconComponent
   },
   computed: {
     household_name: function () {

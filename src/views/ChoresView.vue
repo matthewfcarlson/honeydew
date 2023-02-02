@@ -14,7 +14,7 @@
     </a>
     <div class="box" v-for="chore in chores" :key="chore.id">
       <div class>
-        <TaskIconComponent :task_name="chore.name"/>
+        <ChoreIconComponent :chore_name="chore.name"/>
         <span class="title is-5">{{ chore.name }}</span>
         <span class="subtitle is-6"> every {{ chore.frequency }} days </span>
         <span> Last Done {{
@@ -48,7 +48,7 @@
 import { defineComponent, computed } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
-import TaskIconComponent from '@/components/ChoreIconComponent.vue';
+import ChoreIconComponent from '@/components/ChoreIconComponent.vue';
 
 const household_members = computed(() => {
   const household = useUserStore().household;
@@ -82,7 +82,7 @@ export default defineComponent({
 
   },
   components: {
-    TaskIconComponent
+    ChoreIconComponent
   },
   computed: {
     your_chores_progress_status: function () {
