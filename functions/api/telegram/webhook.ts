@@ -5,9 +5,22 @@ import Database from "../../database/_db";
 import { HandleTelegramUpdateCallbackQuery, HandleTelegramUpdateMessage } from "./_handler";
 
 // TODO: move this somewhere else so the auth middleware handlers don't run
+// TODO: make this a TelegramUpdate
+export const HandleTelegramUpdate = async function (db: Database, body:unknown) {
+    if (isTelegramUpdateMessage(body)) {
+        return await HandleTelegramUpdateMessage(db, body);
+    }
+
+    if (isTelegramUpdateCallbackQuery(body)) {
+    return await HandleTelegramUpdateCallbackQuery(db, body);
+    }
+
+    console.error("Telegram Webhook", "Unknown message from telegram", body);
+    return ResponseJsonOk();
+}
+
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
-    const ta = new TelegramAPI(context.env.TELEGRAM);
     const body = await readRequestBody(context.request);
     const db = context.data.db as Database;
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
@@ -18,15 +31,5 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         return ResponseJsonBadRequest();
     }
     
-    if (isTelegramUpdateMessage(body)) {
-       return await HandleTelegramUpdateMessage(db, body);
-    }
-
-    if (isTelegramUpdateCallbackQuery(body)) {
-       return await HandleTelegramUpdateCallbackQuery(db, body);
-    }
-
-    console.error("Telegram Webhook", "Unknown message from telegram", body);
-
-    return ResponseJsonOk();
+    return await HandleTelegramUpdate(db, body);
 }

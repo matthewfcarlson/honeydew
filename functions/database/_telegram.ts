@@ -94,6 +94,21 @@ function isTelegramMessage(x: unknown): x is TelegramMessage {
     return true;
 }
 
+export interface TelegramAnswerCallbackQuery {
+    callback_query_id: string;
+    text?: string; // 0-200 string
+    show_alert?:boolean; // an alert will be show instead of a notification at the top of the screen
+    url?:string; // url that will get opened 
+    cache_time?:number; // time in seconds answer can be cached default to zero
+}
+
+function isTelegramAnswerCallbackQuery(x: unknown): x is TelegramAnswerCallbackQuery {
+    const y = (x as TelegramAnswerCallbackQuery);
+    if (y.callback_query_id === undefined) return false;
+    return true;
+}
+
+
 export interface TelegramChat {
     id: number;
     type: "private" | "group" | "supergroup" | "channel";
@@ -276,6 +291,12 @@ export class TelegramAPI {
         const results = await this.requestPost('sendMessage', data);
         if (results == false) return false;
         if (!isTelegramMessage(results.result)) return false;
+        return results.result;
+    }
+
+    public async answerCallbackQuery(data: TelegramAnswerCallbackQuery) {
+        const results = await this.requestPost('answerCallbackQuery', data);
+        if (results == false) return false;
         return results.result;
     }
 

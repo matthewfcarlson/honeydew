@@ -1,7 +1,8 @@
 import { DbProject } from "functions/db_types";
-import { HandleTelegramUpdateMessage } from "../functions/api/telegram/_handler";
-import { MockedTelegramAPI, MockedTelegramRequest, TelegramUpdateMessage } from "../functions/database/_telegram";
+import { HandleTelegramUpdate } from "../functions/api/telegram/webhook"
+import { MockedTelegramAPI, MockedTelegramRequest, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
+import { getJulianDate } from "../functions/_utils";
 const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 function generateTelegramResponse(data: any) {
@@ -50,7 +51,7 @@ describe('Telegram tests', () => {
       update_id: 0
     };
     expect(got_message).toBe(false);
-    const result = await HandleTelegramUpdateMessage(db, update1);
+    const result = await HandleTelegramUpdate(db, update1);
     expect(result.status).toEqual(200);
     expect(got_message).toBe(true);
   });
@@ -94,7 +95,7 @@ describe('Telegram tests', () => {
       },
       update_id: 0
     };
-    const result = await HandleTelegramUpdateMessage(db, update1);
+    const result = await HandleTelegramUpdate(db, update1);
     expect(result.status).toEqual(200);
     // Look for a recipe that got added
     expect(await db.RecipeExists(null, url)).toBe(true);
@@ -168,7 +169,17 @@ describe('Telegram tests', () => {
 
 
 describe('Telegram callback tests', () => {
-  it('can create and consume callback', async () => {
+  it('can handle a chore callback', async () => {
+    let removed_markup = false;
+    telegram.registerListener(async (x) => {
+      // I don't check for anything more fancy
+      console.error("chore callback", x);
+      if (x.type == "POST" && x.method == "editMessageReplyMarkup") {
+        removed_markup = true;
+      }
+      return generateTelegramResponse(null);
+    });
+    // register a user and household
     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
     expect(house_id).not.toBeNull();
     if (house_id == null) return;
@@ -176,21 +187,61 @@ describe('Telegram callback tests', () => {
     const user_id = (await db.UserCreate("Bob", house_id))?.id;
     expect(user_id).not.toBeNull();
     if (user_id == null) return;
-    const id = await db.TelegramCallbackCreate({
+
+    // register for telegram
+    const timestamp = getJulianDate();
+    const chat_id = 1321321;
+    const tuser_id = 12312312;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, tuser_id)).toBe(true);
+
+    // create the chore
+    const chore = await db.ChoreCreate("Do the thing", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    // Create a callback to do the chore
+    const callback = await db.TelegramCallbackCreate({
       user_id,
-      type: "ANOTHER_CHORE"
+      type: "COMPLETE_CHORE",
+      chore_id: chore.id
     });
-    expect(id).not.toBeNull();
-    if (id == null) return;
+    expect(callback).not.toBeNull();
+    if (callback == null) return;
 
-    expect(await db.TelegramCallbackExists(id)).toBe(true);
 
-    const payload = await db.TelegramCallbackConsume(id);
-    expect(payload).not.toBeNull();
-    if (payload == null) return;
-    expect(payload.user_id).toBe(user_id);
+    // Now send a callback query
+    const query: TelegramCallbackQuery = {
+      id: "just a generic id string",
+      message: {
+        message_id: 12345,
+        chat: {
+          id:chat_id,
+          type:"private"
+        },
+        date: timestamp,
+      },
+      from: {
+        id: tuser_id,
+        is_bot: false,
+        first_name: "Bob"
+      },
+      chat_instance: "the chat instance",
+      data: callback,
+    };
+    const update1: TelegramUpdate = {
+      update_id: Math.floor(timestamp),
+      callback_query: query
+    }
 
-    expect(await db.TelegramCallbackExists(id)).toBe(false);
+    expect(removed_markup).toBe(false);
+    const result = await HandleTelegramUpdate(db, update1);
+    expect(result.status).toEqual(200);
 
+    const chore_done = await db.ChoreGet(chore.id);
+    expect(chore_done).not.toBeNull();
+    if (chore_done == null) return;
+    // Check to make sure we've removed the markup and the chore has been completed
+    expect(removed_markup).toBe(true);
+    expect(chore_done.lastDone).toBeGreaterThan(chore.lastDone);
   });
 });

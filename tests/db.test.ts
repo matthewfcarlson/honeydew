@@ -680,3 +680,31 @@ describe('Chore tests', () => {
   });
 
 });
+
+describe('Telegram callback tests', () => {
+  it('can create and consume callback', async () => {
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+    const id = await db.TelegramCallbackCreate({
+      user_id,
+      type: "ANOTHER_CHORE"
+    });
+    expect(id).not.toBeNull();
+    if (id == null) return;
+
+    expect(await db.TelegramCallbackExists(id)).toBe(true);
+
+    const payload = await db.TelegramCallbackConsume(id);
+    expect(payload).not.toBeNull();
+    if (payload == null) return;
+    expect(payload.user_id).toBe(user_id);
+
+    expect(await db.TelegramCallbackExists(id)).toBe(false);
+
+  });
+});
