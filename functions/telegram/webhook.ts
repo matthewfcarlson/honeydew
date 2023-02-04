@@ -24,7 +24,6 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const body = await readRequestBody(context.request);
     const db = context.data.db as Database;
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
-    console.error("TelegramHandler", body);
     if (secret == null || secret == "") {
         return ResponseJsonMissingData("Telegram Token");
     }
