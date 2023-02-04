@@ -12,7 +12,7 @@ export const HandleTelegramUpdate = async function (db: Database, body:unknown) 
     }
 
     if (isTelegramUpdateCallbackQuery(body)) {
-    return await HandleTelegramUpdateCallbackQuery(db, body);
+        return await HandleTelegramUpdateCallbackQuery(db, body);
     }
 
     console.error("Telegram Webhook", "Unknown message from telegram", body);
@@ -24,12 +24,12 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const body = await readRequestBody(context.request);
     const db = context.data.db as Database;
     const secret = context.request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    console.error("TelegramHandler", body);
     if (secret == null || secret == "") {
         return ResponseJsonMissingData("Telegram Token");
     }
     if (secret != context.env.TELEGRAM_WH) {
         return ResponseJsonBadRequest();
     }
-    
     return await HandleTelegramUpdate(db, body);
 }
