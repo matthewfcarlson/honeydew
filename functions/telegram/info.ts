@@ -3,8 +3,9 @@ import { ResponseJsonNotFound, readRequestBody, ResponseJsonMethodNotAllowed, Re
 import { TelegramAPI, isTelegramUpdateCallbackQuery, isTelegramUpdateMessage, TelegramInlineKeyboardMarkup } from "../database/_telegram";
 
 export const onRequest: HoneydewPagesFunction = async function onRequestPost(context) {
-    if (context.env.PRODUCTION == "true") return ResponseJsonDebugOnly();
+    //if (context.env.PRODUCTION == "true") return ResponseJsonDebugOnly();
     const ta = new TelegramAPI(context.env.TELEGRAM);
     const results = await ta.getWebhookInfo();
+    console.error("Telegram/info", results);
     return new Response(JSON.stringify(results));
 }

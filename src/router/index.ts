@@ -8,7 +8,7 @@ import { useUserStore } from '@/store';
 import 'vue-router'
 declare module 'vue-router' {
   interface RouteMeta {
-    // if not defined, we assume auth is required
+    // if not defined, we assume auth is not required
     noAuthRequired?: boolean
   }
 }
@@ -31,6 +31,9 @@ const routes = [
     path: '/signout',
     name: 'signout',
     component: SignoutView,
+    meta: {
+      noAuthRequired: false,
+    }
   },
   {
     path: '/signup',
@@ -83,6 +86,9 @@ const routes = [
     path: '/:pathMatch(.*)*',
     name: '404',
     component: NotFoundView,
+    meta: {
+      noAuthRequired: true,
+    }
   }
 ]
 
