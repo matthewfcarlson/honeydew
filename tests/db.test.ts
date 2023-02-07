@@ -653,6 +653,11 @@ describe('Chore tests', () => {
 
       // Now get rid of the cached one
       expect(await db.ChoreSkipCurrentChore(user_id)).toBe(true);
+      // make sure that it's not
+      {
+        const chore_select_2 = await db.ChoreGetCurrentChore(user_id);
+        expect(chore_select_2).toBeNull();
+      }
       // Now get another chore
       {
         const chore_select_3 = await db.ChoreGetNextChore(house_id, user_id, null);

@@ -4,8 +4,8 @@
             Made with Love By Matthew For Ellen
             
         </div>
-        <div class="has-text-centered text-small is-small">
-            Database Version 4
-        </div>
+        <!--div class="has-text-centered text-small is-small">
+            Database Version 5
+        </div-->
     </footer>
 </template>

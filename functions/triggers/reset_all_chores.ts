@@ -6,7 +6,7 @@ import { getJulianDate, ResponseJsonDebugOnly } from "../_utils";
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
 
-    if (context.env.PRODUCTION) return ResponseJsonDebugOnly();
+    if (context.env.PRODUCTION == "true") return ResponseJsonDebugOnly();
     
     const data = {
        done:true

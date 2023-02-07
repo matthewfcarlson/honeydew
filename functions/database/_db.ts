@@ -1087,6 +1087,36 @@ export default class Database {
         }
     }
 
+    private UserChoreCacheKVKeyGenerate(user_id:UserId) {
+        const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
+        return kv_key;
+    }
+
+    // Gets the current chore without picking a new one
+    async ChoreGetCurrentChore(raw_user_id: UserId): Promise<DbChore | null> {
+        try {
+            // First validate user_id
+            const user_id = UserIdZ.parse(raw_user_id);
+            // see if we already have one cached
+            const kv_key = this.UserChoreCacheKVKeyGenerate(user_id);
+            const raw_cached_chore_id = await this.queryKVJson(kv_key);
+            if (raw_cached_chore_id != null) {
+                const chore_id = ChoreIdz.parse(raw_cached_chore_id);
+                const chore = await this.ChoreGet(chore_id);
+                if (chore == null) {
+                    console.warn("ChoreGetCurrentChore", "Deleting marking as we couldn't find this chore", chore_id, kv_key);
+                    await this.deleteKey(kv_key);
+                }
+                else return chore;
+            }
+            return null;
+        }
+        catch (err) {
+            console.error("ChoreGetCurrentChore", err);
+            return null;
+        }
+    }
+
     // First check if we need to 
     async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id: UserId, telegram_id: string | number | null): Promise<DbChore | null> {
         try {
@@ -1094,17 +1124,10 @@ export default class Database {
             const user_id = UserIdZ.parse(raw_user_id);
             const house_id = HouseIdZ.parse(raw_house_id);
             // see if we already have one cached
-            const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
-            const raw_cached_chore_id = await this.queryKVJson(kv_key);
-            if (raw_cached_chore_id != null) {
-                const chore_id = ChoreIdz.parse(raw_cached_chore_id);
-                const chore = await this.ChoreGet(chore_id);
-                if (chore == null) {
-                    console.warn("ChoreGetNextChore", "Deleting marking as we couldn't find this chore", chore_id, kv_key);
-                    await this.deleteKey(kv_key);
-                }
-                else return chore;
-            }
+            const current_chore = await this.ChoreGetCurrentChore(user_id);
+            if (current_chore != null) return current_chore;
+            // Otherwise pick a new one
+            const kv_key = this.UserChoreCacheKVKeyGenerate(user_id);
             const chore = await this.ChorePickNextChore(house_id, user_id);
             if (chore == null) return null;
             const promises = [];
