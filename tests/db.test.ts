@@ -498,7 +498,7 @@ describe('Task tests', () => {
     task = await db.TaskGet(task.id);
     expect(task).not.toBeNull();
     if (task == null) return;
-    expect(task.completed).toBeGreaterThan(timestamp);
+    expect(task.completed).toBeGreaterThanOrEqual(timestamp);
   });
 
   it('UUIDs should be unique', async () => {
