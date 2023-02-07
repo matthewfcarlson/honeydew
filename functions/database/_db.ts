@@ -635,16 +635,7 @@ export default class Database {
         return true;
     }
 
-    async ProjectsList(userId: UserId | null = null, householdId: HouseId | null = null): Promise<DbProject[] | null> {
-        if (userId == null && householdId == null) return null;
-        if (userId != null && householdId != null) return null;
-        if (householdId == null) {
-            const user_id = UserIdZ.safeParse(userId);
-            if (user_id.success == false) return null;
-            const user = await this.UserGet(user_id.data);
-            if (user == null) return null;
-            householdId = user.household;
-        }
+    async ProjectsList(householdId: HouseId): Promise<DbProject[] | null> {
         const household_id = HouseIdZ.safeParse(householdId);
         if (household_id.success == false) {
             return null;

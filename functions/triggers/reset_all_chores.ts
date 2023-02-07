@@ -15,4 +15,3 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     await (db as any)._db.updateTable("chores").set({lastDone: 10, lastTimeAssigned:10}).execute();
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
 }
-////

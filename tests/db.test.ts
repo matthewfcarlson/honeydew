@@ -2,6 +2,7 @@ import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { describe, expect, test } from '@jest/globals';
 import { getJulianDate } from "../functions/_utils";
+import { HouseId } from "functions/db_types";
 const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 
@@ -319,29 +320,25 @@ describe('Project tests', () => {
     expect(project2).not.toBeNull();
     if (project2 == null) return;
     // Assert
-    let project_list = await db.ProjectsList(null, house_id);
+    let project_list = await db.ProjectsList(house_id);
     expect(project_list).toHaveLength(2);
-    project_list = await db.ProjectsList(null, null);
+    project_list = await db.ProjectsList("" as HouseId);
     expect(project_list).toBeNull();
-    project_list = await db.ProjectsList(user_id);
-    expect(project_list).toHaveLength(2);
 
     // Act
     await db.ProjectDelete(project1.id);
     // Assert
-    project_list = await db.ProjectsList(null, house_id);
+    project_list = await db.ProjectsList(house_id);
     expect(project_list).toHaveLength(1);
 
     // Act
     await db.ProjectDelete(project2.id);
     // Assert
-    project_list = await db.ProjectsList(null, house_id);
+    project_list = await db.ProjectsList(house_id);
     expect(project_list).toHaveLength(0);
 
     // Act
-    project_list = await db.ProjectsList(user_id, house_id);
-    expect(project_list).toBeNull();
-    project_list = await db.ProjectsList(null, null);
+    project_list = await db.ProjectsList(null);
     expect(project_list).toBeNull();
 
   });

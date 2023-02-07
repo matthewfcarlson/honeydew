@@ -132,7 +132,7 @@ export type DbHouseKey = z.infer<typeof DbHouseKeyZ>;
 
 export const DbProjectZRaw = z.object({
     id: ProjectIdZ,
-    description: z.string().max(255),
+    description: z.string().min(1).max(255),
     household: HouseIdZ,
 });
 export const DbProjectZ = DbProjectZRaw.brand<"Project">();
@@ -143,7 +143,7 @@ export type DbProject = z.infer<typeof DbProjectZ>;
 export const DbTaskZRaw = z.object({
     id: TaskIdZ,
     household: HouseIdZ,
-    description: z.string().max(255),
+    description: z.string().min(1).max(255),
     project: ProjectIdZ.nullable(),
     completed: z.number().nonnegative().nullable(), // null or julian day number
     added_by: UserIdZ,

@@ -178,6 +178,23 @@ describe('chore tests', () => {
     });
 });
 
+describe('project tests', () => {
+    test('you can add a project', async () => {
+
+        const house = await db.HouseholdCreate("BOB'S HOUSE");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        const user = await db.UserCreate("BOBBY", house.id);
+        expect(user).not.toBeNull();
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
+
+        expect(await caller.projects.new("Test Project")).toBe(true);
+    });
+});
+
 //   const input: inferProcedureInput<AppRouter[']['add']> = {
 //     text: 'hello test',
 //     title: 'hello test',
