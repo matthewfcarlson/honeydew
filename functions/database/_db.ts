@@ -51,7 +51,11 @@ export default class Database {
     // This will do a drop and create if needed
     public async CheckOnSQL() {
         const db_version = Number(await this._kv.get("SQLDB_VERSION") || "-1");
-        if (db_version == null || db_version != LatestHoneydewDBVersion) return await this.migrateDatabase(db_version);
+        if (db_version == null || db_version != LatestHoneydewDBVersion) {
+            await this.migrateDatabase(db_version);
+            return Number(await this._kv.get("SQLDB_VERSION") || "-1");
+        }
+        return db_version;
     }
 
     public GetTelegram() {
