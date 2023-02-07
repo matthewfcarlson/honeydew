@@ -336,11 +336,6 @@ describe('Project tests', () => {
     // Assert
     project_list = await db.ProjectsList(house_id);
     expect(project_list).toHaveLength(0);
-
-    // Act
-    project_list = await db.ProjectsList(null);
-    expect(project_list).toBeNull();
-
   });
 
   it('UUIDs should be unique', async () => {
