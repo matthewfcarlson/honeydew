@@ -145,7 +145,7 @@ export const DbTaskZRaw = z.object({
     household: HouseIdZ,
     description: z.string().max(255),
     project: ProjectIdZ.nullable(),
-    completed: z.boolean(),
+    completed: z.number().nonnegative().nullable(), // null or julian day number
     added_by: UserIdZ,
     requirement1: z.nullable(TaskIdZ),
     requirement2: z.nullable(TaskIdZ),

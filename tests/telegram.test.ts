@@ -173,7 +173,7 @@ describe('Telegram callback tests', () => {
     let removed_markup = false;
     telegram.registerListener(async (x) => {
       // I don't check for anything more fancy
-      console.error("chore callback", x);
+      // console.error("chore callback", x);
       if (x.type == "POST" && x.method == "editMessageReplyMarkup") {
         removed_markup = true;
       }

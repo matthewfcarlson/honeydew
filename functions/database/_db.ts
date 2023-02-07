@@ -13,11 +13,12 @@ type SQLHousehold = Omit<DbHouseholdRaw, "members">;
 interface DataBaseData {
     users: DbUserRaw,
     households: SQLHousehold
-    projects: DbProjectRaw
     recipes: DbRecipeRaw
     cardboxes: DbCardBoxRaw
     chores: DbChoreRaw
     houseautoassign: DbHouseAutoAssignmentRaw
+    projects: DbProjectRaw
+    tasks: DbTaskRaw,
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
@@ -676,8 +677,9 @@ export default class Database {
     async TaskExists(id: TaskId): Promise<boolean> {
         const task_id = TaskIdZ.safeParse(id);
         if (task_id.success == false) return false;
-        throw new Error("Not Implemented");
-        return false;
+        const result = await this._db.selectFrom("tasks").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
     }
 
     async TaskCreate(description: string, creator: UserId, household: HouseId, project: ProjectId | null = null, requirement1: TaskId | null = null, requirement2: TaskId | null = null): Promise<DbTask | null> {
@@ -699,13 +701,13 @@ export default class Database {
                 household,
                 description,
                 project,
-                completed: false,
+                completed: null,
                 added_by: creator,
                 requirement1,
                 requirement2
             };
             const task: DbTask = DbTaskZ.parse(taskZ);
-            throw new Error("Not Implemented");
+            await this._db.insertInto("tasks").values(task).executeTakeFirstOrThrow();
             return task;
         }
         catch (err) {
@@ -715,24 +717,59 @@ export default class Database {
     }
 
     async TaskGet(id: TaskId): Promise<DbTask | null> {
-        const task_id = TaskIdZ.safeParse(id);
-        if (task_id.success == false) return null;
-        throw new Error("Not Implemented");
-        return null;
+        try {
+            const task_id = TaskIdZ.parse(id);
+            const result = await this._db.selectFrom("tasks").selectAll().where("id", "==", task_id).executeTakeFirstOrThrow();
+            if (result == undefined) return null;
+            return DbTaskZ.parse(result);
+        }
+        catch (err) {
+            console.error("TaskGet", err);
+            return null;
+        }
     }
 
-    async TaskMarkComplete(id: TaskId): Promise<boolean> {
-        const task_id = TaskIdZ.safeParse(id);
-        if (task_id.success == false) {
-            console.error("TaskComplete", "Unable to parse task id")
+    async TaskMarkComplete(id: TaskId, raw_user:UserId): Promise<boolean> {
+        try{
+            if (await this.TaskExists(id) == false) return false;
+            const user_id = UserIdZ.parse(raw_user);
+            const timestamp = getJulianDate();
+            const task = await this.TaskGet(id);
+            if (task == null) return false;
+            let telegram_promise: Promise<any>|null = null;
+            // Get user and make sure they're in the right household?
+            const user = await this.UserGet(user_id);
+            if (user == null) return false;
+            if (user.household != task.household) {
+                console.error("TaskMarkComplete", user, "tried to complete task:", task);
+                return false;
+            }
+            // If the task was already completed
+            if (task.completed != null) return true;
+            // TODO: update the leaderboard?
+            const message = `*${user.name}* just completed _${task.description}_`;
+            telegram_promise = this.HouseholdTelegramMessageAllMembers(task.household, message, true, user_id);
+            
+            await this._db.updateTable("tasks").where("id", "==", id).set({ completed: timestamp }).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("TaskMarkComplete", err);
             return false;
         }
-        throw new Error("Not Implemented");
-        return false;
     }
 
     async TaskDelete(id: TaskId) {
-        throw new Error("Not Implemented");
+        try {
+            const task_id = TaskIdZ.parse(id);
+            const result = await this._db.deleteFrom("tasks").where("id", "==", task_id).executeTakeFirstOrThrow();
+            if (result == undefined) return false;
+            return result.numDeletedRows > 0
+        }
+        catch (err) {
+            console.error("TaskDelete", err);
+            return false;
+        }
     }
 
     async RecipeExists(id: RecipeId | null, url?: string) {

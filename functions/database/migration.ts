@@ -118,11 +118,41 @@ const HoneydewVersion4 = {
         }
     }
 }
+const HoneydewVersion5 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "PROJECTS"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('description', "varchar(255)", (col)=>col.notNull())
+                .addColumn('household', "varchar(40)", (col)=>col.notNull())
+                .execute()
+        }
+        {
+            const table_name = "TASKS"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('household', "varchar(40)", (col)=>col.notNull())
+                .addColumn('description', "varchar(255)", (col)=>col.notNull())
+                .addColumn('project', 'varchar(40)', (col) => col.defaultTo(null))
+                .addColumn('added_by', 'varchar(40)', (col) => col.notNull())
+                .addColumn('completed', 'integer', (col) => col.defaultTo(null)) // julian date that it was completed
+                .addColumn('requirement1', 'varchar(40)', (col) => col.defaultTo(null))
+                .addColumn('requirement2', 'varchar(40)', (col) => col.defaultTo(null))
+                .execute()
+        }
+    }
+}
 
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
     HoneydewVersion3,
     HoneydewVersion4,
+    HoneydewVersion5
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

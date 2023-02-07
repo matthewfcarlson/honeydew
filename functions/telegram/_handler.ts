@@ -53,7 +53,7 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
 
 async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<TelegramAnswerCallbackQuery|null> {
     if (payload.type != "COMPLETE_CHORE") return null;
-    console.log("Completing chore", payload.chore_id, message.callback_query.data)
+    // console.log("Completing chore", payload.chore_id, message.callback_query.data)
     const result = await db.ChoreComplete(payload.chore_id, payload.user_id);
     if (result == false) {
         return {
@@ -92,7 +92,7 @@ export async function HandleTelegramUpdateCallbackQuery(db: Database, message: T
             answer_callback = await HandleTelegramCompleteChore(db, message, payload);
         }
         if (answer_callback != null) {
-            console.error("HandleTelegramUpdateCallbackQuery", answer_callback);
+            // console.error("HandleTelegramUpdateCallbackQuery", answer_callback);
             await db.GetTelegram().answerCallbackQuery(answer_callback);
         }
     }
