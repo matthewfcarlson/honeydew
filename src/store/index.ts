@@ -4,7 +4,7 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { ChoreIdz, DbCardBoxRecipe, DbChore, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { ChoreIdz, DbCardBoxRecipe, DbChore, DbProject, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 
@@ -73,6 +73,12 @@ interface AugmentedDbChore extends DbChore {
     doneByName: string,
 }
 
+interface AugmentedDbProject extends DbProject {
+    total_subtasks: number,
+    ready_subtasks: number,
+    done_subtasks: number,
+}
+
 interface UserStoreState {
     _loggedIn: boolean;
     _currentChore: DbChore |null,
@@ -80,6 +86,7 @@ interface UserStoreState {
     _recipeFavs: DbCardBoxRecipe[],
     _recipeToTry: DbCardBoxRecipe[],
     _chores: AugmentedDbChore[],
+    _projects: AugmentedDbProject[],
 }
 
 export const useUserStore = defineStore("user", {
@@ -101,7 +108,8 @@ export const useUserStore = defineStore("user", {
             _user,
             _recipeFavs: [],
             _recipeToTry: [],
-            _chores: []
+            _chores: [],
+            _projects: [],
         }
         return state;
     },
@@ -148,6 +156,9 @@ export const useUserStore = defineStore("user", {
             const time = date.getTime(); // the timestamp, not necessarily using UTC as current time
             //return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
             return (time / 86400000) + 2440587.5;
+        },
+        projects: (state)=> {
+            return state._projects;
         }
     },
     actions: {
@@ -369,6 +380,36 @@ export const useUserStore = defineStore("user", {
             try {
                 const result = await client.chores.delete.query(id);
                 this.ChoreFetch(); // kick off a request to refresh this
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+
+        async ProjectsFetch() {
+            const projects = await QueryAPI(client.projects.get_projects.query);
+            if (projects.success && projects.data != null) {
+                const augmented_chores: AugmentedDbProject[] = projects.data.map((x)=> {
+                    return {
+                        total_subtasks: 5,
+                        done_subtasks: 1,
+                        ready_subtasks: 2,
+                        ...x
+                    }
+                })
+                this._projects = augmented_chores;
+            }
+        },
+
+        async ProjectAdd (name: string) {
+            try {
+                const result = await client.projects.add.query(name);
+                // TODO add the core to the list
+                this.ProjectsFetch(); // kick off a request to refresh this
                 return {
                     success: true,
                     data: result

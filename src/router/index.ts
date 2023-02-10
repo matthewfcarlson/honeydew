@@ -83,6 +83,14 @@ const routes = [
     }
   },
   {
+    path: "/projects/:id",
+    name: "projects Tasks",
+    component: () => import(/* webpackChunkName: "admin" */ '../views/TasksView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: '404',
     component: NotFoundView,

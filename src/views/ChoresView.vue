@@ -1,6 +1,7 @@
 <template>
   <div class="chores container">
     <div class="title is-4">Chores</div>
+    <div class="is-danger" v-if="error.length > 0">{{ error }}</div>
     <h2>Your Chores Per Day: {{ chores_per_day }}</h2>
     <progress class="progress" :class="your_chores_progress_status" :value="chores_per_day" max="1">{{
       chores_per_day

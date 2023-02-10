@@ -32,7 +32,7 @@ const Router = router({
     const projects = await db.ProjectsList(user.household);
     return projects;
   }),
-  new: protectedProcedure.input(DbProjectZRaw.shape.description).query( async (ctx) => {
+  add: protectedProcedure.input(DbProjectZRaw.shape.description).query( async (ctx) => {
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
     const description = ctx.input;

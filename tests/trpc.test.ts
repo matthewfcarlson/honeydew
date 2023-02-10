@@ -222,7 +222,7 @@ describe('project tests', () => {
         const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
         const caller = appRouter.createCaller(ctx);
 
-        expect(await caller.projects.new("Test Project")).toBe(true);
+        expect(await caller.projects.add("Test Project")).toBe(true);
     });
 });
 
