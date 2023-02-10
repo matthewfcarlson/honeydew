@@ -3,6 +3,7 @@ import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { ChoreIdz, RecipeIdZ, UserIdZ } from '../../db_types';
+import { getJulianDate } from '../../_utils';
 
 const Router = router({
   all: protectedProcedure.query(async (ctx) => {
@@ -20,7 +21,16 @@ const Router = router({
       })
     }
     const db = ctx.ctx.data.db;
-    return await db.ChoreGetAll(user.household);
+    const all_chores = await db.ChoreGetAll(user.household);
+    if (all_chores.length == 0) return [];
+    const timestamp = getJulianDate();
+    const sorted_chores = all_chores.sort((a,b)=> {
+      // how long has it been since it was last done
+      const a_score = Math.abs(a.lastDone - timestamp) / (a.frequency+1);
+      const b_score = Math.abs(b.lastDone - timestamp) / (b.frequency+1);
+      return b_score - a_score;
+    });
+    return sorted_chores;
   }),
   next: protectedProcedure.query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
