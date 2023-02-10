@@ -125,58 +125,11 @@ export function deleteCookie(response: Response, key: string) {
   response.headers.append("Set-Cookie", delCookie);
   response.headers.append("Set-Cookie", delHttpCookie);
 }
-const testChars = (str: string) => /^[a-f-0-9]+$/.test(str);
-export function ConvertToUUID(x: any): string {
-  if (typeof x === 'string' || x instanceof String) {
-    x = x.substring(0, 72).toLowerCase(); // make sure it's only 72 chars long
-    if (testChars(x) == false) return '';
-    return x;
-  }
-  return '';
-}
 
 export function ArrayBufferToHexString(buffer: ArrayBufferLike) {
   return [...new Uint8Array(buffer)]
     .map(x => x.toString(16).padStart(2, '0'))
     .join('');
-}
-
-/**
- * Convert a hex string to an ArrayBuffer.
- *
- * @param {string} hexString - hex representation of bytes
- * @return {ArrayBuffer} - The bytes in an ArrayBuffer.
- */
-export function hexStringToArrayBuffer(hexString: string) {
-  // remove the leading 0x
-  hexString = hexString.replace(/^0x/, '');
-
-  // ensure even number of characters
-  if (hexString.length % 2 != 0) {
-    console.warn('WARNING: expecting an even number of characters in the hexString');
-  }
-
-  // check for some non-hex characters
-  const bad = hexString.match(/[G-Z\s]/i);
-  if (bad) {
-    console.warn('WARNING: found non-hex characters', bad);
-  }
-
-  // split the string into pairs of octets
-  const pairs = hexString.match(/[\dA-F]{2}/gi);
-
-  if (pairs == null) {
-    return 0;
-  }
-
-  // convert the octets to integers
-  const integers = pairs.map(function (s: string) {
-    return parseInt(s, 16);
-  });
-
-  const array = new Uint8Array(integers);
-
-  return array.buffer;
 }
 
 export function getJulianDate(): number {

@@ -1,6 +1,6 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import { ConvertToUUID, deleteCookie, readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
+import { readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
 
 import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
 import Database from '../database/_db';
