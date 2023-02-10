@@ -129,7 +129,8 @@ const Router = router({
     }
     const input = ctx.input;
     const db = ctx.ctx.data.db;
-    const chore = await db.ChoreCreate(input.name, user.household, input.frequency);
+    const backdate = (input.frequency > 7) ? input.frequency / 2 : input.frequency;
+    const chore = await db.ChoreCreate(input.name, user.household, input.frequency, backdate, user.id);
     if (chore == null) throw new TRPCError({
       code: "NOT_FOUND",
       cause: "Chore was not found"

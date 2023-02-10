@@ -3,12 +3,12 @@
  */
 import { createInnerContext } from '../functions/api/context';
 import { appRouter } from '../functions/api/router';
-import { inferProcedureInput } from '@trpc/server';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { describe, expect, test } from '@jest/globals';
-import { DbUser } from 'functions/db_types';
-import { HoneydewPageData, HoneydewPageEnv } from 'functions/types';
+import { DbUser } from '../functions/db_types';
+import { HoneydewPageData, HoneydewPageEnv } from '../functions/types';
+import { getJulianDate } from '../functions/_utils';
 const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 function createDB() {
@@ -96,6 +96,24 @@ describe('household tests', () => {
         expect(caller.household.setAutoAssign(25)).rejects.toThrowError();
 
     });
+
+    test('you can generate invite link ', async () => {
+        const house = await db.HouseholdCreate("BOB'S HOUSE");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        expect(house.id.length).toBeGreaterThan(10);
+        // Act
+        const user = await db.UserCreate("BOBBY", house.id);
+        // Assert
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+
+        const caller = appRouter.createCaller(ctx);
+        const result = await caller.household.invite();
+        expect(result).toContain("auth/join/");
+        // TODO: decode the key?
+    });
 });
 
 describe('recipe tests', () => {
@@ -126,7 +144,7 @@ describe('recipe tests', () => {
 });
 
 describe('chore tests', () => {
-    test('you can add a chore', async () => {
+    test('you can add and assign a chore', async () => {
 
         const house = await db.HouseholdCreate("BOB'S HOUSE");
         expect(house).not.toBeNull();
@@ -175,6 +193,19 @@ describe('chore tests', () => {
         chores2 = await caller2.chores.all();
         expect(chores2).toHaveLength(1);
         expect(chores2[0].doneBy).toBe(user2.id);
+
+        // now complete the chore
+        const timestamp = getJulianDate();
+        expect(chores[0].lastDone).toBeLessThan(timestamp);
+        await caller.chores.complete(chores[0].id);
+        chores = await caller.chores.all();
+        expect(chores).toHaveLength(1);
+        expect(chores[0].lastDone).toBeGreaterThanOrEqual(timestamp);
+
+        // now try to delete the chore
+        await caller.chores.delete(chores[0].id);
+        chores = await caller.chores.all();
+        expect(chores).toHaveLength(0);
     });
 });
 

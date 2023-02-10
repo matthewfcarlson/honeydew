@@ -6,15 +6,6 @@ import type Database from '../../database/_db';
 import { TRPCError } from '@trpc/server';
 import { ArrayBufferToHexString } from '../../_utils';
 
-type ValidInvite = {
-  ok: true,
-  link: string
-}
-type InviteError = {
-  ok: false,
-  reason: string
-}
-
 const GenerateInviteLink = async function (db: Database, user: DbUser | null, url: URL, secret_key: string): Promise<string> {
   if (user == null) {
     throw new TRPCError({

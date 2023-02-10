@@ -620,6 +620,7 @@ export default class Database {
                 description,
             } as DbProjectRaw);
             await this._db.insertInto("projects").values(project).executeTakeFirstOrThrow();
+            
             return project;
         }
         catch (err) {
@@ -949,7 +950,7 @@ export default class Database {
         return id
     }
 
-    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1): Promise<DbChore | null> {
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1, user_id: UserId|null = null): Promise<DbChore | null> {
         try {
             const id = await this.ChoreGenerateUUID();
             if (id == null) {
@@ -968,6 +969,13 @@ export default class Database {
             };
             const chore = DbChoreZ.parse(chore_raw);
             await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
+            if (user_id != null){
+                const user = await this.UserGet(user_id);
+                if (user != null) {
+                    const message = `*${user.name}* just added a new chore: _${name}_ every _${frequency}_ days`;
+                    await this.HouseholdTelegramMessageAllMembers(household_id, message, true, user_id);
+                }
+            }
             return chore;
         }
         catch (err) {

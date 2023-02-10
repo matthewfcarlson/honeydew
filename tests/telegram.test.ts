@@ -124,7 +124,7 @@ describe('Telegram tests', () => {
 
     // Now create a chore
     expect(got_message).toBe(false);
-    await db.ChoreCreate("Break your bones", household.id, 1, 10);
+    await db.ChoreCreate("Break your bones", household.id, 1, 10, user.id);
     await db.ChoreGetNextChore(household.id, user.id, tuser_id);
 
     expect(got_message).toBe(true);
