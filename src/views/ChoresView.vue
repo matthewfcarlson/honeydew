@@ -118,7 +118,8 @@ export default defineComponent({
     },
     lastDoneToTime: function (currentDate: number, lastDone: number): string {
       const diff = currentDate - lastDone;
-      if (diff < 0) return "The Future?"
+      if (diff < -1) return "The Future?"
+      if (diff <= 0) return "Now"
       if (diff < (1/24)) return `${Math.floor(diff*24*60)} minutes ago`
       if (diff < 1) return `${Math.floor(diff*24)} hours ago`
       if (diff < 2) return "Yesterday"
