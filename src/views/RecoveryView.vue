@@ -51,24 +51,16 @@
         name: "",
         error: "",
         invite_data: new URLSearchParams(window.location.search).get('k') || '',
-        thinking: false,
         recovery_code: "",
       }
   
     },
     computed: {
-      ...mapState(useUserStore, ["isLoggedIn"])
+      ...mapState(useUserStore, ["isLoggedIn", "thinking"])
     },
     methods: {
       press_signup: async function () {
-        this.thinking = true;
-        this.error = "";
-        // const result = await this.signUp(this.name, this.invite_data);
-        // console.log(result);
-        // if (result.status == "error") {
-        //   this.error = result.message;
-        // }
-        this.thinking = false;
+        this.error = "NOT IMPLEMENTED YET";
       },
     }
   

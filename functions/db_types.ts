@@ -138,6 +138,11 @@ export const DbProjectZRaw = z.object({
 export const DbProjectZ = DbProjectZRaw.brand<"Project">();
 export type DbProjectRaw = z.infer<typeof DbProjectZRaw>;
 export type DbProject = z.infer<typeof DbProjectZ>;
+export interface AugmentedDbProject extends DbProject {
+    total_subtasks: number,
+    ready_subtasks: number,
+    done_subtasks: number,
+}
 
 
 export const DbTaskZRaw = z.object({

@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -166,7 +166,7 @@ export default class Database {
         return userId
     }
 
-    async UserCreate(name: string, household: HouseId): Promise<DbUser|null> {
+    async UserCreate(name: string, household: HouseId): Promise<DbUser | null> {
         const id = await this.UserGenerateUUID();
         if (id == null) {
             console.error("UserCreate", "We were not able to create a new user");
@@ -346,7 +346,7 @@ export default class Database {
         return results.data;
     }
 
-    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, use_markdown:boolean = false, exclude_user?:UserId) {
+    async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, use_markdown: boolean = false, exclude_user?: UserId) {
         try {
             const id = HouseIdZ.parse(raw_id);
             let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id);
@@ -360,9 +360,9 @@ export default class Database {
                 return true;
             }
             const telegram = this.GetTelegram();
-            const users = raw_results.map((x)=>x._chat_id).filter((x): x is number => x != null)
+            const users = raw_results.map((x) => x._chat_id).filter((x): x is number => x != null)
             // Send a message to the whole household
-            const parse_mode = (use_markdown) ? "MarkdownV2": undefined;
+            const parse_mode = (use_markdown) ? "MarkdownV2" : undefined;
             const promises = users.map((x) => telegram.sendTextMessage(x, message, undefined, undefined, parse_mode));
             await Promise.all(promises)
             return true;
@@ -462,11 +462,11 @@ export default class Database {
         }
     }
 
-    async HouseAutoAssignMarkAssigned(house_id: HouseId,timestamp: number | null = null): Promise<boolean> {
+    async HouseAutoAssignMarkAssigned(house_id: HouseId, timestamp: number | null = null): Promise<boolean> {
         try {
             const id = HouseIdZ.parse(house_id);
             if (timestamp == null) timestamp = getJulianDate() + 0.05 // ahead about an hour
-            await this._db.updateTable("houseautoassign").where("house_id", "==", house_id).set({choreLastAssignTime: timestamp}).execute();
+            await this._db.updateTable("houseautoassign").where("house_id", "==", house_id).set({ choreLastAssignTime: timestamp }).execute();
             return true;
         }
         catch (err) {
@@ -620,7 +620,7 @@ export default class Database {
                 description,
             } as DbProjectRaw);
             await this._db.insertInto("projects").values(project).executeTakeFirstOrThrow();
-            
+
             return project;
         }
         catch (err) {
@@ -651,6 +651,41 @@ export default class Database {
             results.push(result.data);
         });
         return results;
+    }
+    async ProjectsListAugmented(householdId: HouseId): Promise<AugmentedDbProject[] | null> {
+        try {
+            const household_id = HouseIdZ.parse(householdId);
+
+            // first get the list of all the projects
+            const projects = await this.ProjectsList(household_id);
+            if (projects == null) return null;
+            const augmented = projects.map(async (x): Promise<AugmentedDbProject> => {
+                const tasks = await this._db.selectFrom("tasks").where("project", "==", x.id).selectAll().execute();
+                const completed_task_ids = tasks.filter((x) => x.completed != null && x.completed > 0).map((x) => x.id);
+                const total_subtasks = tasks.length;
+                const ready_subtasks = tasks
+                    .filter((x) => x.completed == null || x.completed == 0)
+                    .filter((x) => {
+                        if (x.requirement1 == null && x.requirement2 == null) return true;
+                        if (x.requirement1 != null && completed_task_ids.includes(x.requirement1) == false) return false;
+                        if (x.requirement2 != null && completed_task_ids.includes(x.requirement2) == false) return false;
+                        return true;
+                    }).length;
+                const done_subtasks = completed_task_ids.length;
+                return {
+                    total_subtasks,
+                    ready_subtasks,
+                    done_subtasks,
+                    ...x
+                }
+            });
+            const results = await Promise.all(augmented);
+            return results;
+        }
+        catch (err) {
+            console.error("ProjectsListAugmented", err);
+            return null;
+        }
     }
     async TaskGenerateUUID(): Promise<null | TaskId> {
         let taskId: TaskId | null = null;
@@ -725,14 +760,35 @@ export default class Database {
         }
     }
 
-    async TaskMarkComplete(id: TaskId, raw_user:UserId): Promise<boolean> {
-        try{
+    async TaskGetAll(id: ProjectId): Promise<DbTask[]> {
+        try {
+            const project_id = ProjectIdZ.parse(id);
+            // return [];
+            const raw_results = await this._db.selectFrom("tasks").selectAll().where("project", "==", project_id).execute();
+            const results: DbTask[] = [];
+            // I tried this earlier with a map, filter, map and it didn't like it
+            // Perhaps figure out a way to standardize this?
+            raw_results.forEach((x) => {
+                const result = DbTaskZ.safeParse(x);
+                if (result.success == false) return;
+                results.push(result.data);
+            });
+            return results;
+        }
+        catch (err) {
+            console.error("TaskGetAll", err);
+            return [];
+        }
+    }
+
+    async TaskMarkComplete(id: TaskId, raw_user: UserId): Promise<boolean> {
+        try {
             if (await this.TaskExists(id) == false) return false;
             const user_id = UserIdZ.parse(raw_user);
             const timestamp = getJulianDate();
             const task = await this.TaskGet(id);
             if (task == null) return false;
-            let telegram_promise: Promise<any>|null = null;
+            let telegram_promise: Promise<any> | null = null;
             // Get user and make sure they're in the right household?
             const user = await this.UserGet(user_id);
             if (user == null) return false;
@@ -745,7 +801,7 @@ export default class Database {
             // TODO: update the leaderboard?
             const message = `*${user.name}* just completed _${task.description}_`;
             telegram_promise = this.HouseholdTelegramMessageAllMembers(task.household, message, true, user_id);
-            
+
             await this._db.updateTable("tasks").where("id", "==", id).set({ completed: timestamp }).execute();
             return true;
         }
@@ -950,7 +1006,7 @@ export default class Database {
         return id
     }
 
-    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1, user_id: UserId|null = null): Promise<DbChore | null> {
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1, user_id: UserId | null = null): Promise<DbChore | null> {
         try {
             const id = await this.ChoreGenerateUUID();
             if (id == null) {
@@ -969,7 +1025,7 @@ export default class Database {
             };
             const chore = DbChoreZ.parse(chore_raw);
             await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
-            if (user_id != null){
+            if (user_id != null) {
                 const user = await this.UserGet(user_id);
                 if (user != null) {
                     const message = `*${user.name}* just added a new chore: _${name}_ every _${frequency}_ days`;
@@ -985,13 +1041,13 @@ export default class Database {
     }
 
     async ChoreComplete(id: ChoreId, raw_user: UserId): Promise<boolean> {
-        try{
+        try {
             if (await this.ChoreExists(id) == false) return false;
             const user_id = UserIdZ.parse(raw_user);
             const timestamp = getJulianDate();
             const chore = await this.ChoreGet(id);
             if (chore == null) return false;
-            let telegram_promise: Promise<any>|null = null;
+            let telegram_promise: Promise<any> | null = null;
             // Get user and make sure they're in the right household?
             const user = await this.UserGet(user_id);
             if (user == null) return false;
@@ -1005,7 +1061,7 @@ export default class Database {
                 const message = `*${user.name}* just completed _${chore.name}_`;
                 telegram_promise = this.HouseholdTelegramMessageAllMembers(chore.household_id, message, true, user_id);
             }
-            
+
             await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: timestamp }).execute();
             return true;
         }
@@ -1086,7 +1142,7 @@ export default class Database {
         }
     }
 
-    private UserChoreCacheKVKeyGenerate(user_id:UserId) {
+    private UserChoreCacheKVKeyGenerate(user_id: UserId) {
         const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
         return kv_key;
     }
@@ -1116,7 +1172,7 @@ export default class Database {
         }
     }
 
-    // First check if we need to 
+    // First check if we need to
     async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id: UserId, telegram_id: string | number | null): Promise<DbChore | null> {
         try {
             // First validate user_id
@@ -1140,7 +1196,7 @@ export default class Database {
                 const text = `Hey, today your chore is: *${chore.name}*`
                 const payload: TelegramCallbackKVPayload = {
                     user_id,
-                    type:"COMPLETE_CHORE",
+                    type: "COMPLETE_CHORE",
                     chore_id: chore.id
                 }
                 const payload_key = await this.TelegramCallbackCreate(payload);
@@ -1148,7 +1204,7 @@ export default class Database {
                     promises.push(this.GetTelegram().sendTextMessage(telegram_id, text, undefined, undefined, "MarkdownV2"));
                 }
                 else {
-                    // TODO: add options for completing the task from 
+                    // TODO: add options for completing the task from
                     const keyboard: TelegramInlineKeyboardMarkup = {
                         inline_keyboard: [[
                             {
@@ -1159,7 +1215,7 @@ export default class Database {
                     };
                     promises.push(this.GetTelegram().sendTextMessage(telegram_id, text, undefined, keyboard, "MarkdownV2"));
                 }
-                
+
             }
             await Promise.all(promises);
             return chore;
@@ -1229,7 +1285,7 @@ export default class Database {
             const id = await this.TelegramCallbackGenerateUUID();
             if (id == null) return null;
             const payload = TelegramCallbackKVPayloadZ.parse(raw_payload);
-            await this.setKVRaw(id, payload, 60*60*24); // callbacks last for one day
+            await this.setKVRaw(id, payload, 60 * 60 * 24); // callbacks last for one day
             return id;
         }
         catch (err) {

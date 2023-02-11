@@ -4,7 +4,7 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { ChoreIdz, DbCardBoxRecipe, DbChore, DbProject, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbProject, DbTask, ProjectId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 
@@ -56,37 +56,20 @@ function handleError(err: unknown): APIResultError {
     }
 }
 
-async function QueryAPI<R>(query: Query<R>): APIResult<R> {
-    try {
-        const result = await query();
-        return {
-            success: true,
-            data: result
-        }
-    }
-    catch (err) {
-        return handleError(err);
-    }
-}
-
 interface AugmentedDbChore extends DbChore {
     doneByName: string,
 }
 
-interface AugmentedDbProject extends DbProject {
-    total_subtasks: number,
-    ready_subtasks: number,
-    done_subtasks: number,
-}
-
 interface UserStoreState {
     _loggedIn: boolean;
-    _currentChore: DbChore |null,
+    _currentChore: DbChore | null;
     _user: null | AuthCheck;
-    _recipeFavs: DbCardBoxRecipe[],
-    _recipeToTry: DbCardBoxRecipe[],
-    _chores: AugmentedDbChore[],
-    _projects: AugmentedDbProject[],
+    _recipeFavs: DbCardBoxRecipe[];
+    _recipeToTry: DbCardBoxRecipe[];
+    _chores: AugmentedDbChore[];
+    _projects: AugmentedDbProject[];
+    _thinking: boolean;
+    _tasks: DbTask[];
 }
 
 export const useUserStore = defineStore("user", {
@@ -110,6 +93,8 @@ export const useUserStore = defineStore("user", {
             _recipeToTry: [],
             _chores: [],
             _projects: [],
+            _thinking: false,
+            _tasks: [],
         }
         return state;
     },
@@ -125,6 +110,9 @@ export const useUserStore = defineStore("user", {
             if (!state._loggedIn) return null;
             if (state._user == null) return null;
             return state._user.household;
+        },
+        thinking: (state) => {
+            return state._thinking;
         },
         userIconColor: (state) => {
             if (!state._loggedIn) return null;
@@ -145,27 +133,30 @@ export const useUserStore = defineStore("user", {
         chores: (state) => {
             return state._chores
         },
-        mealPlan: (state)=> {
+        mealPlan: (state) => {
             return []
         },
-        currentChore: (state)=>{
+        currentChore: (state) => {
             return state._currentChore
         },
-        currentDate: (state)=> {
+        currentDate: (state) => {
             const date = new Date();
             const time = date.getTime(); // the timestamp, not necessarily using UTC as current time
             //return Math.floor((time / 86400000) - (date.getTimezoneOffset()/1440) + 2440587.5);
             return (time / 86400000) + 2440587.5;
         },
-        projects: (state)=> {
+        projects: (state) => {
             return state._projects;
+        },
+        tasks: (state) => {
+            return state._tasks;
         }
     },
     actions: {
-        getUserName(id:string, myself:boolean = false): string {
+        getUserName(id: string, myself: boolean = false): string {
             if (myself && this._user != null && this._user.id == id) return "Myself";
             if (this.household == null) return id;
-            const members = this.household.members.filter((x)=>x.userid == id);
+            const members = this.household.members.filter((x) => x.userid == id);
             if (members.length == 0) return id;
             return members[0].name;
             return id;
@@ -176,17 +167,34 @@ export const useUserStore = defineStore("user", {
                 success: true,
                 data: this._user
             }
-            const result = await QueryAPI(client.me.get.query);
+            this._thinking = true;
+            const result = await this.QueryAPI(client.me.get.query);
+            this._thinking = false;
             if (!result.success) return result;
             // Idk why the type inference is saying this is never[]
             this._user = result.data;
             return result;
         },
+        async QueryAPI<R>(query: Query<R>): APIResult<R> {
+            try {
+                this._thinking = true;
+                const result = await query();
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
         async getInviteLink(): APIResult<string> {
-            return await QueryAPI(client.household.invite.query);
+            return await this.QueryAPI(client.household.invite.query);
         },
         async getMagicLink(): APIResult<string> {
-            return await QueryAPI(client.me.magic_link.query);
+            return await this.QueryAPI(client.me.magic_link.query);
         },
         async signOut(): APIResult<string> {
             try {
@@ -204,8 +212,7 @@ export const useUserStore = defineStore("user", {
                 }
             }
         },
-
-        async HouseholdSetSyncTime(hour:number){
+        async HouseholdSetSyncTime(hour: number) {
             try {
                 const result = await client.household.setAutoAssign.query(hour);
                 return {
@@ -218,64 +225,72 @@ export const useUserStore = defineStore("user", {
             }
         },
         async RecipeFetch() {
-            const favs = await QueryAPI(client.recipes.favorites.query);
+            const favs = await this.QueryAPI(client.recipes.favorites.query);
             if (favs.success) {
                 this._recipeFavs = favs.data;
             }
-            const toTry = await QueryAPI(client.recipes.toTry.query);
+            const toTry = await this.QueryAPI(client.recipes.toTry.query);
             if (toTry.success) {
                 this._recipeToTry = toTry.data;
             }
-            console.log(favs, toTry);
         },
         async RecipeAdd(url: string): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const result = await client.recipes.add.query(url);
                 this.RecipeFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         async RecipeFavorite(id: string, favored: boolean): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const recipe_id = RecipeIdZ.parse(id);
-                if (favored){
+                if (favored) {
                     // First remove it from to try
-                    const index = this.recipes.toTry.findIndex((x)=>x.recipe_id == recipe_id);
+                    const index = this.recipes.toTry.findIndex((x) => x.recipe_id == recipe_id);
                     if (index != -1) this.recipes.toTry.splice(index, 1);
                 }
                 else {
                     // First remove it from favorites
-                    const index = this.recipes.favorites.findIndex((x)=>x.recipe_id == recipe_id);
+                    const index = this.recipes.favorites.findIndex((x) => x.recipe_id == recipe_id);
                     if (index != -1) this.recipes.favorites.splice(index, 1);
                 }
                 const result = await client.recipes.mark_favored.query({ recipe_id, favored });
                 this.RecipeFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         async RecipeRemove(id: string): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.remove.query(recipe_id);
                 this.RecipeFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
@@ -284,43 +299,47 @@ export const useUserStore = defineStore("user", {
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.mark_meal_prep.query({ recipe_id, prepared });
                 this.RecipeFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         async RecipeMealPlan(): APIResult<any[]> {
-            return QueryAPI(client.recipes.create_meal_plan.query);
+            return this.QueryAPI(client.recipes.create_meal_plan.query);
         },
         async MealPlanFetch(): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const result = await client.recipes.meal_plan.query();
-                console.log(result);
+                this._thinking = false;
                 return {
                     success: true,
                     data: true
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         // Chores TODO: move to separate store module
         async ChoreFetch() {
-            const current_chore = await QueryAPI(client.chores.next.query);
+            const current_chore = await this.QueryAPI(client.chores.next.query);
             if (current_chore.success) {
                 this._currentChore = current_chore.data;
                 console.log("New current chore", current_chore.data);
             }
-            const chores = await QueryAPI(client.chores.all.query);
+            const chores = await this.QueryAPI(client.chores.all.query);
             if (chores.success) {
-                const augmented_chores = chores.data.map((x)=> {
+                const augmented_chores = chores.data.map((x) => {
                     return {
-                        doneByName: x.doneBy == null ? "Anyone": this.getUserName(x.doneBy),
+                        doneByName: x.doneBy == null ? "Anyone" : this.getUserName(x.doneBy),
                         ...x
                     }
                 })
@@ -329,94 +348,153 @@ export const useUserStore = defineStore("user", {
         },
         async ChoreAdd(name: string, frequency: number): APIResult<boolean> {
             try {
-                const result = await client.chores.add.query({name, frequency});
+                this._thinking = true;
+                const result = await client.chores.add.query({ name, frequency });
                 // TODO add the core to the list
                 this.ChoreFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
-        async ChoreAssign(chore_id_str: string, assignee_id_str: string|null): APIResult<boolean> {
+        async ChoreAssign(chore_id_str: string, assignee_id_str: string | null): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const chore_id = ChoreIdz.parse(chore_id_str);
                 const assignee_id = UserIdZ.nullable().parse(assignee_id_str);
-                const result = await client.chores.assignTo.query({raw_choreid:chore_id, raw_assigneeid:assignee_id});
+                const result = await client.chores.assignTo.query({ raw_choreid: chore_id, raw_assigneeid: assignee_id });
                 // TODO assign the chore right now
                 this.ChoreFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         async ChoreComplete(id: string): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const result = await client.chores.complete.query(id);
                 this.ChoreFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
         async ChoreGetAnother() {
-            const result = await QueryAPI(client.chores.another.query);
+            const result = await this.QueryAPI(client.chores.another.query);
             this._currentChore = null;
             this.ChoreFetch();
             return result;
         },
         async ChoreDelete(id: string): APIResult<boolean> {
             try {
+                this._thinking = true;
                 const result = await client.chores.delete.query(id);
                 this.ChoreFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
             }
         },
 
         async ProjectsFetch() {
-            const projects = await QueryAPI(client.projects.get_projects.query);
-            if (projects.success && projects.data != null) {
-                const augmented_chores: AugmentedDbProject[] = projects.data.map((x)=> {
-                    return {
-                        total_subtasks: 5,
-                        done_subtasks: 1,
-                        ready_subtasks: 2,
-                        ...x
-                    }
-                })
-                this._projects = augmented_chores;
+            try {
+                this._thinking = true;
+                const result = await client.projects.get_projects.query();
+                if (result != null) this._projects = result;
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: true
+                }
             }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+
         },
 
-        async ProjectAdd (name: string) {
+        async ProjectAdd(name: string) {
             try {
+                this._thinking = true;
                 const result = await client.projects.add.query(name);
                 // TODO add the core to the list
                 this.ProjectsFetch(); // kick off a request to refresh this
+                this._thinking = false;
                 return {
                     success: true,
                     data: result
                 }
             }
             catch (err) {
+                this._thinking = false;
                 return handleError(err);
+            }
+        },
+
+        async TaskAdd(description: string, project: ProjectId) {
+            try {
+                this._thinking = true;
+                const result = await client.projects.add_task.query({
+                    description,
+                    project
+                });
+                this.ProjectsFetch(); // kick off a request to refresh this
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+
+        async TasksFetch(project_id: ProjectId|null) {
+            console.log("TASKS FETCH", project_id);
+            if (project_id == null) {
+                this._tasks = [];
+                return;
+            }
+            try {
+                this._thinking = true;
+                const result = await client.projects.get_tasks.query(project_id);
+                if (result != null) this._tasks = result;
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: true
+                }
+            }
+            catch (err) {
+                this._thinking = false;
             }
         },
 

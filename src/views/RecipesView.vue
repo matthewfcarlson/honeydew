@@ -67,7 +67,6 @@ export default defineComponent({
     return {
       recipe_link: "",
       error: "",
-      thinking: false,
     }
 
   },
@@ -75,14 +74,13 @@ export default defineComponent({
     RecipePanelComponent
   },
   computed: {
-    ...mapState(useUserStore, ["userName", "recipes", "mealPlan"])
+    ...mapState(useUserStore, ["userName", "recipes", "mealPlan", "thinking"])
   },
   mounted: function () {
     useUserStore().RecipeFetch();
   },
   methods: {
     add_recipe: async function () {
-      this.thinking = true;
       const status = await useUserStore().RecipeAdd(this.recipe_link);
       if (status.success == true) {
         this.recipe_link = "";
@@ -90,10 +88,8 @@ export default defineComponent({
       else {
         this.error = status.message;
       }
-      this.thinking = false;
     },
     generate_meal_plan: async function () {
-      this.thinking=true;
       const status = await useUserStore().RecipeMealPlan();
       if (status.success == true) {
         console.log(status.data);
@@ -101,8 +97,6 @@ export default defineComponent({
       else {
         this.error = status.message;
       }
-      this.thinking = false;
-
     }
   }
 });

@@ -5,14 +5,17 @@
     <a class="box" v-if="projects.length == 0">
       You don't have any chores yet
     </a>
-    <router-link class="box" v-for="project in projects" :key="project.id" :to="'/projects/'+project.id">
+    <router-link class="box" v-for="project in projects" :key="project.id" :to="'/projects/' + project.id">
       <ChoreIconComponent :chore_name="project.description" />
       <span class="title is-5">{{ project.description }}</span>
-      <progress class="progress" :value="project.total_subtasks-project.done_subtasks" :max="project.total_subtasks">{{
-        project.total_subtasks-project.done_subtasks
-      }}%</progress>
+      <div v-if="project.total_subtasks > 0">
+        <progress class="progress" :value="project.total_subtasks - project.done_subtasks"
+          :max="project.total_subtasks">{{
+            project.total_subtasks - project.done_subtasks
+          }}%</progress>
+      </div>
       {{ project.ready_subtasks }} ready tasks |
-      {{ project.total_subtasks-project.done_subtasks }} tasks left |
+      {{ project.total_subtasks - project.done_subtasks }} tasks left |
       {{ project.total_subtasks }} total tasks
     </router-link>
     <div class="box">
@@ -47,6 +50,7 @@ export default defineComponent({
   },
   mounted: function () {
     useUserStore().ProjectsFetch();
+    useUserStore().TasksFetch(null);
   },
   methods: {
     add_project: async function () {

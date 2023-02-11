@@ -1,5 +1,5 @@
 <template>
-    <span class="icon is-large" :style="{height: height}">
+    <span :class="{icon:is_icon, 'is-large': is_icon}" :style="{height: height}">
         <span class="fa-stack fa-lg">
             <i :style=styles class="fas fa-circle fa-stack-2x"></i>
             <i :class=classes></i>
@@ -58,6 +58,10 @@ export default defineComponent({
         height: {
             type: String,
             default: "2.5em",
+        },
+        is_icon: {
+            type: Boolean, 
+            default: true,
         }
     },
     computed: {

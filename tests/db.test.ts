@@ -253,7 +253,7 @@ describe('House auto assign tests', () => {
     expect(await db.HouseAutoAssignGetHour(house.id)).toBe(hour);
     // then check to make sure it is ready
     {
-      expect((await db.HouseAutoAssignGetHousesReadyForHour(hour+1))).toHaveLength(0)
+      expect((await db.HouseAutoAssignGetHousesReadyForHour(hour + 1))).toHaveLength(0)
       const houses = await db.HouseAutoAssignGetHousesReadyForHour(hour);
       expect(houses).toHaveLength(1);
       expect(houses[0]).toBe(house.id);
@@ -336,6 +336,55 @@ describe('Project tests', () => {
     // Assert
     project_list = await db.ProjectsList(house_id);
     expect(project_list).toHaveLength(0);
+  });
+
+  it('can list projects with tasks', async () => {
+    // Arrange
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Act - add a project and two tasks
+    const project1 = await db.ProjectCreate("Master Closet", house_id);
+    expect(project1).not.toBeNull();
+    if (project1 == null) return;
+    
+    let project_list = await db.ProjectsListAugmented(house_id);
+    expect(project_list).toHaveLength(1);
+    if (project_list == null) return;
+    expect(project_list[0].total_subtasks).toBe(0);
+    
+    const task1 = await db.TaskCreate("closet tape", user_id, house_id, project1.id);
+    expect(task1).not.toBeNull();
+    if (task1 == null) return;
+
+    const task2 = await db.TaskCreate("closet paint", user_id, house_id, project1.id, task1.id);
+    expect(task2).not.toBeNull(); // this task should be blocked
+    if (task2 == null) return;
+
+    const task3 = await db.TaskCreate("earlier work", user_id, house_id, project1.id);
+    expect(task3).not.toBeNull();
+    if (task3 == null) return;
+    expect(await db.TaskMarkComplete(task3.id, user_id)).toBe(true);
+
+    const task4 = await db.TaskCreate("later work", user_id, house_id, project1.id, task3.id);
+    expect(task4).not.toBeNull();
+    if (task3 == null) return;
+
+    // Assert
+    project_list = await db.ProjectsListAugmented(house_id);
+    expect(project_list).toHaveLength(1);
+    if (project_list == null) return;
+    expect(project_list[0].total_subtasks).toBe(4);
+    expect(project_list[0].ready_subtasks).toBe(2);
+    expect(project_list[0].done_subtasks).toBe(1);
+
+    const task_list = await db.TaskGetAll(project1.id);
+    expect(task_list).toHaveLength(4);
   });
 
   it('UUIDs should be unique', async () => {

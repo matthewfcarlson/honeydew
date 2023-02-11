@@ -82,7 +82,6 @@ export default defineComponent({
       name: "",
       error: "",
       invite_data: new URLSearchParams(window.location.search).get('k') || '',
-      thinking: false,
       recovery_code: "",
       turnstile_sitekey: "0x4AAAAAAABtOYbnvjMckFhC",
       turnstile_response: '',
@@ -90,7 +89,7 @@ export default defineComponent({
 
   },
   computed: {
-    ...mapState(useUserStore, ["isLoggedIn", "userName"])
+    ...mapState(useUserStore, ["isLoggedIn", "userName", "thinking"])
   },
   methods: {
     ...mapActions(useUserStore, ["signUp"]),
@@ -110,7 +109,6 @@ export default defineComponent({
         this.error="Unable to find form";
         return;
       }
-      this.thinking = true;
       this.error = "";
       const result = await this.signUp(this.name, this.invite_data, this.turnstile_response);
       if (result.success) {
@@ -119,7 +117,6 @@ export default defineComponent({
       else {
         this.error = result.message;
       }
-      this.thinking = false;
     },
   }
 

@@ -22,12 +22,22 @@ describe('utils tests', () => {
     });
 
     test('cookies', async () => {
-
         const default_response = Utils.ResponseJsonOk();
         Utils.setCookie(default_response, "TEST", "KEY");
         expect(default_response.headers.get("Set-Cookie")).toContain("TEST");
         Utils.deleteCookie(default_response, "TEST");
         expect(default_response.headers.get("Set-Cookie")).toContain("TEST=deleted");
+    });
+
+    test('request json', async () => {
+        const request: Request = new Request("http://localhost", {
+            method: "POST",
+            // body: new FormData(),
+            // headers: {"content-type": "form"}
+        });
+
+        const data = Utils.readRequestBody(request);
+        expect(data).not.toBeNull();
     });
 
     test('date', async () => {
@@ -44,5 +54,7 @@ describe('utils tests', () => {
         expect(Utils.parseUnstructuredTimeToMinutes("43 minutes")).toBe(43)
         expect(Utils.parseUnstructuredTimeToMinutes("43 minutes, plus 10 minutes for dancing")).toBe(53)
         expect(Utils.parseUnstructuredTimeToMinutes("3 to 4 hours")).toBe(4*60)
+        expect(Utils.parseUnstructuredTimeToMinutes("3 to 4 hours on low")).toBe(4*60)
+        expect(()=>{Utils.parseUnstructuredTimeToMinutes("not a real thing")}).toThrow();
     });
 });
