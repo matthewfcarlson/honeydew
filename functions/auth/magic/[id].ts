@@ -9,6 +9,7 @@ import { DbMagicKeyZ } from "../../db_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
+    console.error('[MagicKey]', context.request.headers)
     if (id == null || id == undefined) return ResponseJsonMissingData();
     if (context.data.userid != null) {
         return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k=" + id)
@@ -20,6 +21,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         console.error("AUTH/JOIN/[id]", "auth/join ID IS ARRAY", id);
         return ResponseRedirect(context.request, "/error?msg=MAGICKEY_NOT_FOUND");
     }
+
 
     // TODO: sanitize the database
     const magic_key_raw = DbMagicKeyZ.safeParse(id);
