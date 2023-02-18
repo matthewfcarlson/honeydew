@@ -15,7 +15,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k=" + id)
     }
     if (user_agent.startsWith("Telegram")) {
-        return ResponseRedirect(context.request, "/error?MSG=TELEGRAM_CRAWLER");
+        return ResponseRedirect(context.request, "/error?msg=TELEGRAM_CRAWLER");
     }
     const db = context.data.db as Database;
     const user = context.data.user
