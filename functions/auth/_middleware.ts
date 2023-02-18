@@ -147,7 +147,7 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
   }
   finally {
     const delta = (Date.now() - context.data.timestamp).toString();
-    console.error(`Response for ${context.request.url.toString()} took ${delta} ms`)
+    console.error(`${context.request.url} took ${delta} ms`)
     res!.headers.set('x-response-timing', delta);
   }
   return res;
