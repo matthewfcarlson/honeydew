@@ -9,23 +9,28 @@ import { DbMagicKeyZ } from "../../db_types";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
-    console.error('MagicKey', context.request.headers.get('user-agent'))
+    const user_agent = context.request.headers.get('user-agent') || '';
     if (id == null || id == undefined) return ResponseJsonMissingData();
     if (context.data.userid != null) {
         return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k=" + id)
+    }
+    if (user_agent.startsWith("Telegram")) {
+        return ResponseRedirect(context.request, "/error?MSG=TELEGRAM_CRAWLER");
     }
     const db = context.data.db as Database;
     const user = context.data.user
     if (user != null) return ResponseJsonNotFound();
     if (Array.isArray(id)) {
         console.error("AUTH/JOIN/[id]", "auth/join ID IS ARRAY", id);
-        return ResponseRedirect(context.request, "/error?msg=MAGICKEY_NOT_FOUND");
+        return ResponseRedirect(context.request, "/error?msg=MAGICKEY_INVALID");
     }
 
     // TODO: sanitize the database
     const magic_key_raw = DbMagicKeyZ.safeParse(id);
-    if (magic_key_raw.success == false) return ResponseRedirect(context.request, "/error?msg=MAGICKEY_NOT_FOUND");
+    if (magic_key_raw.success == false) return ResponseRedirect(context.request, "/error?msg=MAGICKEY_INVALID");
     const magic_key = magic_key_raw.data;
+
+    console.error("MagicKey", magic_key_raw, user_agent);
 
     if (await db.UserMagicKeyExists(magic_key) == false) {
         return ResponseRedirect(context.request, "/error?msg=MAGICKEY_NOT_FOUND");
