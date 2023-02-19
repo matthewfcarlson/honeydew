@@ -86,6 +86,7 @@ describe('User tests', () => {
     let newHouse = await db.HouseholdCreate("New House");
     expect(newHouse).not.toBeNull();
     if (newHouse == null) return;
+    expect(newHouse.members).toHaveLength(0);
 
     // Act
     // Assert
@@ -98,9 +99,20 @@ describe('User tests', () => {
     newHouse = await db.HouseholdGet(newHouse.id);
     expect(newHouse).not.toBeNull();
     if (newHouse == null) return;
+    expect(newHouse.members).toHaveLength(1);
+
+    const extendedHouse = await db.HouseholdGetExtended(newHouse.id);
+    expect(extendedHouse).not.toBeNull();
+    if (extendedHouse == null) return;
+    expect(extendedHouse.members).toHaveLength(1);
 
     // Reassign back to the new house
     expect(await db.UserSetHousehold(user.id, house.id)).toBe(true);
+
+    newHouse = await db.HouseholdGet(newHouse.id);
+    expect(newHouse).not.toBeNull();
+    if (newHouse == null) return;
+    expect(newHouse.members).toHaveLength(0);
 
   });
 

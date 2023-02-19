@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -62,6 +62,31 @@ export default class Database {
         return this._t;
     }
 
+    public async CacheSet(id:CacheIds, data:any) {
+        await this.setKVRaw(id, data)
+    }
+
+    public async CacheGet(id:CacheIds) {
+        return await this.queryKVJson(id);
+    }
+    public async CacheInvalidate(id:CacheIds) {
+        const user_id = UserIdZ.safeParse(id);
+        if (user_id.success) {
+            const user = await this.CacheGet(user_id.data);
+            const parsed_user = DbUserZ.safeParse(user);
+            // if we invalidate a user, also invalidate the household
+            if (parsed_user.success) {
+                await this.CacheInvalidate(parsed_user.data.household);
+            }
+        }
+        const house_id = HouseIdZ.safeParse(id);
+        if (house_id.success) {
+            // if we invalidate the household, also invalidate the extended household
+            await this.deleteKey(HouseExtendedKVIdFromHouseId(house_id.data));
+        }
+        return await this.deleteKey(id);
+    }
+
     private async migrateDatabase(version: number) {
         const migration_lock = await this._kv.get("SQLDB_MIGRATIONLOCK");
         if (migration_lock != null) {
@@ -115,8 +140,8 @@ export default class Database {
     }
     private async setKVRaw(k: KVIds, v: object, expirationTtl: number | null = null) {
         if (expirationTtl == null) await this._kv.put(k, JSON.stringify(v), { expirationTtl: 60 * 60 * 6 }); // all keys created expire in 6 hours
-        else if (expirationTtl == 0) await this._kv.put(k, JSON.stringify(v)); // all keys created expire in 6 hours
-        else await this._kv.put(k, JSON.stringify(v), { expirationTtl }); // all keys created expire in 6 hours
+        else if (expirationTtl == 0) await this._kv.put(k, JSON.stringify(v)); // never expire
+        else await this._kv.put(k, JSON.stringify(v), { expirationTtl }); // expire at the specified time
     }
 
     private async deleteKey(key: KVIds) {
@@ -127,10 +152,16 @@ export default class Database {
         try {
             const user_id = UserIdZ.safeParse(id);
             if (user_id.success == false) return null;
-            // TODO: cache the user?
+            // Check the cache
+            const cached_result = await this.CacheGet(id);
+            if (cached_result != null) {
+                const cached_user = DbUserZ.safeParse(cached_result);
+                if (cached_user.success) return cached_user.data;
+            }
             const raw = await this._db.selectFrom("users").selectAll().where("id", "==", id).executeTakeFirstOrThrow();
             const results = DbUserZ.safeParse(raw);
             if (results.success == false) return null;
+            await this.CacheSet(id, results.data);
             return results.data;
         }
         catch (err) {
@@ -208,10 +239,13 @@ export default class Database {
             console.error("UserSetHousehold", "household requested doesn't exist", household_id);
             return false;
         }
+        await this.CacheInvalidate(user.household);
 
         await this._db.updateTable("users").where("id", "==", user_id).set({
             household: household_id
         }).execute();
+        // Invalidate the user and the household, household is included
+        await this.CacheInvalidate(user_id);
 
         return true;
     }
@@ -263,7 +297,7 @@ export default class Database {
         return key;
     }
 
-    UserMagicKeyGetId(magic_key: DbMagicKey): MagicKVKey | null {
+    private UserMagicKeyGetId(magic_key: DbMagicKey): MagicKVKey | null {
         const attempted_id = MagicKVKeyZ.safeParse("MK:" + magic_key);
         if (attempted_id.success == false) return null;
         return attempted_id.data;
@@ -327,8 +361,13 @@ export default class Database {
 
     async HouseholdGet(id: HouseId) {
         const household_id = HouseIdZ.safeParse(id);
-        // TODO: cache the household?
+        // Check cache
         if (household_id.success == false) return null;
+        const raw_cache = await this.CacheGet(id);
+        if (raw_cache != null) {
+            const cached_household = DbHouseholdZ.safeParse(raw_cache);
+            if (cached_household.success) return cached_household.data;
+        }
         const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
         // TODO use a join to get what I want from the DB?
         if (sql_data == undefined) return null;
@@ -343,6 +382,7 @@ export default class Database {
             console.error("HouseholdGet", `Malformed data in database for {id}`);
             return null;
         }
+        await this.CacheSet(id, results.data);
         return results.data;
     }
 
@@ -387,7 +427,7 @@ export default class Database {
                 ...sql_house,
                 members: []
             } as DbHouseholdRaw);
-
+            await this.CacheInvalidate(id);
             await this._db.insertInto("households").values(sql_house).executeTakeFirstOrThrow();
             return house;
         }
@@ -437,6 +477,7 @@ export default class Database {
                 // otherwise modify the existing one
                 await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreAssignHour: hour }).executeTakeFirstOrThrow();
             }
+            await this.CacheInvalidate(id);
             return true
         }
         catch (err) {
@@ -1302,6 +1343,55 @@ export default class Database {
         }
         catch (err) {
             console.error("TelegramCallbackConsume", err);
+            return null;
+        }
+    }
+
+    async HouseholdGetExtended(house_id: HouseId): Promise<DbHouseholdExtended|null> {
+        try {
+            const id = HouseIdZ.parse(house_id);
+            // check for cached data
+            const cache_key = HouseExtendedKVIdFromHouseId(id);
+            const raw_cache = await this.CacheGet(cache_key);
+            if (raw_cache != null) {
+                const raw_results = DbHouseholdExtendedZ.safeParse(raw_cache);
+                if (raw_results.success) return raw_results.data;
+            }
+            const sql_household = await this._db.selectFrom("households").select("name").where("id", "==", id).executeTakeFirstOrThrow();
+            // next we need to query the database
+            const members:DbHouseholdExtendedMemberRaw[] = [];
+            const sql_members = await this._db.selectFrom("users").selectAll().where("household", "==", id).execute();
+            const self = this;
+            const process_promise = sql_members.map(async (x)=>{
+                const current_chore = await self.ChoreGetCurrentChore(x.id);
+                const member: DbHouseholdExtendedMemberRaw = {
+                    ...x,
+                    userid: x.id,
+                    current_chore,
+                }
+                const valid_member = DbHouseholdExtendedMemberRawZ.safeParse(member);
+                if (valid_member.success) members.push(valid_member.data);
+                else console.error("HouseholdGetExtended", x, valid_member.error)
+                
+            });
+            await Promise.all(process_promise);
+            if (sql_members.length != members.length) {
+                console.error("HouseholdGetExtended", "failed to parse of the household members");
+                return null;
+            }
+
+            const extended_household: DbHouseholdExtendedRaw = {
+                id: id,
+                name: sql_household.name,
+                members,
+                current_task: null
+            }
+            const result = DbHouseholdExtendedZ.parse(extended_household);
+            await this.CacheSet(cache_key, result);
+            return result;
+        }
+        catch (err) {
+            console.error("HouseholdGetExtended", err);
             return null;
         }
     }

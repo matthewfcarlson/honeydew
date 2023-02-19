@@ -63,6 +63,7 @@ interface AugmentedDbChore extends DbChore {
 interface UserStoreState {
     _loggedIn: boolean;
     _currentChore: DbChore | null;
+    _currentTask: DbTask | null;
     _user: null | AuthCheck;
     _recipeFavs: DbCardBoxRecipe[];
     _recipeToTry: DbCardBoxRecipe[];
@@ -76,18 +77,22 @@ export const useUserStore = defineStore("user", {
     state: () => {
         let _user = null;
         let _currentChore = null;
+        let _currentTask = null;
         if ((window as any).user_data != undefined) {
             const raw_data = (window as any).user_data;
             const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
             if (user_data.success) {
                 _user = user_data.data;
-                _currentChore = user_data.data.currentChore
+                const current_user_member = _user.household.members.filter((x)=>x.userid == user_data.data.id);
+                _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null,
+                _currentTask = user_data.data.household.current_task;
             }
             else console.error("Failed to parse: ", raw_data, user_data.error);
         }
         const state: UserStoreState = {
             _loggedIn: (window as any).logged_in || false,
             _currentChore,
+            _currentTask,
             _user,
             _recipeFavs: [],
             _recipeToTry: [],

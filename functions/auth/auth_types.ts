@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DbChoreZ, HouseIdZ, UserIdZ } from "../db_types";
+import { DbHouseholdExtendedZ, DbTaskZ, HouseIdZ, UserIdZ } from "../db_types";
 
 // TODO: move over to the database types
 
@@ -19,29 +19,14 @@ export const AuthSignupRequestZ = z.object({
 }).strict()
 export type AuthSignupRequest = z.infer<typeof AuthSignupRequestZ>;
 
-export const AuthHouseholdMemberZ = z.object({
-    name: z.string().min(2),
-    userid: UserIdZ,
-    color: z.string().min(7),
-    icon: z.string(),
-}).strict();
-export type AuthHouseholdMember = z.infer<typeof AuthHouseholdMemberZ>;
-
-export const AuthHouseholdZ = z.object({
-    id: HouseIdZ,
-    name: z.string().min(2).max(40),
-    members: z.array(AuthHouseholdMemberZ)
-}).strict();
-export type AuthHousehold = z.infer<typeof AuthHouseholdZ>;
 
 export const AuthCheckZ = z.object({
     name: z.string().min(2).max(30),
-    household: AuthHouseholdZ,
+    household: DbHouseholdExtendedZ,
     id: UserIdZ,
     task: z.any(),
     color: z.string().min(7),
     icon: z.string(),
-    currentChore: DbChoreZ.nullable()
 }).strict()
 export type AuthCheck = z.infer<typeof AuthCheckZ>;
 

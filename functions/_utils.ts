@@ -33,6 +33,7 @@ export const ResponseJsonNotFound = (): Response => {
 
 export const ResponseJsonServerError = (data:unknown): Response => {
   const status = 500;
+  console.error("SERVER ERROR", data);
   return new Response(JSON.stringify({
     message: "Server Error",
     data,

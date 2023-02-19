@@ -21,6 +21,16 @@ export const HouseIdZ = z.string({
 }).length(38).startsWith("H:", { message: "Must start with H:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"HouseId">()
 export type HouseId = z.infer<typeof HouseIdZ>;
 
+export const HouseExtendedKVIdZ = z.string({
+    required_error: "HouseExtendedId is required",
+    invalid_type_error: "HouseExtendedId must start with E:H:"
+}).length(40).startsWith("E:H:", { message: "Must start with E:H:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"HouseExtendedKVId">()
+export type HouseExtendedKVId = z.infer<typeof HouseExtendedKVIdZ>;
+
+export const HouseExtendedKVIdFromHouseId = (id:HouseId): HouseExtendedKVId => {
+    return HouseExtendedKVIdZ.parse("E:"+id);
+}
+
 export const HouseKeyKVKeyZ = z.string().length(39).startsWith("HK:", { message: "Must start with HK:" }).refine(endsWithUuid).brand<"HouseKeyKVKey">();
 export type HouseKeyKVKey = z.infer<typeof HouseKeyKVKeyZ>;
 
@@ -77,8 +87,8 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
-export type KVIds = UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey;
-
+export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey;
+export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
 export interface KVDataObj {
     id: KVIds
@@ -144,7 +154,6 @@ export interface AugmentedDbProject extends DbProject {
     done_subtasks: number,
 }
 
-
 export const DbTaskZRaw = z.object({
     id: TaskIdZ,
     household: HouseIdZ,
@@ -199,4 +208,20 @@ export const DbChoreZRaw = z.object({
 export const DbChoreZ = DbChoreZRaw.brand<"Chore">();
 export type DbChoreRaw = z.infer<typeof DbChoreZRaw>;
 export type DbChore = z.infer<typeof DbChoreZ>;
-
+export const DbHouseholdExtendedMemberRawZ = z.object({
+    name: DbUserZRaw.shape.name,
+    userid: UserIdZ,
+    color: DbUserZRaw.shape.color,
+    icon: DbUserZRaw.shape.icon,
+    current_chore: DbChoreZ.nullable(),
+});
+export type DbHouseholdExtendedMemberRaw = z.infer<typeof DbHouseholdExtendedMemberRawZ>;
+export const DbHouseholdExtendedRawZ = z.object({
+    id: DbHouseholdRawZ.shape.id,
+    name: DbHouseholdRawZ.shape.name,
+    current_task: DbTaskZ.nullable(),
+    members: z.array(DbHouseholdExtendedMemberRawZ)
+});
+export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()
+export type DbHouseholdExtendedRaw = z.infer<typeof DbHouseholdExtendedRawZ>;
+export type DbHouseholdExtended = z.infer<typeof DbHouseholdExtendedZ>;

@@ -2,7 +2,7 @@
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { AuthCheck, AuthCheckZ, AuthHousehold } from '../../auth/auth_types';
+import { AuthCheck, AuthCheckZ } from '../../auth/auth_types';
 const Router = router({
   magic_link: protectedProcedure.query(async (ctx)=> {
     if (ctx.ctx.data.user == null) {
@@ -40,26 +40,19 @@ const Router = router({
       })
     }
     const db = ctx.ctx.data.db;
-    const household = await db.HouseholdGet(user.household);
+    const household = await db.HouseholdGetExtended(user.household);
     if (household== null) {
       throw new TRPCError({
         code: "NOT_FOUND",
         cause: "Household was not found"
       })
     }
-    const apihouse: AuthHousehold = {
-        id: household.id,
-        name: household.name,
-        members: (await Promise.all(household.members.map(x => db.UserGet(x)))).filter((x) => x != null).map(x => { return { userid: x!.id, name: x!.name, icon: x!.icon, color: x!.color } }) || [],
-    };
-    const currentChore = await db.ChoreGetCurrentChore(user.id);
     const result: AuthCheck = {
       name: user.name,
       icon: user.icon,
       id: user.id,
       color: user.color,
-      household: apihouse,
-      currentChore,
+      household,
     };
     return AuthCheckZ.parse(result);
   }),
