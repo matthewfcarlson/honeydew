@@ -7,7 +7,7 @@
 
     <div v-if="error != ''">{{ error }}</div>
     <div class="box">
-      <div class="title is-4">Chore</div>
+      <div class="title is-4">Chores</div>
       <template v-if="currentChore != null">
         <div>Today you need to:</div>
         <div>
@@ -38,6 +38,11 @@
       <div v-else class="text-info">
         <i class="fas fa-forward"></i>
         No Chore Today
+      </div>
+      <hr/>
+      <div v-for="chore in household_chores" :key="chore.id">
+        <ChoreIconComponent :have_circle=false height="0.5rem" :chore_name="chore.chore_name" />
+        {{ chore.user_name }} is  {{ chore.chore_name }}
       </div>
     </div>
 
@@ -183,7 +188,7 @@ export default defineComponent({
       if (household == null) return "";
       return household.name;
     },
-    ...mapState(useUserStore, ["currentDate", "currentChore"])
+    ...mapState(useUserStore, ["currentDate", "currentChore", "household_chores"])
   },
   data() {
     return {

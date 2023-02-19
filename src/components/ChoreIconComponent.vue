@@ -1,9 +1,10 @@
 <template>
     <span :class="{icon:is_icon, 'is-large': is_icon}" :style="{height: height}">
-        <span class="fa-stack fa-lg">
+        <span class="fa-stack fa-lg" v-if="have_circle">
             <i :style=styles class="fas fa-circle fa-stack-2x"></i>
             <i :class=classes></i>
         </span>
+        <i :class=classes v-else></i>
     </span>
 </template>
 
@@ -62,6 +63,10 @@ export default defineComponent({
         is_icon: {
             type: Boolean, 
             default: true,
+        },
+        have_circle: {
+            type: Boolean,
+            default: true
         }
     },
     computed: {
@@ -143,7 +148,8 @@ export default defineComponent({
             let rgb = hexToRgb(this.color) || [0,0,0];
             const color_dark = luminance(rgb[0], rgb[1], rgb[2]) < 0.5;
             const text_class = (color_dark) ? "icon-regular":"icon-inverted";
-            return [icon, text_class, "fas", "fa-stack-1x", "fa-inverse"]
+            if (this.have_circle) return [icon, text_class, "fas", "fa-stack-1x", "fa-inverse"]
+            else return [icon, text_class, "fas"]
         },
         styles: function () {
             let color = this.color;

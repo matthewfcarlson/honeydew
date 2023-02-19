@@ -4,7 +4,7 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbProject, DbTask, ProjectId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbHouseholdExtended, DbProject, DbTask, ProjectId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 
@@ -65,6 +65,7 @@ interface UserStoreState {
     _currentChore: DbChore | null;
     _currentTask: DbTask | null;
     _user: null | AuthCheck;
+    _household: DbHouseholdExtended | null;
     _recipeFavs: DbCardBoxRecipe[];
     _recipeToTry: DbCardBoxRecipe[];
     _chores: AugmentedDbChore[];
@@ -78,14 +79,16 @@ export const useUserStore = defineStore("user", {
         let _user = null;
         let _currentChore = null;
         let _currentTask = null;
+        let _household = null;
         if ((window as any).user_data != undefined) {
             const raw_data = (window as any).user_data;
             const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
             if (user_data.success) {
                 _user = user_data.data;
-                const current_user_member = _user.household.members.filter((x)=>x.userid == user_data.data.id);
+                _household = _user.household;
+                const current_user_member = _household.members.filter((x) => x.userid == user_data.data.id);
                 _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null,
-                _currentTask = user_data.data.household.current_task;
+                    _currentTask = user_data.data.household.current_task;
             }
             else console.error("Failed to parse: ", raw_data, user_data.error);
         }
@@ -94,6 +97,7 @@ export const useUserStore = defineStore("user", {
             _currentChore,
             _currentTask,
             _user,
+            _household,
             _recipeFavs: [],
             _recipeToTry: [],
             _chores: [],
@@ -155,7 +159,21 @@ export const useUserStore = defineStore("user", {
         },
         tasks: (state) => {
             return state._tasks;
-        }
+        },
+        household_chores: (state) => {
+            if (state._user == null) return [];
+            if (state._household == null) return [];
+            return state._household.members
+                .filter((x) => x.userid != state._user?.id)
+                .filter((x) => x.current_chore != null)
+                .map((x) => {
+                    return {
+                        user_name: x.name,
+                        id: x.userid,
+                        chore_name: x.current_chore?.name || "Nothing"
+                    }
+                })
+        },
     },
     actions: {
         getUserName(id: string, myself: boolean = false): string {
@@ -482,7 +500,7 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async TasksFetch(project_id: ProjectId|null) {
+        async TasksFetch(project_id: ProjectId | null) {
             console.log("TASKS FETCH", project_id);
             if (project_id == null) {
                 this._tasks = [];
