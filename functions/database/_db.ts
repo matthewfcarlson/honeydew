@@ -810,6 +810,7 @@ export default class Database {
                 console.warn("TaskCreate", "Cannot have a requirement without a project");
                 return null;
             }
+            // TODO: check if the requirements exist
             const taskZ: DbTaskRaw = {
                 id,
                 household,
@@ -897,6 +898,7 @@ export default class Database {
     async TaskDelete(id: TaskId) {
         try {
             const task_id = TaskIdZ.parse(id);
+            // TODO: first check if this task is a requirement of any other task
             const result = await this._db.deleteFrom("tasks").where("id", "==", task_id).executeTakeFirstOrThrow();
             if (result == undefined) return false;
             return result.numDeletedRows > 0

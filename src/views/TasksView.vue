@@ -57,11 +57,11 @@
       <div>Add a new task and any requirements</div>
       <input v-model="task_name" placeholder="Task name" />
       <select v-model="requirement1">
-        <option value="null"> - </option>
+        <option value=""> - </option>
         <option :value="task.id" v-for="task in all_tasks" :key="task.id"> {{ task.description }} </option>
       </select>
       <select v-model="requirement2">
-        <option value="null"> - </option>
+        <option value=""> - </option>
         <option :value="task.id" v-for="task in requirement2_tasks" :key="task.id"> {{ task.description }} </option>
       </select>
       <button @click="add_task">Add</button>
@@ -131,8 +131,8 @@ export default defineComponent({
     return {
       task_name: "",
       error: "",
-      requirement1: "null",
-      requirement2: "null",
+      requirement1: "",
+      requirement2: "",
     }
 
   },
@@ -167,6 +167,9 @@ export default defineComponent({
     },
     diagram: () => {
       const graph = ["graph LR"]
+      if (annotated_tasks.value.length == 0) {
+        graph.push(" no[[No Tasks Yet]]")
+      }
       annotated_tasks.value.forEach((x)=>{
         const id = x.id.substring(3);
         if (x.completed!=null && x.completed > 0) {
@@ -232,6 +235,8 @@ export default defineComponent({
       if (status.success == true) {
         useUserStore().TasksFetch(this.project_id);
         this.task_name = "";
+        this.requirement1 = "";
+        this.requirement2 = "";
       }
       else {
         this.error = (status as any).message || "unknown error";
