@@ -9,9 +9,9 @@
       <ChoreIconComponent :chore_name="project.description" />
       <span class="title is-5">{{ project.description }}</span>
       <div v-if="project.total_subtasks > 0">
-        <progress class="progress" :value="project.total_subtasks - project.done_subtasks"
+        <progress class="progress" :value="project.done_subtasks"
           :max="project.total_subtasks">{{
-            project.total_subtasks - project.done_subtasks
+            Math.round(project.done_subtasks/project.total_subtasks * 100)
           }}%</progress>
       </div>
       {{ project.ready_subtasks }} ready tasks |

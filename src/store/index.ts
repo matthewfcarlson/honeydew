@@ -4,9 +4,10 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbHouseholdExtended, DbProject, DbTask, ProjectId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
+import { getJulianDate } from '../../functions/_utils';
 
 interface APIResultSuccess<T> {
     success: true;
@@ -87,8 +88,8 @@ export const useUserStore = defineStore("user", {
                 _user = user_data.data;
                 _household = _user.household;
                 const current_user_member = _household.members.filter((x) => x.userid == user_data.data.id);
-                _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null,
-                    _currentTask = user_data.data.household.current_task;
+                _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null;
+                _currentTask = user_data.data.household.current_task;
             }
             else console.error("Failed to parse: ", raw_data, user_data.error);
         }
@@ -480,14 +481,57 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async TaskAdd(description: string, project: ProjectId) {
+        async TaskAdd(description: string, project: ProjectId, requirement1: TaskId | null = null, requirement2: TaskId | null = null) {
             try {
                 this._thinking = true;
+                // TODO: look to see if we're adding a project which has a loop
                 const result = await client.projects.add_task.query({
                     description,
-                    project
+                    project,
+                    requirement1,
+                    requirement2,
                 });
-                this.ProjectsFetch(); // kick off a request to refresh this
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+
+        async TaskComplete(id: TaskId) {
+            try {
+                this._thinking = true;
+                // go through our current tasks and complete them
+                const index = this._tasks.findIndex((x) => x.id == id);
+                if (index != -1) {
+                    this._tasks[index].completed = getJulianDate();
+                }
+                const result = await client.projects.complete_task.query(id);
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async TaskDelete(id: TaskId) {
+            try {
+                this._thinking = true;
+                // go through our current tasks and complete them
+                const index = this._tasks.findIndex((x) => x.id == id);
+                if (index != -1) {
+                    this._tasks.splice(index, 1);
+                }
+                const result = await client.projects.delete_task.query(id);
                 this._thinking = false;
                 return {
                     success: true,
@@ -501,7 +545,6 @@ export const useUserStore = defineStore("user", {
         },
 
         async TasksFetch(project_id: ProjectId | null) {
-            console.log("TASKS FETCH", project_id);
             if (project_id == null) {
                 this._tasks = [];
                 return;
