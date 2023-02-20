@@ -15,7 +15,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const promises = users.map((x)=>{
         // TODO if the users wasn't assigned a chore, put some sort of hold on them getting a new chore?
         // make sure to invalidate the household
-        return db.CacheInvalidate(x.house_id).then((_)=>db.HouseAutoAssignMarkAssigned(x.house_id).then((_)=>db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id)));
+        return db.HouseAutoAssignMarkAssigned(x.house_id).then((_)=>db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id));
     })
 
     // // make sure to wait on all the results

@@ -69,7 +69,7 @@ export default class Database {
     public async CacheGet(id:CacheIds) {
         return await this.queryKVJson(id);
     }
-    public async CacheInvalidate(id:CacheIds) {
+    private async CacheInvalidate(id:CacheIds) {
         const user_id = UserIdZ.safeParse(id);
         if (user_id.success) {
             const user = await this.CacheGet(user_id.data);
@@ -239,8 +239,8 @@ export default class Database {
             console.error("UserSetHousehold", "household requested doesn't exist", household_id);
             return false;
         }
+        // Invalidate the old household
         await this.CacheInvalidate(user.household);
-
         await this._db.updateTable("users").where("id", "==", user_id).set({
             household: household_id
         }).execute();
@@ -477,7 +477,7 @@ export default class Database {
                 // otherwise modify the existing one
                 await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreAssignHour: hour }).executeTakeFirstOrThrow();
             }
-            await this.CacheInvalidate(id);
+            await this.CacheInvalidate(id); // invalidate the house
             return true
         }
         catch (err) {
@@ -507,7 +507,8 @@ export default class Database {
         try {
             const id = HouseIdZ.parse(house_id);
             if (timestamp == null) timestamp = getJulianDate() + 0.05 // ahead about an hour
-            await this._db.updateTable("houseautoassign").where("house_id", "==", house_id).set({ choreLastAssignTime: timestamp }).execute();
+            await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreLastAssignTime: timestamp }).execute();
+            await this.CacheInvalidate(id); // invalidate the house
             return true;
         }
         catch (err) {
@@ -556,6 +557,7 @@ export default class Database {
         try {
             if (timestamp == null) timestamp = getJulianDate();
             await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreLastAssignTime: timestamp }).executeTakeFirstOrThrow();
+            await this.CacheInvalidate(id); // invalidate the house
             return true;
         }
         catch (err) {
@@ -1258,6 +1260,7 @@ export default class Database {
                 }
 
             }
+            promises.push(this.CacheInvalidate(house_id)); // invalidate the household
             await Promise.all(promises);
             return chore;
         }
