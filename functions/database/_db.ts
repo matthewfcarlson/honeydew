@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -62,14 +62,14 @@ export default class Database {
         return this._t;
     }
 
-    public async CacheSet(id:CacheIds, data:any) {
+    public async CacheSet(id: CacheIds, data: any) {
         await this.setKVRaw(id, data)
     }
 
-    public async CacheGet(id:CacheIds) {
+    public async CacheGet(id: CacheIds) {
         return await this.queryKVJson(id);
     }
-    private async CacheInvalidate(id:CacheIds) {
+    private async CacheInvalidate(id: CacheIds) {
         const user_id = UserIdZ.safeParse(id);
         if (user_id.success) {
             const user = await this.CacheGet(user_id.data);
@@ -486,7 +486,7 @@ export default class Database {
         }
     }
 
-    async HouseAutoAssignGetHousesReadyForHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
+    async HouseAutoAssignGetHousesReadyForGivenHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
             const raw_results = await this._db.selectFrom("houseautoassign").select("house_id").where("choreAssignHour", "==", hour).where("choreLastAssignTime", "<", timestamp).execute();
@@ -498,22 +498,8 @@ export default class Database {
             return results;
         }
         catch (err) {
-            console.error("HouseAutoAssignGetHousesReadyForHour", err);
+            console.error("HouseAutoAssignGetHousesReadyForGivenHour", err);
             return [];
-        }
-    }
-
-    async HouseAutoAssignMarkAssigned(house_id: HouseId, timestamp: number | null = null): Promise<boolean> {
-        try {
-            const id = HouseIdZ.parse(house_id);
-            if (timestamp == null) timestamp = getJulianDate() + 0.05 // ahead about an hour
-            await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreLastAssignTime: timestamp }).execute();
-            await this.CacheInvalidate(id); // invalidate the house
-            return true;
-        }
-        catch (err) {
-            console.error("HouseAutoAssignMarkAssigned", err);
-            return false;
         }
     }
 
@@ -555,7 +541,7 @@ export default class Database {
 
     async HouseAutoAssignMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
         try {
-            if (timestamp == null) timestamp = getJulianDate();
+            if (timestamp == null) timestamp = getJulianDate() + 0.02 // ahead about 30 minutes;
             await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ choreLastAssignTime: timestamp }).executeTakeFirstOrThrow();
             await this.CacheInvalidate(id); // invalidate the house
             return true;
@@ -563,6 +549,60 @@ export default class Database {
         catch (err) {
             console.error("HouseAutoAssignMarkComplete", err);
             return false;
+        }
+    }
+
+    async TaskAutoAssignNextTask(id: HouseId): Promise<boolean> {
+        try {
+            // Look to see if we have an existing task assignment for this household
+            const kv_key = this.HouseholdTaskAssignmentKVKeyGenerate(id);
+            const kv_data = await this.queryKVRaw(kv_key);
+            if (kv_data != null) return true;
+            // Otherwise we need to pick the next task that a household could do
+            const query_base = this._db.selectFrom("tasks as main").where("main.household", "==", id).where("main.completed", "is", null)
+                .leftJoin("tasks as req1", "main.requirement1", "req1.id")
+                .leftJoin("tasks as req2", "main.requirement2", "req2.id")
+                //.leftJoin("projects", "main.project", "projects.id") // get the last time a task was completed on this project
+                .select("main.id").select("main.description")
+                .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
+                .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
+            const results = await query_base.execute();
+            const filtered_results = results.filter((x)=>{
+                if (x.req1_id != null && x.req1_completed == null) return false;
+                if (x.req2_id != null && x.req2_completed == null) return false;
+                return true;
+            })
+            if (filtered_results.length == 0) return false;
+            const selected_task = filtered_results[0];
+            // Now we message the household that we've assigned a task
+            const message = `Today's household project is _${selected_task.description}_`;
+            const promises = [
+                this.HouseholdTelegramMessageAllMembers(id, message, true),
+                this.setKVRaw(kv_key, selected_task.id, (60 * 60 * 23)), // if will last 23 hours
+            ]
+            await Promise.all(promises);
+            return true;
+        }
+        catch (err) {
+            console.error("TaskAutoAssignNextTask", err);
+            return false;
+        }
+    }
+
+    async TaskAutoAssignGet(id: HouseId): Promise<DbTask | null> {
+        const kv_key = this.HouseholdTaskAssignmentKVKeyGenerate(id);
+        try {
+            const kv_data = await this.queryKVJson(kv_key);
+            if (kv_data == null) return null;
+            console.log(kv_key, kv_data);
+            const task_id = TaskIdZ.parse(kv_data);
+            const task = await this.TaskGet(task_id);
+            return task;
+        }
+        catch (err) {
+            console.error("TaskAutoAssignGet", err);
+            await this.deleteKey(kv_key);
+            return null;
         }
     }
 
@@ -756,7 +796,7 @@ export default class Database {
         return true;
     }
 
-    async TaskCreate(description: string, creator: UserId, household: HouseId, project: ProjectId | null = null, requirement1: TaskId | null = null, requirement2: TaskId | null = null): Promise<DbTask | null> {
+    async TaskCreate(description: string, creator: UserId, household: HouseId, project: ProjectId | null, requirement1: TaskId | null = null, requirement2: TaskId | null = null): Promise<DbTask | null> {
         try {
             const id = await this.TaskGenerateUUID();
             if (id == null) {
@@ -1189,6 +1229,10 @@ export default class Database {
         const kv_key = UserChoreCacheKVKeyZ.parse("CC:" + user_id);
         return kv_key;
     }
+    private HouseholdTaskAssignmentKVKeyGenerate(house_id: HouseId) {
+        const kv_key = HouseholdTaskAssignmentKVKeyZ.parse("TA:" + house_id);
+        return kv_key;
+    }
 
     // Gets the current chore without picking a new one
     async ChoreGetCurrentChore(raw_user_id: UserId): Promise<DbChore | null> {
@@ -1350,7 +1394,7 @@ export default class Database {
         }
     }
 
-    async HouseholdGetExtended(house_id: HouseId): Promise<DbHouseholdExtended|null> {
+    async HouseholdGetExtended(house_id: HouseId): Promise<DbHouseholdExtended | null> {
         try {
             const id = HouseIdZ.parse(house_id);
             // check for cached data
@@ -1362,10 +1406,10 @@ export default class Database {
             }
             const sql_household = await this._db.selectFrom("households").select("name").where("id", "==", id).executeTakeFirstOrThrow();
             // next we need to query the database
-            const members:DbHouseholdExtendedMemberRaw[] = [];
+            const members: DbHouseholdExtendedMemberRaw[] = [];
             const sql_members = await this._db.selectFrom("users").selectAll().where("household", "==", id).execute();
             const self = this;
-            const process_promise = sql_members.map(async (x)=>{
+            const process_promise = sql_members.map(async (x) => {
                 const current_chore = await self.ChoreGetCurrentChore(x.id);
                 const member: DbHouseholdExtendedMemberRaw = {
                     ...x,
@@ -1375,19 +1419,19 @@ export default class Database {
                 const valid_member = DbHouseholdExtendedMemberRawZ.safeParse(member);
                 if (valid_member.success) members.push(valid_member.data);
                 else console.error("HouseholdGetExtended", x, valid_member.error)
-                
+
             });
             await Promise.all(process_promise);
             if (sql_members.length != members.length) {
                 console.error("HouseholdGetExtended", "failed to parse of the household members");
                 return null;
             }
-
+            const current_task = await this.TaskAutoAssignGet(id);
             const extended_household: DbHouseholdExtendedRaw = {
                 id: id,
                 name: sql_household.name,
                 members,
-                current_task: null
+                current_task: current_task
             }
             const result = DbHouseholdExtendedZ.parse(extended_household);
             await this.CacheSet(cache_key, result);

@@ -12,13 +12,17 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     // then query the database for all the users that need to get processed
     const users = await db.HouseAutoAssignGetUsersReadyForGivenHour(hour);
-    const promises = users.map((x)=>{
-        // TODO if the users wasn't assigned a chore, put some sort of hold on them getting a new chore?
-        // make sure to invalidate the household
-        return db.HouseAutoAssignMarkAssigned(x.house_id).then((_)=>db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id));
-    })
-
-    // // make sure to wait on all the results
+    const promises = users.map(async (x)=>{
+        await db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id);
+        return true;
+    });
+    // then handle all the households
+    const households = await db.HouseAutoAssignGetHousesReadyForGivenHour(hour);
+    promises.concat(households.map((x)=>{
+        return db.TaskAutoAssignNextTask(x).then((_)=>db.HouseAutoAssignMarkComplete(x));
+    }));
+    
+    // make sure to wait on all the results
     const results = await Promise.allSettled(promises);
     const data = (context.env.PRODUCTION == "true") ?
     {

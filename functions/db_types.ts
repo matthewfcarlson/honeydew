@@ -42,7 +42,7 @@ export type ProjectId = z.infer<typeof ProjectIdZ>;
 
 export const TaskIdZ = z.string({
     required_error: "TaskID is required",
-    invalid_type_error: "TaskID must start with P:"
+    invalid_type_error: "TaskID must start with T:"
 }).length(38).startsWith("T:", { message: "Must start with T:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"TaskId">()
 export type TaskId = z.infer<typeof TaskIdZ>;
 
@@ -66,6 +66,10 @@ export type MagicKVKey = z.infer<typeof MagicKVKeyZ>;
 export const UserChoreCacheKVKeyZ = z.string().length(41).startsWith("CC:U:").brand<"UserChoreCacheKVKey">();
 export type UserChoreCacheKVKey = z.infer<typeof UserChoreCacheKVKeyZ>;
 
+export const HouseholdTaskAssignmentKVKeyZ = z.string().length(41).startsWith("TA:H:").brand<"HouseholdTaskAssignmentKVKey">();
+export type HouseholdTaskAssignmentKVKey = z.infer<typeof HouseholdTaskAssignmentKVKeyZ>;
+
+
 export const TelegramCallbackKVKeyZ = z.string().length(39).startsWith("TC:").brand<"TelegramCallbackKVKey">();
 export type TelegramCallbackKVKey = z.infer<typeof TelegramCallbackKVKeyZ>;
 
@@ -87,7 +91,7 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
-export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey;
+export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
 export interface KVDataObj {

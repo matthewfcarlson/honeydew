@@ -44,7 +44,7 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                     <template v-if="isLoggedIn">
-                        <router-link to="household" class="is-flex is-align-items-center user-name-item">
+                        <router-link to="/household" class="is-flex is-align-items-center user-name-item">
                             <strong>{{ userName }}</strong>
                             <UserIcon height="2.5em" />
                         </router-link>
