@@ -65,6 +65,7 @@ interface UserStoreState {
     _loggedIn: boolean;
     _currentChore: DbChore | null;
     _currentTask: DbTask | null;
+    _currentProject: DbProject | null;
     _user: null | AuthCheck;
     _household: DbHouseholdExtended | null;
     _recipeFavs: DbCardBoxRecipe[];
@@ -81,6 +82,7 @@ export const useUserStore = defineStore("user", {
         let _currentChore = null;
         let _currentTask = null;
         let _household = null;
+        let _currentProject = null;
         if ((window as any).user_data != undefined) {
             const raw_data = (window as any).user_data;
             const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
@@ -90,6 +92,7 @@ export const useUserStore = defineStore("user", {
                 const current_user_member = _household.members.filter((x) => x.userid == user_data.data.id);
                 _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null;
                 _currentTask = user_data.data.household.current_task;
+                _currentProject = user_data.data.household.current_project;
             }
             else console.error("Failed to parse: ", raw_data, user_data.error);
         }
@@ -97,6 +100,7 @@ export const useUserStore = defineStore("user", {
             _loggedIn: (window as any).logged_in || false,
             _currentChore,
             _currentTask,
+            _currentProject,
             _user,
             _household,
             _recipeFavs: [],
@@ -148,6 +152,12 @@ export const useUserStore = defineStore("user", {
         },
         currentChore: (state) => {
             return state._currentChore
+        },
+        currentTask: (state) => {
+            return state._currentTask;
+        },
+        currentProject: (state) => {
+            return state._currentProject;
         },
         currentDate: (state) => {
             const date = new Date();

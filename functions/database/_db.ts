@@ -887,6 +887,8 @@ export default class Database {
             telegram_promise = this.HouseholdTelegramMessageAllMembers(task.household, message, true, user_id);
 
             await this._db.updateTable("tasks").where("id", "==", id).set({ completed: timestamp }).execute();
+            // invalidate the household extended cache in case that task was assigned today
+            await this.CacheInvalidate(HouseExtendedKVIdFromHouseId(task.household));
             return true;
         }
         catch (err) {
@@ -1429,11 +1431,13 @@ export default class Database {
                 return null;
             }
             const current_task = await this.TaskAutoAssignGet(id);
+            const current_project = (current_task != null && current_task.project != null) ? (await self.ProjectGet(current_task.project)) : null;
             const extended_household: DbHouseholdExtendedRaw = {
                 id: id,
                 name: sql_household.name,
                 members,
-                current_task: current_task
+                current_task,
+                current_project,
             }
             const result = DbHouseholdExtendedZ.parse(extended_household);
             await this.CacheSet(cache_key, result);

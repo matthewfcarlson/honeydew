@@ -224,6 +224,7 @@ export const DbHouseholdExtendedRawZ = z.object({
     id: DbHouseholdRawZ.shape.id,
     name: DbHouseholdRawZ.shape.name,
     current_task: DbTaskZ.nullable(),
+    current_project: DbProjectZ.nullable(),
     members: z.array(DbHouseholdExtendedMemberRawZ)
 });
 export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()

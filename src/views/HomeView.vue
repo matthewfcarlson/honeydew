@@ -7,14 +7,13 @@
 
     <div v-if="error != ''">{{ error }}</div>
     <div class="box">
-      <div class="title is-4">Chores</div>
-      <template v-if="currentChore != null">
-        <div>Today you need to:</div>
-        <div>
+      <div class="title is-4">Your Chore</div>
+      <div v-if="currentChore != null" class="level">
+        <div class="level-left">
           <ChoreIconComponent :chore_name="currentChore.name" />
-          <span class="subtitle is-4"> {{ currentChore.name }} </span>
+          <div class="is-size-4 is-capitalized has-text-weight-semibold"> {{ currentChore.name }} </div>
         </div>
-        <div v-if="(currentChore.lastDone + 1) < currentDate">
+        <div v-if="(currentChore.lastDone + 1) < currentDate" class="level-right">
           <button class="button is-primary" @click="complete_chore(currentChore?.id || null)">
             <i class="far fa-check-circle"></i> &nbsp;
             Mark Done Today
@@ -24,7 +23,7 @@
             Still Clean
           </button>
         </div>
-        <div v-else class="text-success">
+        <div v-else class="text-success level-right">
           <button class="button disable is-success" disabled>
             <i class="fas fa-check-circle"></i>
             Already Done!
@@ -34,140 +33,168 @@
             Give Me Another
           </button>
         </div>
-      </template>
-      <div v-else class="text-info">
+      </div>
+      <div v-else class="text-info level-right">
         <i class="fas fa-forward"></i>
         No Chore Today
       </div>
-      <hr/>
+      <hr />
       <div v-for="chore in household_chores" :key="chore.id">
         <ChoreIconComponent :have_circle=false height="0.5rem" :chore_name="chore.chore_name" />
-        {{ chore.user_name }} is  {{ chore.chore_name }}
+        {{ chore.user_name }} is {{ chore.chore_name }}
       </div>
+    </div>
+
+    <div class="box">
+      <div class="title is-4">Project</div>
+      <template v-if="currentTask != null">
+        <div>Together you need to:</div>
+        <div class="level">
+          <div class="level-left">
+            <ChoreIconComponent :chore_name="currentTask.description" />
+            <div class="is-size-4 is-capitalized has-text-weight-semibold"> {{ currentTask.description }} </div> &nbsp;
+            <div class="is-size-4" v-if="currentProject != null">{{ currentProject.description }}</div>
+          </div>
+          <div class="level-right" v-if="currentTask.completed == null">
+            <a :href="'/projects/' + currentProject.id" v-if="currentProject != null">View Project</a> &nbsp;
+            <button class="button is-primary" @click="complete_task(currentTask?.id||null)">
+              <i class="far fa-check-circle"></i> &nbsp;
+              Mark Done Today
+            </button>
+          </div>
+          <div class="level-right" v-else>
+            <a :href="'/projects/' + currentProject.id" v-if="currentProject != null">View Project</a> &nbsp;
+            <button class="button">Already Complete!</button>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        No Task Today
+      </template>
     </div>
 
     <!-- <div class="card is-rounded">
-      <header class="card-header is-info">
-        <p class="card-header-title">
-          Today's Meal
-        </p>
+          <header class="card-header is-info">
+            <p class="card-header-title">
+              Today's Meal
+            </p>
 
-      </header>
-      <a class="card-image" target="_blank" href="https://www.americastestkitchen.com/recipes/15318-multicooker-chicken-in-a-pot-with-lemon-herb-sauce">
-        <figure class="image is-16by9">
-          <img src="../assets/sample_meal.webp" alt="Placeholder image">
-        </figure>
-      </a>
-      <div class="card-content">
-        <div class="content">
-          Multicooker Chicken in a Pot with Lemon-Herb Sauce
-          SERVES: 4
-          TIME: 1 hour
-          <br/>
-          <time datetime="2016-1-1">11:09 PM - 1 Jan 2016</time>
+          </header>
+          <a class="card-image" target="_blank" href="https://www.americastestkitchen.com/recipes/15318-multicooker-chicken-in-a-pot-with-lemon-herb-sauce">
+            <figure class="image is-16by9">
+              <img src="../assets/sample_meal.webp" alt="Placeholder image">
+            </figure>
+          </a>
+          <div class="card-content">
+            <div class="content">
+              Multicooker Chicken in a Pot with Lemon-Herb Sauce
+              SERVES: 4
+              TIME: 1 hour
+              <br/>
+              <time datetime="2016-1-1">11:09 PM - 1 Jan 2016</time>
+            </div>
+          </div>
+          <footer class="card-footer">
+            <a href="#" class="card-footer-item is-info">Make it later</a>
+            <a href="#" class="card-footer-item is-warning">Other Plans</a>
+            <a href="#" class="card-footer-item is-success" >Ate it</a>
+          </footer>
         </div>
-      </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item is-info">Make it later</a>
-        <a href="#" class="card-footer-item is-warning">Other Plans</a>
-        <a href="#" class="card-footer-item is-success" >Ate it</a>
-      </footer>
-    </div>
 
-    <article class="panel">
-      <p class="panel-heading">
-        Today's meal
-      </p>
-      <a class="panel-block is-active">
-        Example meal here
-        <a href="https://www.americastestkitchen.com/" target="_blank">Link to meal</a>
-      </a>
-      <div class="panel-block">
-        <div class="buttons has-addons">
+        <article class="panel">
+          <p class="panel-heading">
+            Today's meal
+          </p>
+          <a class="panel-block is-active">
+            Example meal here
+            <a href="https://www.americastestkitchen.com/" target="_blank">Link to meal</a>
+          </a>
+          <div class="panel-block">
+            <div class="buttons has-addons">
 
-          <button class="button is-warning">
-            <span class="icon is-left">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-            </span>
-            <span>Make this another day</span>
-          </button>
-          <button class="button is-info">
-            <span class="icon is-left">
-              <i class="fas fa-forward" aria-hidden="true"></i>
-            </span>
-            <span>Ate something else</span>
-          </button>
-          <button class="button is-success">
-            <span class="icon is-left">
-              <i class="fas fa-check" aria-hidden="true"></i>
-            </span>
-            <span>Ate it</span>
-          </button>
-        </div>
-      </div>
+              <button class="button is-warning">
+                <span class="icon is-left">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </span>
+                <span>Make this another day</span>
+              </button>
+              <button class="button is-info">
+                <span class="icon is-left">
+                  <i class="fas fa-forward" aria-hidden="true"></i>
+                </span>
+                <span>Ate something else</span>
+              </button>
+              <button class="button is-success">
+                <span class="icon is-left">
+                  <i class="fas fa-check" aria-hidden="true"></i>
+                </span>
+                <span>Ate it</span>
+              </button>
+            </div>
+          </div>
 
-    </article>
-    <article class="panel">
-      <p class="panel-heading">
-        Today's Chores
-      </p>
-      <a class="panel-block is-active">
-        <p>
-          Example task like clean the downstairs bathroom
-        </p>
+        </article>
+        <article class="panel">
+          <p class="panel-heading">
+            Today's Chores
+          </p>
+          <a class="panel-block is-active">
+            <p>
+              Example task like clean the downstairs bathroom
+            </p>
 
-        <div class="buttons has-addons">
-          <button class="button is-warning">
-            <span class="icon is-left">
-              <i class="fas fa-forward" aria-hidden="true"></i>
-            </span>
-            <span>Done, Another!</span>
-          </button>
-          <button class="button is-success">
-            <span class="icon is-left">
-              <i class="fas fa-check" aria-hidden="true"></i>
-            </span>
-            <span>Cleaned it</span>
-          </button>
-        </div>
-      </a>
-      <div class="panel-block">
+            <div class="buttons has-addons">
+              <button class="button is-warning">
+                <span class="icon is-left">
+                  <i class="fas fa-forward" aria-hidden="true"></i>
+                </span>
+                <span>Done, Another!</span>
+              </button>
+              <button class="button is-success">
+                <span class="icon is-left">
+                  <i class="fas fa-check" aria-hidden="true"></i>
+                </span>
+                <span>Cleaned it</span>
+              </button>
+            </div>
+          </a>
+          <div class="panel-block">
 
-      </div>
-      <a class="panel-block is-active">
-        Other people's tasks Example task like clean the downstairs bathroom
-      </a>
+          </div>
+          <a class="panel-block is-active">
+            Other people's tasks Example task like clean the downstairs bathroom
+          </a>
 
-    </article>
-    <article class="panel">
-      <p class="panel-heading">
-        Today's Project
-      </p>
-      <a class="panel-block is-active">
-        Example simple 1hour or less task that's easy to do
-      </a>
-      <div class="panel-block">
-        <div class="buttons has-addons">
-          <button class="button is-warning">
-            <span class="icon is-left">
-              <i class="fas fa-forward" aria-hidden="true"></i>
-            </span>
-            <span>Finished, Again!</span>
-          </button>
-          <button class="button is-success">
-            <span class="icon is-left">
-              <i class="fas fa-check" aria-hidden="true"></i>
-            </span>
-            <span>Did It</span>
-          </button>
-        </div>
-      </div>
+        </article>
+        <article class="panel">
+          <p class="panel-heading">
+            Today's Project
+          </p>
+          <a class="panel-block is-active">
+            Example simple 1hour or less task that's easy to do
+          </a>
+          <div class="panel-block">
+            <div class="buttons has-addons">
+              <button class="button is-warning">
+                <span class="icon is-left">
+                  <i class="fas fa-forward" aria-hidden="true"></i>
+                </span>
+                <span>Finished, Again!</span>
+              </button>
+              <button class="button is-success">
+                <span class="icon is-left">
+                  <i class="fas fa-check" aria-hidden="true"></i>
+                </span>
+                <span>Did It</span>
+              </button>
+            </div>
+          </div>
 
-      <a class="panel-block is-active">
-        The tasks that other people in the house have
-      </a>
+          <a class="panel-block is-active">
+            The tasks that other people in the house have
+          </a>
 
-    </article> -->
+        </article> -->
   </div>
 </template>
 
@@ -175,6 +202,7 @@
 import { defineComponent } from 'vue';
 import { mapState } from "pinia";
 import { useUserStore } from "@/store";
+import type {TaskId} from "../../functions/db_types";
 import ChoreIconComponent from "@/components/ChoreIconComponent.vue";
 
 export default defineComponent({
@@ -188,7 +216,7 @@ export default defineComponent({
       if (household == null) return "";
       return household.name;
     },
-    ...mapState(useUserStore, ["currentDate", "currentChore", "household_chores"])
+    ...mapState(useUserStore, ["currentDate", "currentChore", "household_chores", "currentTask", "currentProject"])
   },
   data() {
     return {
@@ -207,12 +235,19 @@ export default defineComponent({
         this.error = status.message
       }
     },
-    another_chore : async function () {
+    another_chore: async function () {
       const status = await useUserStore().ChoreGetAnother();
       if (status.success == false) {
         this.error = status.message
       }
-    }
+    },
+    complete_task:  async function (id: TaskId|null) {
+      if (id == null) return;
+      const status = await useUserStore().TaskComplete(id);
+      if (status.success == false) {
+        this.error = (status as any).message
+      }
+    },
   }
 });
 </script>
