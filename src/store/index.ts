@@ -491,6 +491,27 @@ export const useUserStore = defineStore("user", {
             }
         },
 
+        async ProjectDelete(id: ProjectId|null) {
+            try {
+                if (id == null) return {
+                    success: false,
+                    message: "ID is null"
+                }
+                this._thinking = true;
+                const result = await client.projects.delete.query(id);
+                this.ProjectsFetch(); // kick off a request to refresh this
+                this._thinking = false;
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+
         async TaskAdd(description: string, project: ProjectId, requirement1: TaskId | null = null, requirement2: TaskId | null = null) {
             try {
                 this._thinking = true;

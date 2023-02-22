@@ -80,6 +80,14 @@ const Router = router({
     const tasks = await db.TaskGetAll(project_id);
     return tasks;
   }),
+  delete: protectedProcedure.input(ProjectIdZ).query(async (ctx): Promise<boolean> => {
+    const user = check_context(ctx);
+    const db = ctx.ctx.data.db;
+    const project_id = ctx.input;
+    // TODO: get the project and make sure the user can do this
+    const tasks = await db.ProjectDelete(project_id);
+    return tasks;
+  }),
 });
 
 export default Router;
