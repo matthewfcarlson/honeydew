@@ -1,6 +1,20 @@
 <template>
   <div class="projects container">
     <div class="title is-4">Projects</div>
+    <div class="level is-mobile">
+      <div class="has-text-centered level-item">
+        <div>
+          <p class="title">{{ ready_tasks }}</p>
+          <p class="heading">Ready Tasks</p>
+        </div>
+      </div>
+      <div class="has-text-centered level-item">
+        <div>
+          <p class="title">{{ total_tasks }}</p>
+          <p class="heading">Days Left</p>
+        </div>
+      </div>
+    </div>
     <div class="is-danger" v-if="error.length > 0">{{ error }}</div>
     <a class="box" v-if="projects.length == 0">
       You don't have any chores yet
@@ -9,10 +23,9 @@
       <ChoreIconComponent :chore_name="project.description" />
       <span class="title is-5">{{ project.description }}</span>
       <div v-if="project.total_subtasks > 0">
-        <progress class="progress" :value="project.done_subtasks"
-          :max="project.total_subtasks">{{
-            Math.round(project.done_subtasks/project.total_subtasks * 100)
-          }}%</progress>
+        <progress class="progress" :value="project.done_subtasks" :max="project.total_subtasks">{{
+          Math.round(project.done_subtasks / project.total_subtasks * 100)
+        }}%</progress>
       </div>
       {{ project.ready_subtasks }} ready tasks |
       {{ project.total_subtasks - project.done_subtasks }} tasks left |
@@ -46,6 +59,12 @@ export default defineComponent({
     ChoreIconComponent
   },
   computed: {
+    ready_tasks() {
+      return useUserStore().projects.map((x) => x.ready_subtasks).reduce((x, y) => x + y, 0)
+    },
+    total_tasks() {
+      return useUserStore().projects.map((x) => x.total_subtasks - x.done_subtasks).reduce((x, y) => x + y, 0)
+    },
     ...mapState(useUserStore, ["userName", "household", "userId", "projects"])
   },
   mounted: function () {
