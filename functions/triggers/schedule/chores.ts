@@ -4,7 +4,7 @@ import { TelegramAPI } from "../../database/_telegram";
 import { getJulianDate } from "../../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
-    const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
+    const db = context.data.db as Database;
     // first get the current date that we generated this
     // TODO: we could use KV to make sure we aren't running too often?
     const date = new Date();
@@ -12,15 +12,18 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     // then query the database for all the users that need to get processed
     const users = await db.HouseAutoAssignGetUsersReadyForGivenHour(hour);
-    const promises = users.map(async (x)=>{
+    for (let i =0; i < users.length; i++){
+        // we do this individually so that we don't assign the same chore to two people
+        // the downside is that this is slow
+        const x = users[i];
         await db.ChoreGetNextChore(x.house_id, x.user_id, x.chat_id);
-        return true;
-    });
+    }
     // then handle all the households
+    // we can do these all the same time
     const households = await db.HouseAutoAssignGetHousesReadyForGivenHour(hour);
-    promises.concat(households.map((x)=>{
+    const promises = households.map((x)=>{
         return db.TaskAutoAssignNextTask(x).then((_)=>db.HouseAutoAssignMarkComplete(x));
-    }));
+    });
     
     // make sure to wait on all the results
     const results = await Promise.allSettled(promises);
