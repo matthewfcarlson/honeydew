@@ -58,7 +58,7 @@
       <input v-model="task_name" placeholder="Task name" />
       <select v-model="requirement1">
         <option value=""> - </option>
-        <option :value="task.id" v-for="task in all_tasks" :key="task.id"> {{ task.description }} </option>
+        <option :value="task.id" v-for="task in unfinished_tasks" :key="task.id"> {{ task.description }} </option>
       </select>
       <select v-model="requirement2">
         <option value=""> - </option>
@@ -66,6 +66,9 @@
       </select>
       <button @click="add_task">Add</button>
       <div class="is-italic is-small">A task should be less than an hour, consider breaking it up if it's longer</div>
+      <br/>
+      <button @click="delete_project" class="button is-danger" v-if="total_task_count == 0">Delete Project</button>
+      <button disabled class="button is-danger disabled" v-else>Cannot Delete Project</button>
     </div>
   </div>
   <div v-else>
@@ -156,8 +159,11 @@ export default defineComponent({
       // TODO: sort them according to what makes sense?
       return not_done_tasks.value.filter((x) => x.id != req1);
     },
-    all_tasks: function () {
+    unfinished_tasks: function () {
       return not_done_tasks.value
+    },
+    total_task_count: function () {
+      return annotated_tasks.value.length;
     },
     blocked_tasks: function () {
       return not_done_tasks.value.filter((x) => x.requirement1_done == false || x.requirement2_done == false)
@@ -204,6 +210,16 @@ export default defineComponent({
     useUserStore().TasksFetch(this.project_id);
   },
   methods: {
+    delete_project: async function() {
+      const status = await useUserStore().ProjectDelete(this.project_id);
+      if (status.success == true) {
+        this.$router.push("/projects");
+        return;
+      }
+      else {
+        this.error = (status as any).message || "unknown error";
+      }
+    },
     complete_task: async function (id: TaskId) {
       const status = await useUserStore().TaskComplete(id);
       if (status.success == true) {
