@@ -14,6 +14,7 @@
     "@cloudflare/workers-types": "^3.18.0",
     "@trpc/server": "^10.0.0-rc.8",
     "@tsndr/cloudflare-worker-jwt": "^2.1.2",
+    "canvas": "^2.11.0",
     "cheerio": "^1.0.0-rc.12",
     "iso8601-duration": "^2.1.1",
     "kysely": "^0.22.0",
