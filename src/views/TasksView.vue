@@ -178,12 +178,14 @@ export default defineComponent({
       }
       annotated_tasks.value.forEach((x)=>{
         const id = x.id.substring(3);
+        const description = x.description.replaceAll('"', "#quot;");
+
         if (x.completed!=null && x.completed > 0) {
           graph.push(` style ${id} fill:#9cb984;`)
-          graph.push(` ${id}(${x.description})`)
+          graph.push(` ${id}("${description}")`)
         }
         else {
-          graph.push(` ${id}[${x.description}]`)
+          graph.push(` ${id}["${description}"]`)
         }
         graph.push(` click ${id} "#${x.id}"`)
       })
@@ -195,8 +197,9 @@ export default defineComponent({
           graph.push(` ${x.requirement2.substring(3)} --> ${x.id.substring(3)}`)
         }
       })
-      console.log(graph)
-      return graph.join("\n");
+      const value = graph.join("\n");
+      console.log(value)
+      return value;
     },
     project: function (): AugmentedDbProject | null {
       const project_id = this.project_id;
