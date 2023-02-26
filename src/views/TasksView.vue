@@ -191,6 +191,9 @@ export default defineComponent({
         if (x.requirement1 != null){
           graph.push(` ${x.requirement1.substring(3)} --> ${x.id.substring(3)}`)
         }
+        if (x.requirement2 != null){
+          graph.push(` ${x.requirement2.substring(3)} --> ${x.id.substring(3)}`)
+        }
       })
       console.log(graph)
       return graph.join("\n");
