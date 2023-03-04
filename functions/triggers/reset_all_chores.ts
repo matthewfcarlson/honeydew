@@ -3,6 +3,7 @@ import Database from "../database/_db";
 import { TelegramAPI } from "../database/_telegram";
 import { getJulianDate, ResponseJsonDebugOnly } from "../_utils";
 
+/* istanbul ignore next */
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
 

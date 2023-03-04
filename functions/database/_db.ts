@@ -562,8 +562,9 @@ export default class Database {
             const query_base = this._db.selectFrom("tasks as main").where("main.household", "==", id).where("main.completed", "is", null)
                 .leftJoin("tasks as req1", "main.requirement1", "req1.id")
                 .leftJoin("tasks as req2", "main.requirement2", "req2.id")
-                //.leftJoin("projects", "main.project", "projects.id") // get the last time a task was completed on this project
+                .leftJoin("projects", "main.project", "projects.id") // get the last time a task was completed on this project
                 .select("main.id").select("main.description")
+                .select("projects.description as project_name")
                 .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
                 .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
             const results = await query_base.execute();
@@ -575,7 +576,7 @@ export default class Database {
             if (filtered_results.length == 0) return false;
             const selected_task = filtered_results[0];
             // Now we message the household that we've assigned a task
-            const message = `Today's household project is _${selected_task.description}_`;
+            const message = `Today's household project is *${selected_task.description}* as part of _${selected_task.project_name || "a project"}_`;
             const promises = [
                 this.HouseholdTelegramMessageAllMembers(id, message, true),
                 this.setKVRaw(kv_key, selected_task.id, (60 * 60 * 23)), // if will last 23 hours
@@ -594,7 +595,6 @@ export default class Database {
         try {
             const kv_data = await this.queryKVJson(kv_key);
             if (kv_data == null) return null;
-            console.log(kv_key, kv_data);
             const task_id = TaskIdZ.parse(kv_data);
             const task = await this.TaskGet(task_id);
             return task;
@@ -1263,7 +1263,7 @@ export default class Database {
         }
     }
 
-    // First check if we need to
+    // Gets a user's current chore or assigns them a new one
     async ChoreGetNextChore(raw_house_id: HouseId, raw_user_id: UserId, telegram_id: string | number | null): Promise<DbChore | null> {
         try {
             // First validate user_id
@@ -1346,6 +1346,23 @@ export default class Database {
         catch (err) {
             console.error("ChoreGetAll", err);
             return [];
+        }
+    }
+
+    async TelegramMessageUser(raw_user_id: UserId, message: string, use_markdown:boolean) {
+        try {
+            const user_id = UserIdZ.parse(raw_user_id);
+            const user = await this.UserGet(user_id);
+            if (user == null) return null;
+            const telegram_id = user._chat_id;
+            // TODO: figure out a better way to return error types
+            if (telegram_id == null) return false;
+            const result= await this.GetTelegram().sendTextMessage(telegram_id, message, undefined, undefined, use_markdown?"MarkdownV2":undefined)
+            return result; 
+        }
+        catch (err) {
+            console.error("TelegramMessageUser", err);
+            return null;
         }
     }
 

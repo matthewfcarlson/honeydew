@@ -11,6 +11,7 @@ export async function createInnerContext(data:HoneydewPageData, env:HoneydewPage
 }
 export type Context = inferAsyncReturnType<typeof createInnerContext>;
 
+/* istanbul ignore next */
 export async function createContextFactory(data: HoneydewPageData, env:HoneydewPageEnv) {
   return async (opts:FetchCreateContextFnOptions)=> {
     return await createInnerContext(data, env, opts.req.url);

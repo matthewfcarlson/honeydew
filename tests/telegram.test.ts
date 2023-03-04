@@ -1,5 +1,6 @@
 import { DbProject } from "functions/db_types";
 import { HandleTelegramUpdate } from "../functions/telegram/webhook"
+import { TriggerChores } from "../functions/triggers/schedule/chores"
 import { MockedTelegramAPI, MockedTelegramRequest, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";
@@ -215,8 +216,8 @@ describe('Telegram callback tests', () => {
       message: {
         message_id: 12345,
         chat: {
-          id:chat_id,
-          type:"private"
+          id: chat_id,
+          type: "private"
         },
         date: timestamp,
       },
@@ -243,5 +244,96 @@ describe('Telegram callback tests', () => {
     // Check to make sure we've removed the markup and the chore has been completed
     expect(removed_markup).toBe(true);
     expect(chore_done.lastDone).toBeGreaterThan(chore.lastDone);
+  });
+});
+
+// Also stick the trigger stuff in here, because why not?
+describe('Trigger tests', () => {
+  it('chores trigger and reminders are sent', async () => {
+    let message_count = 0;
+    telegram.registerListener(async (x) => {
+      // console.error("chore callback", x);
+      message_count += 1;
+      return generateTelegramResponse(null);
+    });
+    // register a user and household
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+    // make sure it will get assigned at hour 5, number is arbitrary
+    expect(await db.HouseAutoAssignSetTime(house_id, 5)).toBe(true);
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // register for telegram
+    const timestamp = getJulianDate();
+    const chat_id = 1321321;
+    const tuser_id = 12312312;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, tuser_id)).toBe(true);
+
+    // create the chore
+    const chore = await db.ChoreCreate("Do the thing", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    for (let i = 0; i < 24; i++) {
+      const result = await TriggerChores(db, i);
+      if (i == 5) {
+        expect(result.users.length).toBe(1);
+      }
+      else {
+        expect(result.users.length).toBe(0);
+      }
+    }
+    expect(message_count).toBe(2);
+  });
+  it('chores trigger and if completed, no reminder', async () => {
+    let message_count = 0;
+    telegram.registerListener(async (x) => {
+      // console.error("chore callback", x);
+      message_count += 1;
+      return generateTelegramResponse(null);
+    });
+    // register a user and household
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+    // make sure it will get assigned at hour 5, number is arbitrary
+    expect(await db.HouseAutoAssignSetTime(house_id, 5)).toBe(true);
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const user2_id = (await db.UserCreate("Joey", house_id))?.id;
+    expect(user2_id).not.toBeNull();
+    if (user2_id == null) return;
+
+    // register for telegram
+    const chat_id = 1321321;
+    const tuser_id = 12312312;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, tuser_id)).toBe(true);
+
+    // create the chores
+    const chore = await db.ChoreCreate("Do the thing", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+    const chore2 = await db.ChoreCreate("Do the other thing", house_id, 1, 10);
+    expect(chore2).not.toBeNull();
+    if (chore2 == null) return;
+
+    await TriggerChores(db, 5);
+    expect(message_count).toBe(1);
+    expect(await db.ChoreComplete(chore.id, user_id)).toBe(true);
+    for (let i = 6; i < 24; i++) {
+      await TriggerChores(db, i);
+    }
+    expect(message_count).toBe(1);
+    await db.ChoreSkipCurrentChore(user_id);
+    for (let i = 0; i < 24; i++) {
+      await TriggerChores(db, i);
+    }
   });
 });
