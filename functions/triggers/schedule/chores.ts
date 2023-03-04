@@ -3,7 +3,7 @@ import Database from "../../database/_db";
 import { TelegramAPI } from "../../database/_telegram";
 import { getJulianDate } from "../../_utils";
 
-export const TriggerChores = async function (db: Database, hour:number) {
+export const TriggerChores = async function (db: Database, hour: number) {
     // then query the database for all the users that need to get processed
     const users = await db.HouseAutoAssignGetUsersReadyForGivenHour(hour);
     for (let i = 0; i < users.length; i++) {
@@ -43,39 +43,30 @@ export const TriggerChores = async function (db: Database, hour:number) {
     }
 }
 
-/* istanbul ignore next */ 
+/* istanbul ignore next */
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
-    try {
-        // we don't have a middleware for this so create a DB
-        const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
+    // we don't have a middleware for this so create a DB
+    const db = new Database(context.env.HONEYDEW, new TelegramAPI(context.env.TELEGRAM), context.env.HONEYDEWSQL);
 
-        // first get the current date that we generated this
-        // TODO: we could use KV to make sure we aren't running too often?
-        const date = new Date();
-        const hour = date.getUTCHours();
+    // first get the current date that we generated this
+    // TODO: we could use KV to make sure we aren't running too often?
+    const date = new Date();
+    const hour = date.getUTCHours();
 
-        const raw_results = await TriggerChores(db, hour);
-        const data = (context.env.PRODUCTION == "true") ?
-            {
-                hour_processed: hour,
-                timestamp: date,
-                count: raw_results.users.length,
-            } :
-            {
-                hour_processed: hour,
-                timestamp: date,
-                count: raw_results.users.length,
-                users: raw_results.users,
-                results: raw_results.results,
-                houses: raw_results.households,
-            };
-        return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
-    }
-    catch (err) {
-        console.log(err);
-        return new Response(JSON.stringify(err), {
-            status: 500,
-            headers: { "Content-Type": "application/javascript" }
-        })
-    }
+    const raw_results = await TriggerChores(db, hour);
+    const data = (context.env.PRODUCTION == "true") ?
+        {
+            hour_processed: hour,
+            timestamp: date,
+            count: raw_results.users.length,
+        } :
+        {
+            hour_processed: hour,
+            timestamp: date,
+            count: raw_results.users.length,
+            users: raw_results.users,
+            results: raw_results.results,
+            houses: raw_results.households,
+        };
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
 }
