@@ -3,6 +3,7 @@ import { HoneydewPageEnv, HoneydewPagesFunction } from "../types";
 import { createContextFactory } from "./context";
 import { appRouter } from "./router";
 
+/* istanbul ignore next */
 export const onRequest: HoneydewPagesFunction = async (context) => {
   const createContext = await createContextFactory(context.data, context.env);
   return fetchRequestHandler({

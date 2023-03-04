@@ -14,6 +14,9 @@ module.exports = {
   collectCoverageFrom: [
     "functions/*.ts",
     "functions/database/**/*.ts",
+    // "functions/_recipe/**/*.ts",
+    "functions/triggers/**/*.ts",
+    "functions/telegram/**/*.ts",
     "functions/api/**/*.ts",
     // "src/*.ts"
   ],
