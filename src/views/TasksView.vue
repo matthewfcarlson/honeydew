@@ -78,7 +78,7 @@
 
 <script lang="ts">
 import ChoreIconComponent from '@/components/ChoreIconComponent.vue';
-import VueMermaidString from 'vue-mermaid-string';
+import VueMermaidString from 'vue-mermaid-string'; // this is what causes the size bloat
 import { defineComponent, computed } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";

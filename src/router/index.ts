@@ -61,7 +61,7 @@ const routes = [
   {
     path: "/recipes",
     name: "Recipes",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/RecipesView.vue'),
+    component: () => import(/* webpackChunkName: "recipes" */ '../views/RecipesView.vue'),
     meta: {
       noAuthRequired: false,
     }
@@ -69,7 +69,7 @@ const routes = [
   {
     path: "/chores",
     name: "Chores",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/ChoresView.vue'),
+    component: () => import(/* webpackChunkName: "chores" */ '../views/ChoresView.vue'),
     meta: {
       noAuthRequired: false,
     }
@@ -77,7 +77,7 @@ const routes = [
   {
     path: "/projects",
     name: "Projects",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/ProjectsView.vue'),
+    component: () => import(/* webpackChunkName: "projects" */ '../views/ProjectsView.vue'),
     meta: {
       noAuthRequired: false,
     }
@@ -85,7 +85,7 @@ const routes = [
   {
     path: "/projects/:id",
     name: "projects Tasks",
-    component: () => import(/* webpackChunkName: "admin" */ '../views/TasksView.vue'),
+    component: () => import(/* webpackChunkName: "projects" */ '../views/TasksView.vue'),
     meta: {
       noAuthRequired: false,
     }
