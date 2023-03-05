@@ -223,6 +223,49 @@ describe('project tests', () => {
         const caller = appRouter.createCaller(ctx);
 
         expect(await caller.projects.add("Test Project")).toBe(true);
+
+        let projects = await caller.projects.get_projects();
+        expect(projects).not.toBeNull();
+        if (projects == null) return;
+        expect(projects).toHaveLength(1);
+        expect(projects[0].total_subtasks).toBe(0);
+
+        // now add a task
+        await caller.projects.add_task({description: "project task", project: projects[0].id, requirement1: null, requirement2: null});
+
+        projects = await caller.projects.get_projects();
+        expect(projects).not.toBeNull();
+        if (projects == null) return;
+        expect(projects).toHaveLength(1);
+        expect(projects[0].total_subtasks).toBe(1);
+        expect(projects[0].ready_subtasks).toBe(1);
+        expect(projects[0].done_subtasks).toBe(0);
+
+        const tasks = await caller.projects.get_tasks(projects[0].id);
+        expect(tasks).not.toBeNull();
+        if (tasks == null) return;
+        expect(tasks).toHaveLength(1);
+        expect(tasks[0].description).toBe("project task");
+
+        expect(await caller.projects.complete_task(tasks[0].id)).toBe(true);
+
+        projects = await caller.projects.get_projects();
+        expect(projects).not.toBeNull();
+        if (projects == null) return;
+        expect(projects).toHaveLength(1);
+        expect(projects[0].total_subtasks).toBe(1);
+        expect(projects[0].ready_subtasks).toBe(0);
+        expect(projects[0].done_subtasks).toBe(1);
+
+        // now delete the project
+        expect(await caller.projects.delete(projects[0].id)).toBe(true);
+
+        // check that we don't have any projects
+        projects = await caller.projects.get_projects();
+        expect(projects).not.toBeNull();
+        expect(projects).toHaveLength(0);
+        if (projects == null) return;
+        
     });
 });
 

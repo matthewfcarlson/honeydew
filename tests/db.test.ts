@@ -775,6 +775,32 @@ describe('Chore tests', () => {
     }
   });
 
+  it("chores shouldn't be assigned back to back", async () => {
+    const house_id = (await db.HouseholdCreate("Bob's house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+    {
+      const last_assigned = getJulianDate() - 1;
+      const all_chores = await Promise.all([
+        db.ChoreCreate("last assigned sweeping", house_id, 5, 6, null, last_assigned),
+        db.ChoreCreate("last assigned dusting", house_id, 5, 6, null, last_assigned - 1),
+        db.ChoreCreate("last assigned painting", house_id, 5, 6, null, last_assigned + 0.8)
+      ])
+      const chore1 = all_chores[0];
+      const chore2 = all_chores[1];
+      expect(chore1).not.toBeNull();
+      expect(chore2).not.toBeNull();
+
+      const chore_select_1 = await db.ChorePickNextChore(house_id, user_id);
+      expect(chore_select_1).not.toBeNull();
+      expect(chore_select_1?.id).toBe(chore2?.id);
+    }
+  });
+
 });
 
 describe('Telegram callback tests', () => {
