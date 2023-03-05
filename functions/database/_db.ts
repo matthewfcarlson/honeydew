@@ -568,7 +568,7 @@ export default class Database {
                 .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
                 .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
             const results = await query_base.execute();
-            const filtered_results = results.filter((x)=>{
+            const filtered_results = results.filter((x) => {
                 if (x.req1_id != null && x.req1_completed == null) return false;
                 if (x.req2_id != null && x.req2_completed == null) return false;
                 return true;
@@ -715,6 +715,9 @@ export default class Database {
     async ProjectDelete(id: ProjectId) {
         const project_id = ProjectIdZ.safeParse(id);
         if (project_id.success == false) return false;
+        // delete all the tasks
+        await this._db.deleteFrom("tasks").where("project", "==", project_id.data).execute();
+        // delete the project itself
         await this._db.deleteFrom("projects").where("id", "==", project_id.data).execute();
         return true;
     }
@@ -1093,7 +1096,7 @@ export default class Database {
         return id
     }
 
-    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1, user_id: UserId | null = null): Promise<DbChore | null> {
+    async ChoreCreate(name: string, household_id: HouseId, frequency: number, back_dated: number = 1, user_id: UserId | null = null, lastTimeAssigned: number | null = null): Promise<DbChore | null> {
         try {
             const id = await this.ChoreGenerateUUID();
             if (id == null) {
@@ -1108,7 +1111,7 @@ export default class Database {
                 lastDone: getJulianDate() - back_dated, // the default is we said it was done yesterday
                 waitUntil: null,
                 doneBy: null,
-                lastTimeAssigned: null,
+                lastTimeAssigned,
             };
             const chore = DbChoreZ.parse(chore_raw);
             await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
@@ -1198,8 +1201,12 @@ export default class Database {
             const id = HouseIdZ.safeParse(house_id);
             if (id.success == false) return null;
             const today = getJulianDate();
-            const last_signed_time = today - 0.5;
-            const query = this._db.selectFrom("chores").selectAll().where("lastDone", "<", last_signed_time).where("household_id", "==", house_id).where((qb) => qb.where("lastTimeAssigned", "is", null).orWhere("lastTimeAssigned", "<", last_signed_time));
+            const time_cutoff = today - 0.1; // make sure it hasn't been assigned really recently
+            const query = this._db.selectFrom("chores")
+                .selectAll().where("lastDone", "<", time_cutoff)
+                .where("household_id", "==", house_id)
+                .where((qb) => qb.where("lastTimeAssigned", "is", null)
+                    .orWhere("lastTimeAssigned", "<", time_cutoff));
             const result = await query.execute();
             if (result == undefined || result.length == 0) {
                 return null;
@@ -1219,7 +1226,11 @@ export default class Database {
                 // The thought is how frequently is it done vs how long it's delayed, how long of a cycle is it delayed for?
                 const a_cycle = (today - a.lastDone) / a.frequency;
                 const b_cycle = (today - b.lastDone) / b.frequency;
-                return b_cycle - a_cycle
+                const a_assign_time = Math.max(0.1, (today - (a.lastTimeAssigned || 0)));
+                const b_assign_time = Math.max(0.1, (today - (b.lastTimeAssigned || 0)));
+                const a_penalty = 1 / a_assign_time;
+                const b_penalty = 1 / b_assign_time;
+                return (b_cycle - b_penalty) - (a_cycle - a_penalty)
             });
             return sorted_results[0];
         }
@@ -1349,7 +1360,7 @@ export default class Database {
         }
     }
 
-    async TelegramMessageUser(raw_user_id: UserId, message: string, use_markdown:boolean) {
+    async TelegramMessageUser(raw_user_id: UserId, message: string, use_markdown: boolean) {
         try {
             const user_id = UserIdZ.parse(raw_user_id);
             const user = await this.UserGet(user_id);
@@ -1357,8 +1368,8 @@ export default class Database {
             const telegram_id = user._chat_id;
             // TODO: figure out a better way to return error types
             if (telegram_id == null) return false;
-            const result= await this.GetTelegram().sendTextMessage(telegram_id, message, undefined, undefined, use_markdown?"MarkdownV2":undefined)
-            return result; 
+            const result = await this.GetTelegram().sendTextMessage(telegram_id, message, undefined, undefined, use_markdown ? "MarkdownV2" : undefined)
+            return result;
         }
         catch (err) {
             console.error("TelegramMessageUser", err);
