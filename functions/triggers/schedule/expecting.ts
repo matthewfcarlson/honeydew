@@ -63,10 +63,10 @@ const week_fun_fact = new Map<number, string>([
     [18, "The digestive system is starting to work",],
     [19, "You might now start to feel kicks and vernix (wax) is starting to form on the skin",],
     [20, "Muscles are starting to form and the fetus is starting to move around more",],
-    [21, "You're halfway there! The fetus starts reacting to food you eat",],
+    [21, "You're halfway there\\! The fetus starts reacting to food you eat",],
     [22, "The fetus can now respond to external stimulus but eyes are still fused shut",],
     [23, "Use a squatty potty and avoid straining while pooping to avoid hemorrhoids",],
-    [24, "Congrats on making it to viability!",],
+    [24, "Congrats on making it to viability\\!",],
     [25, "Gaining fat and developing the lungs this week",],
     [26, "The startle/moro reflex is starting to develop and the intestines are starting to grow. The fetus may also start a sleep cycle",],
     [27, "Neurons are forming and the lungs are developing, causing hiccups",],
@@ -124,10 +124,10 @@ const intro_message = [
     "You're now on",
     "Woohoo, you did it. It is now",
     "Welcome to",
-    "Tada! You're now on",
+    "Tada\\! You're now on",
     "You've made it to",
-    "Beautiful! It is now",
-    "It's really flow by! As of today, you're on",
+    "Beautiful\\! It is now",
+    "It's really flow by\\! As of today, you're on",
     "As of today, you're on"
 ]
 
