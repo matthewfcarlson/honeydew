@@ -258,6 +258,18 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
+        async HouseholdSetExpectingDate(date: string) {
+            try {
+                const result = await client.household.setExpectingDate.query({expecting:date});
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
         async RecipeFetch() {
             const favs = await this.QueryAPI(client.recipes.favorites.query);
             if (favs.success) {

@@ -279,6 +279,27 @@ describe('House auto assign tests', () => {
 
 
   });
+  it('can set expecting', async () => {
+    // Arrange
+    const house = await db.HouseholdCreate("BOBBY'S HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const hour = 2;
+
+    // Create the auto assignment
+    expect(await db.HouseExpectingSetDate(house.id,"")).toBe(true);
+    expect(await db.HouseExpectingSetDate(house.id,"2023/05/03")).toBe(false);
+    expect(await db.HouseExpectingSetDate(house.id,"2023-05-03")).toBe(true);
+
+    const house2 = await db.HouseholdGet(house.id);
+    expect(house2?.expecting).toBe("2023-05-03");
+
+    // Mark it as messaged to see if it that makes sense
+    expect(await db.HouseExpectingHasBeenMessaged(house.id)).toBe(false);
+    expect(await db.HouseExpectingMarkMessaged(house.id)).toBe(true);
+    expect(await db.HouseExpectingHasBeenMessaged(house.id)).toBe(true);
+
+  });
 });
 
 describe('Project tests', () => {
