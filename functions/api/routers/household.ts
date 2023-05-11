@@ -1,7 +1,7 @@
 
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
-import type { DbUser } from '../../db_types';
+import { DbHouseholdRawZ, DbHouseholdZ, DbUser } from '../../db_types';
 import type Database from '../../database/_db';
 import { TRPCError } from '@trpc/server';
 import { ArrayBufferToHexString } from '../../_utils';
@@ -62,6 +62,28 @@ const Router = router({
     const db = ctx.ctx.data.db;
 
     const result = await db.HouseAutoAssignSetTime(user.household, hour);
+    return result;
+  }),
+  setExpectingDate: protectedProcedure.input(DbHouseholdRawZ.pick({expecting:true})).query(async (ctx) => {
+
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const date = ctx.input.expecting;
+    const db = ctx.ctx.data.db;
+
+    // TODO: check if a user is in a household
+    const result = await db.HouseExpectingSetDate(user.household, date);
     return result;
   })
 });

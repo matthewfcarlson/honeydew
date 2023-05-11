@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -421,7 +421,8 @@ export default class Database {
             }
             const sql_house: SQLHousehold = {
                 id,
-                name
+                name,
+                expecting:null,
             };
             const house: DbHousehold = DbHouseholdZ.parse({
                 ...sql_house,
@@ -454,6 +455,63 @@ export default class Database {
         catch (err) {
             console.error("HouseAutoAssignGetHour", err);
             return null;
+        }
+    }
+
+    async HouseGetHousesExpecting() {
+        try {
+            const raw_results = await this._db.selectFrom("households").selectAll().where("expecting", "is not", null).where("expecting", "!=", "").execute();
+            if (raw_results == undefined) return null;
+            const results = raw_results.filter((x) => HouseIdZ.safeParse(x.id).success);
+            return results;
+        }
+        catch (err) {
+            console.error("HouseGetHousesExpecting", err);
+            return null;
+        }
+    }
+
+    async HouseExpectingMarkMessaged(raw_id: HouseId) {
+        try {
+            const id = HouseExpectingKVKeyZ.parse("E"+raw_id);
+            await this.setKVRaw(id, {}, (60 * 60 * 24 * 6.9));
+            return true;
+        }
+        catch (err) {
+            console.error("HouseExpectingMarkMessaged", err);
+            return false;
+        }
+    }
+    async HouseExpectingHasBeenMessaged(raw_id: HouseId) {
+        try {
+            const id = HouseExpectingKVKeyZ.parse("E"+raw_id);
+            const result = await this.queryKVRaw(id);
+            if (result == null) return false;
+            return true;
+        }
+        catch (err) {
+            console.error("HouseExpectingHasBeenMessaged", err);
+            return false;
+        }
+    }
+
+    async HouseExpectingSetDate(raw_id: HouseId, date: string|null): Promise<boolean> {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            if ((await this.HouseholdExists(id)) == false) return false;
+            // Check if date is valid: it should be in this format {YYYY-MM-DD}
+            if (date == "") date = null;
+            if (date != null) {
+                const date_parse = DbDateZ.safeParse(date);
+                if (date_parse.success == false) return false;
+            }
+            await this._db.updateTable("households").where("id", "==", id).set({ expecting: date }).executeTakeFirstOrThrow();
+            await this.CacheInvalidate(id);
+            return true;
+        }
+        catch (err) {
+            console.error("HouseExpectingSetDate", err);
+            return false;
         }
     }
 

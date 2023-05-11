@@ -48,16 +48,22 @@
                 <button class="button is-round" @click="copyMagicLink">Copy to Clipboard</button>
             </div>
         </div>
-        <hr/>
+        <hr />
         <div class="box block">
             The hour that you want to be assigned new chores (UTC)
-            <input class="input" type="number" v-model="autoassign_hour"/>
+            <input class="input" type="number" v-model="autoassign_hour" />
             <button class="button is-round" @click="setAutoassignTime">Set Autoassign Time</button>
+        </div>
+        <div class="box block">
+            Expecting? When did it start?
+            <input class="input" type="date" :max="max_expecting_date" v-model="expecting_date" />
+            <button class="button is-round" @click="setExpectingDate">Set Expecting Time</button>
+            <button class="button is-round" @click="clearExpectingDate">Clear Expecting Time</button>
         </div>
 
     </div>
 </template>
-  
+
 <script lang="ts">
 
 import { defineComponent } from 'vue';
@@ -73,6 +79,8 @@ export default defineComponent({
             error: "",
             magic_link: "",
             autoassign_hour: 8,
+            expecting_date: "",
+            max_expecting_date: new Date().toISOString().split("T")[0],
         }
 
     },
@@ -99,7 +107,28 @@ export default defineComponent({
                 this.error = "Could not copy to clipboard";
             }
         },
-        get_invite: async function() {
+        setExpectingDate: async function () {
+            this.error = "";
+            const result = await useUserStore().HouseholdSetExpectingDate(this.expecting_date);
+            if (result.success == false) {
+                // not sure why typescript is being dumb here and no picking up the fact that message will be valid here?
+                this.error = (result as any).message;
+            }
+            else {
+                if (this.expecting_date == "") {
+                    this.error = "successfully cleared expecting"
+                }
+                else {
+                    this.error = "successfully set expecting"
+                }
+            }
+        },
+        clearExpectingDate: async function () {
+            this.expecting_date = "";
+            // Issue an update so that it gets cleared in the DB
+            this.setExpectingDate();
+        },
+        get_invite: async function () {
             this.invite_link = "";
             this.error = "";
             const invite = await useUserStore().getInviteLink();
@@ -136,4 +165,3 @@ export default defineComponent({
     }
 });
 </script>
-  

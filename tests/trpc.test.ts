@@ -114,6 +114,25 @@ describe('household tests', () => {
         expect(result).toContain("auth/join/");
         // TODO: decode the key?
     });
+
+    test('you can set the expecting date', async () => {
+        const house = await db.HouseholdCreate("BOB'S HOUSE");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        expect(house.id.length).toBeGreaterThan(10);
+        // Act
+        const user = await db.UserCreate("BOBBY", house.id);
+        // Assert
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+
+        const caller = appRouter.createCaller(ctx);
+        const result = await caller.household.setExpectingDate({expecting: "2023-04-16"})
+        expect(result).toBe(true);
+        const result2 = await caller.household.setExpectingDate({expecting: "2023-of-16"})
+        expect(result2).toBe(false);
+    });
 });
 
 describe('recipe tests', () => {
@@ -265,7 +284,7 @@ describe('project tests', () => {
         expect(projects).not.toBeNull();
         expect(projects).toHaveLength(0);
         if (projects == null) return;
-        
+
     });
 });
 

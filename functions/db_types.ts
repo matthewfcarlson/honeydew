@@ -27,12 +27,16 @@ export const HouseExtendedKVIdZ = z.string({
 }).length(40).startsWith("E:H:", { message: "Must start with E:H:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"HouseExtendedKVId">()
 export type HouseExtendedKVId = z.infer<typeof HouseExtendedKVIdZ>;
 
-export const HouseExtendedKVIdFromHouseId = (id:HouseId): HouseExtendedKVId => {
-    return HouseExtendedKVIdZ.parse("E:"+id);
+export const HouseExtendedKVIdFromHouseId = (id: HouseId): HouseExtendedKVId => {
+    return HouseExtendedKVIdZ.parse("E:" + id);
 }
 
 export const HouseKeyKVKeyZ = z.string().length(39).startsWith("HK:", { message: "Must start with HK:" }).refine(endsWithUuid).brand<"HouseKeyKVKey">();
 export type HouseKeyKVKey = z.infer<typeof HouseKeyKVKeyZ>;
+
+// Used to keep track of which houses have gotten their expecting notification
+export const HouseExpectingKVKeyZ = z.string().length(39).startsWith("EH:", { message: "Must start with EH:" }).refine(endsWithUuid).brand<"HouseExpectingKVKey">();
+export type HouseExpectingKVKey = z.infer<typeof HouseExpectingKVKeyZ>;
 
 export const ProjectIdZ = z.string({
     required_error: "ProjectID is required",
@@ -74,7 +78,7 @@ export const TelegramCallbackKVKeyZ = z.string().length(39).startsWith("TC:").br
 export type TelegramCallbackKVKey = z.infer<typeof TelegramCallbackKVKeyZ>;
 
 const TelegramCallbackKVPayloadBaseZ = z.object({
-    user_id:UserIdZ
+    user_id: UserIdZ
 })
 const TelegramCallbackKVPayloadCompleteChoreZ = TelegramCallbackKVPayloadBaseZ.extend({
     type: z.literal("COMPLETE_CHORE"),
@@ -91,7 +95,7 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
-export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey;
+export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
 export interface KVDataObj {
@@ -120,10 +124,19 @@ export const DbHouseholdRawZ = z.object({
     id: HouseIdZ,
     name: z.string().max(255),
     members: z.array(UserIdZ),
+    expecting: z.string().max(25).nullable(),
 })
 export const DbHouseholdZ = DbHouseholdRawZ.brand<"Household">();
 export type DbHouseholdRaw = z.infer<typeof DbHouseholdRawZ>;
 export type DbHousehold = z.infer<typeof DbHouseholdZ>;
+
+const DbDateRawZ = z.string().refine((arg) =>
+    arg.match(
+        /^(\d{4})-(\d{2})-(\d{2})$/
+    ));
+export const DbDateZ = DbDateRawZ.brand<"DbDate">();
+export type DbDateRaw = z.infer<typeof DbDateRawZ>;
+export type DbDate = z.infer<typeof DbDateZ>;
 
 export const DbHouseAutoAssignmentRawZ = z.object({
     house_id: HouseIdZ,
