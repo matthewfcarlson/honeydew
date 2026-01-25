@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Use Node.js 16.x
-      uses: actions/setup-node@v3
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
       with:
-        node-version: 16.x
+        node-version: 22.x
         
     - name: Install
       run: |
@@ -30,7 +30,7 @@ jobs:
       run: |
         npm run test
     - name: Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
         # files: ./coverage/ # optional

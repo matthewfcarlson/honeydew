@@ -1,6 +1,7 @@
 /**
  * Tests for the util functions
  */
+import { describe, test, expect } from 'vitest';
 import * as Utils from '../functions/_utils';
 
 describe('utils tests', () => {
