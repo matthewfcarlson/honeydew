@@ -114,6 +114,8 @@ export const DbUserZRaw = z.object({
     _created_at: z.string().optional(),
     _recoverykey: z.string().max(255),
     _chat_id: z.number().nullable(),
+    last_active_date: z.number().nullable(), // Julian day number of last chore completion
+    current_streak: z.number().nonnegative(), // Current consecutive days streak
 })
 export const DbUserZ = DbUserZRaw.brand<"User">()
 export type DbUser = z.infer<typeof DbUserZ>;

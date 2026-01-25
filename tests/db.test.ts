@@ -706,7 +706,7 @@ describe('Chore tests', () => {
     const chore = await db.ChoreCreate("sweeping", house_id, 5);
     expect(chore).not.toBeNull();
 
-    expect(await db.ChoreComplete(chore!.id, user_id)).toBe(true);
+    expect((await db.ChoreComplete(chore!.id, user_id)).success).toBe(true);
 
     const chore2 = await db.ChoreGet(chore!.id);
     expect(chore2).not.toBeNull();
@@ -728,7 +728,7 @@ describe('Chore tests', () => {
       const chore_select_1 = await db.ChorePickNextChore(house_id, user_id);
       expect(chore_select_1).not.toBeNull();
 
-      expect(await db.ChoreComplete(chore!.id, user_id)).toBe(true);
+      expect((await db.ChoreComplete(chore!.id, user_id)).success).toBe(true);
 
       const chore_select_2 = await db.ChorePickNextChore(house_id, user_id);
       expect(chore_select_2).toBeNull();
@@ -752,7 +752,7 @@ describe('Chore tests', () => {
       if (chore_select_1 == null) return;
       expect(chore_select_1.id).toBe(chore1.id);
 
-      expect(await db.ChoreComplete(chore1.id, user_id)).toBe(true);
+      expect((await db.ChoreComplete(chore1.id, user_id)).success).toBe(true);
 
       // Since we cached this chore, it should keep track of our chore
       {

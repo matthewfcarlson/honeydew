@@ -327,7 +327,7 @@ describe('Trigger tests', () => {
 
     await TriggerChores(db, 5);
     expect(message_count).toBe(1);
-    expect(await db.ChoreComplete(chore.id, user_id)).toBe(true);
+    expect((await db.ChoreComplete(chore.id, user_id)).success).toBe(true);
     for (let i = 6; i < 24; i++) {
       await TriggerChores(db, i);
     }

@@ -55,15 +55,20 @@ async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateC
     if (payload.type != "COMPLETE_CHORE") return null;
     // console.log("Completing chore", payload.chore_id, message.callback_query.data)
     const result = await db.ChoreComplete(payload.chore_id, payload.user_id);
-    if (result == false) {
+    if (!result.success) {
         return {
             callback_query_id: message.callback_query.id,
             text: "Failed to complete the chore, try and do it from the website",
         }
     }
+    // Show streak message if this was first completion today and streak > 1
+    let responseText = "Chore completed!";
+    if (result.isFirstToday && result.streak && result.streak > 1) {
+        responseText = `Chore completed! 🔥 ${result.streak}-day streak!`;
+    }
     return {
         callback_query_id: message.callback_query.id,
-        text: "Chore completed!"
+        text: responseText
     }
 }
 

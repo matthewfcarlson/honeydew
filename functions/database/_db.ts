@@ -214,7 +214,9 @@ export default class Database {
             color,
             icon,
             _recoverykey: recovery_key,
-            _chat_id: null
+            _chat_id: null,
+            last_active_date: null,
+            current_streak: 0,
         };
         const db_user = DbUserZ.parse(user);
         await this._db.insertInto("users").values(db_user).execute();
@@ -269,6 +271,53 @@ export default class Database {
         if (await this.UserExists(user_id) == false) return false;
         await this._db.updateTable("users").where("id", "==", user_id).set({ _chat_id: chat_id }).execute();
         return true;
+    }
+
+    /**
+     * Updates the user's streak when they complete a chore.
+     * @returns Object with current streak and whether this was their first completion today
+     */
+    async UserUpdateStreak(user_id: UserId): Promise<{ streak: number; isFirstToday: boolean } | null> {
+        try {
+            const user = await this.UserGet(user_id);
+            if (user == null) return null;
+
+            const today = Math.floor(getJulianDate());
+            const lastActiveDate = user.last_active_date;
+            let newStreak = user.current_streak;
+            let isFirstToday = false;
+
+            if (lastActiveDate === today) {
+                // Already active today, no streak update needed
+                return { streak: newStreak, isFirstToday: false };
+            }
+
+            isFirstToday = true;
+
+            if (lastActiveDate === today - 1) {
+                // Consecutive day, increment streak
+                newStreak = newStreak + 1;
+            } else {
+                // Streak broken (lastActiveDate < today - 1 or null), reset to 1
+                newStreak = 1;
+            }
+
+            await this._db.updateTable("users")
+                .where("id", "==", user_id)
+                .set({
+                    last_active_date: today,
+                    current_streak: newStreak
+                })
+                .execute();
+
+            // Invalidate user cache since we updated their data
+            await this.CacheInvalidate(user_id);
+
+            return { streak: newStreak, isFirstToday };
+        } catch (err) {
+            console.error("UserUpdateStreak", err);
+            return null;
+        }
     }
 
     private async UserMagicKeyGenerateId(): Promise<DbMagicKey | null> {
@@ -1187,34 +1236,45 @@ export default class Database {
         }
     }
 
-    async ChoreComplete(id: ChoreId, raw_user: UserId): Promise<boolean> {
+    async ChoreComplete(id: ChoreId, raw_user: UserId): Promise<{ success: boolean; streak?: number; isFirstToday?: boolean }> {
         try {
-            if (await this.ChoreExists(id) == false) return false;
+            if (await this.ChoreExists(id) == false) return { success: false };
             const user_id = UserIdZ.parse(raw_user);
             const timestamp = getJulianDate();
             const chore = await this.ChoreGet(id);
-            if (chore == null) return false;
+            if (chore == null) return { success: false };
             let telegram_promise: Promise<any> | null = null;
             // Get user and make sure they're in the right household?
             const user = await this.UserGet(user_id);
-            if (user == null) return false;
+            if (user == null) return { success: false };
             if (user.household != chore.household_id) {
                 console.error("ChoreComplete", user, "tried to complete chore:", chore);
-                return false;
+                return { success: false };
             }
+
+            // Update user's streak
+            const streakResult = await this.UserUpdateStreak(user_id);
+            const streak = streakResult?.streak ?? 0;
+            const isFirstToday = streakResult?.isFirstToday ?? false;
+
             // If the timestamp was last done at least an hour ago let people know it was done
             if ((timestamp - 0.05) > chore.lastDone) {
-                // TODO: update the leaderboard?
-                const message = `*${user.name}* just completed _${chore.name}_`;
+                // Include streak in message if > 1
+                let message: string;
+                if (streak > 1) {
+                    message = `*${user.name}* just completed _${chore.name}_ \\(🔥 ${streak}\\-day streak\\)`;
+                } else {
+                    message = `*${user.name}* just completed _${chore.name}_`;
+                }
                 telegram_promise = this.HouseholdTelegramMessageAllMembers(chore.household_id, message, true, user_id);
             }
 
             await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: timestamp }).execute();
-            return true;
+            return { success: true, streak, isFirstToday };
         }
         catch (err) {
             console.error("ChoreComplete", err);
-            return false;
+            return { success: false };
         }
     }
     async ChoreAssignTo(id: ChoreId, user: UserId | null): Promise<boolean> {

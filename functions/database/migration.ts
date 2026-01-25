@@ -159,7 +159,23 @@ const HoneydewVersion6 = {
                 .addColumn('expecting', "varchar(25)", (col)=>col.defaultTo(null))
                 .execute()
         }
-    
+
+    }
+}
+
+const HoneydewVersion7 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "USERS"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('last_active_date', "integer", (col)=>col.defaultTo(null))
+                .execute()
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('current_streak', "integer", (col)=>col.defaultTo(0).notNull())
+                .execute()
+        }
     }
 }
 
@@ -169,6 +185,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion3,
     HoneydewVersion4,
     HoneydewVersion5,
-    HoneydewVersion6
+    HoneydewVersion6,
+    HoneydewVersion7
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

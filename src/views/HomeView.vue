@@ -5,7 +5,8 @@
       <p class="subtitle">Here's what's going on today</p>
     </section>
 
-    <div v-if="error != ''">{{ error }}</div>
+    <div v-if="error != ''" class="notification is-danger">{{ error }}</div>
+    <div v-if="streakMessage != ''" class="notification is-success">{{ streakMessage }}</div>
     <div class="box">
       <div class="title is-4">Your Chore</div>
       <div v-if="currentChore != null" class="level">
@@ -220,7 +221,8 @@ export default defineComponent({
   },
   data() {
     return {
-      error: ""
+      error: "",
+      streakMessage: ""
     }
 
   },
@@ -230,9 +232,12 @@ export default defineComponent({
         this.error = "Chore ID is null";
         return;
       }
+      this.streakMessage = "";
       const status = await useUserStore().ChoreComplete(id);
       if (status.success == false) {
         this.error = status.message
+      } else if (status.data.isFirstToday && status.data.streak && status.data.streak > 1) {
+        this.streakMessage = `🔥 ${status.data.streak}-day streak!`;
       }
     },
     another_chore: async function () {
