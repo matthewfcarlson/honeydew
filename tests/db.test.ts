@@ -1,15 +1,14 @@
+import { describe, expect, test, it, beforeAll } from 'vitest';
+import { env } from 'cloudflare:test';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
-import { describe, expect, test } from '@jest/globals';
 import { getJulianDate } from "../functions/_utils";
 import { HouseId } from "functions/db_types";
-const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
-
 
 function createDB() {
   const telegram = new TelegramAPI("TESTING");
-  const kv = HONEYDEW as KVNamespace;
-  const db = new Database(kv, telegram, __D1_BETA__HONEYDEWSQL)
+  const kv = env.HONEYDEW as KVNamespace;
+  const db = new Database(kv, telegram, env.HONEYDEWSQL as D1Database)
   return db;
 }
 const db = createDB();

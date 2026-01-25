@@ -205,9 +205,9 @@ export const useUserStore = defineStore("user", {
             const result = await this.QueryAPI(client.me.get.query);
             this._thinking = false;
             if (!result.success) return result;
-            // Idk why the type inference is saying this is never[]
-            this._user = result.data;
-            return result;
+            // Type assertion needed due to Zod branded types not matching across API boundary
+            this._user = result.data as AuthCheck;
+            return { success: true, data: this._user };
         },
         async QueryAPI<R>(query: Query<R>): APIResult<R> {
             try {
@@ -273,11 +273,11 @@ export const useUserStore = defineStore("user", {
         async RecipeFetch() {
             const favs = await this.QueryAPI(client.recipes.favorites.query);
             if (favs.success) {
-                this._recipeFavs = favs.data;
+                this._recipeFavs = favs.data as DbCardBoxRecipe[];
             }
             const toTry = await this.QueryAPI(client.recipes.toTry.query);
             if (toTry.success) {
-                this._recipeToTry = toTry.data;
+                this._recipeToTry = toTry.data as DbCardBoxRecipe[];
             }
         },
         async RecipeAdd(url: string): APIResult<boolean> {
@@ -378,7 +378,7 @@ export const useUserStore = defineStore("user", {
         async ChoreFetch() {
             const current_chore = await this.QueryAPI(client.chores.next.query);
             if (current_chore.success) {
-                this._currentChore = current_chore.data;
+                this._currentChore = current_chore.data as DbChore | null;
                 console.log("New current chore", current_chore.data);
             }
             const chores = await this.QueryAPI(client.chores.all.query);
@@ -389,7 +389,7 @@ export const useUserStore = defineStore("user", {
                         ...x
                     }
                 })
-                this._chores = augmented_chores;
+                this._chores = augmented_chores as AugmentedDbChore[];
             }
         },
         async ChoreAdd(name: string, frequency: number): APIResult<boolean> {
@@ -471,7 +471,7 @@ export const useUserStore = defineStore("user", {
             try {
                 this._thinking = true;
                 const result = await client.projects.get_projects.query();
-                if (result != null) this._projects = result;
+                if (result != null) this._projects = result as AugmentedDbProject[];
                 this._thinking = false;
                 return {
                     success: true,
@@ -595,7 +595,7 @@ export const useUserStore = defineStore("user", {
             try {
                 this._thinking = true;
                 const result = await client.projects.get_tasks.query(project_id);
-                if (result != null) this._tasks = result;
+                if (result != null) this._tasks = result as DbTask[];
                 this._thinking = false;
                 return {
                     success: true,

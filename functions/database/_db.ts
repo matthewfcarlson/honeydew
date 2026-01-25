@@ -6,7 +6,6 @@ import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
 import { scrapeRecipe } from "../_recipe";
-import { last } from "cheerio/lib/api/traversing";
 
 type SQLHousehold = Omit<DbHouseholdRaw, "members">;
 
@@ -1263,8 +1262,10 @@ export default class Database {
             const query = this._db.selectFrom("chores")
                 .selectAll().where("lastDone", "<", time_cutoff)
                 .where("household_id", "==", house_id)
-                .where((qb) => qb.where("lastTimeAssigned", "is", null)
-                    .orWhere("lastTimeAssigned", "<", time_cutoff));
+                .where((eb) => eb.or([
+                    eb("lastTimeAssigned", "is", null),
+                    eb("lastTimeAssigned", "<", time_cutoff)
+                ]));
             const result = await query.execute();
             if (result == undefined || result.length == 0) {
                 return null;

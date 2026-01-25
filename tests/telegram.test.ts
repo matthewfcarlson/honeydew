@@ -1,10 +1,11 @@
+import { describe, expect, test, it, beforeAll } from 'vitest';
+import { env } from 'cloudflare:test';
 import { DbProject } from "functions/db_types";
 import { HandleTelegramUpdate } from "../functions/telegram/webhook"
 import { TriggerChores } from "../functions/triggers/schedule/chores"
-import { MockedTelegramAPI, MockedTelegramRequest, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
+import { MockedTelegramAPI, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";
-const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 function generateTelegramResponse(data: any) {
   return new Response(JSON.stringify({
@@ -14,8 +15,8 @@ function generateTelegramResponse(data: any) {
 }
 
 const telegram = new MockedTelegramAPI("TESTING");
-const kv = HONEYDEW as KVNamespace;
-const db = new Database(kv, telegram, __D1_BETA__HONEYDEWSQL)
+const kv = env.HONEYDEW as KVNamespace;
+const db = new Database(kv, telegram, env.HONEYDEWSQL as D1Database)
 beforeAll(async () => {
   return await db.CheckOnSQL();
 });

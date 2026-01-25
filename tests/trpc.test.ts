@@ -1,20 +1,20 @@
 /**
  * Integration test example for the `post` router
  */
+import { describe, expect, test, beforeAll } from 'vitest';
+import { env } from 'cloudflare:test';
 import { createInnerContext } from '../functions/api/context';
 import { appRouter } from '../functions/api/router';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
-import { describe, expect, test } from '@jest/globals';
 import { DbUser } from '../functions/db_types';
 import { HoneydewPageData, HoneydewPageEnv } from '../functions/types';
 import { getJulianDate } from '../functions/_utils';
-const { HONEYDEW, __D1_BETA__HONEYDEWSQL } = getMiniflareBindings();
 
 function createDB() {
     const telegram = new TelegramAPI("TESTING");
-    const kv = HONEYDEW as KVNamespace;
-    const db = new Database(kv, telegram, __D1_BETA__HONEYDEWSQL)
+    const kv = env.HONEYDEW as KVNamespace;
+    const db = new Database(kv, telegram, env.HONEYDEWSQL as D1Database)
     return db;
 }
 const db = createDB();
@@ -40,8 +40,8 @@ const ENV: HoneydewPageEnv = {
     JWT_SECRET: "",
     TELEGRAM_WH: "",
     PRODUCTION: "false",
-    HONEYDEW,
-    HONEYDEWSQL: __D1_BETA__HONEYDEWSQL,
+    HONEYDEW: env.HONEYDEW as KVNamespace,
+    HONEYDEWSQL: env.HONEYDEWSQL as D1Database,
     TURNSTILE: "",
 }
 const ROOT_URL = "http://localhost/"
@@ -73,7 +73,7 @@ describe('User tests', () => {
         const ctx = await createInnerContext(createData(null), ENV, ROOT_URL);
         const caller = appRouter.createCaller(ctx);
         // we shouldn't get any information if we aren't logged in
-        expect(caller.me.get()).rejects.toThrowError();
+        await expect(caller.me.get()).rejects.toThrowError();
     });
 });
 describe('household tests', () => {
@@ -93,7 +93,7 @@ describe('household tests', () => {
         const caller = appRouter.createCaller(ctx);
         const result = await caller.household.setAutoAssign(5);
         expect(result).toBe(true);
-        expect(caller.household.setAutoAssign(25)).rejects.toThrowError();
+        await expect(caller.household.setAutoAssign(25)).rejects.toThrowError();
 
     });
 
