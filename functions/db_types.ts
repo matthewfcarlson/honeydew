@@ -221,8 +221,9 @@ export const DbChoreZRaw = z.object({
     frequency: z.number().positive(),
     lastDone: z.number().nonnegative(),  // stored as julian day numbers
     waitUntil: z.number().nonnegative().nullable(), // stored as julian day numbers
-    doneBy: UserIdZ.nullable(), // the last user to do it
+    doneBy: UserIdZ.nullable(), // the user assigned to always do this chore
     lastTimeAssigned: z.number().nonnegative().nullable(), // julian day when it was last assigned
+    lastDoneBy: UserIdZ.nullable(), // the user who last completed this chore
 });
 export const DbChoreZ = DbChoreZRaw.brand<"Chore">();
 export type DbChoreRaw = z.infer<typeof DbChoreZRaw>;

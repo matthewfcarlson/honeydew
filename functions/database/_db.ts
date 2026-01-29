@@ -1218,6 +1218,7 @@ export default class Database {
                 waitUntil: null,
                 doneBy: null,
                 lastTimeAssigned,
+                lastDoneBy: null,
             };
             const chore = DbChoreZ.parse(chore_raw);
             await this._db.insertInto("chores").values(chore).executeTakeFirstOrThrow();
@@ -1269,7 +1270,7 @@ export default class Database {
                 telegram_promise = this.HouseholdTelegramMessageAllMembers(chore.household_id, message, true, user_id);
             }
 
-            await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: timestamp }).execute();
+            await this._db.updateTable("chores").where("id", "==", id).set({ lastDone: timestamp, lastDoneBy: user_id }).execute();
             return { success: true, streak, isFirstToday };
         }
         catch (err) {
@@ -1347,8 +1348,11 @@ export default class Database {
                 const b_cycle = (today - b.lastDone) / b.frequency;
                 const a_assign_time = Math.max(0.1, (today - (a.lastTimeAssigned || 0)));
                 const b_assign_time = Math.max(0.1, (today - (b.lastTimeAssigned || 0)));
-                const a_penalty = 1 / a_assign_time;
-                const b_penalty = 1 / b_assign_time;
+                // Cap penalty at 2 to prevent it from completely dominating the cycle score
+                // Without capping, penalty could reach 10 for recently assigned chores (0.1 days ago)
+                // which would always override even very overdue chores
+                const a_penalty = Math.min(2, 1 / a_assign_time);
+                const b_penalty = Math.min(2, 1 / b_assign_time);
                 return (b_cycle - b_penalty) - (a_cycle - a_penalty)
             });
             return sorted_results[0];
@@ -1413,8 +1417,25 @@ export default class Database {
             promises.push(this.setKVRaw(kv_key, chore.id, (60 * 60 * 23))); // it lasts 23 hours
             promises.push(update_query.execute());
             if (telegram_id != null) {
-                // TODO: escape the name
-                const text = `Hey, today your chore is: *${chore.name}*`
+                // Build informative assignment message
+                const daysAgo = Math.floor(today - chore.lastDone);
+                const daysAgoText = daysAgo === 1 ? "1 day ago" : `${daysAgo} days ago`;
+
+                // Look up who last completed it
+                let lastDoneByText = "";
+                if (chore.lastDoneBy) {
+                    const lastUser = await this.UserGet(chore.lastDoneBy);
+                    if (lastUser) {
+                        lastDoneByText = ` by ${lastUser.name}`;
+                    }
+                }
+
+                // Escape special characters for MarkdownV2
+                const escapedName = chore.name.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+                const escapedDaysAgoText = daysAgoText.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+                const escapedLastDoneByText = lastDoneByText.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+
+                const text = `Hey, today your chore is: *${escapedName}*\\! Last done ${escapedDaysAgoText}${escapedLastDoneByText}\\.`
                 const payload: TelegramCallbackKVPayload = {
                     user_id,
                     type: "COMPLETE_CHORE",
@@ -1425,7 +1446,6 @@ export default class Database {
                     promises.push(this.GetTelegram().sendTextMessage(telegram_id, text, undefined, undefined, "MarkdownV2"));
                 }
                 else {
-                    // TODO: add options for completing the task from
                     const keyboard: TelegramInlineKeyboardMarkup = {
                         inline_keyboard: [[
                             {

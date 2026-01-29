@@ -28,7 +28,27 @@ export const TriggerChores = async function (db: Database, hour: number) {
         if (chore == null) return false;
         if (x.chat_id == null) return false;
         if (chore.lastTimeAssigned != null && chore.lastDone >= chore.lastTimeAssigned) return false;
-        const message = `Just a friendly reminder to complete your chore!`
+
+        // Build informative reminder message
+        const today = getJulianDate();
+        const daysAgo = Math.floor(today - chore.lastDone);
+        const daysAgoText = daysAgo === 1 ? "1 day ago" : `${daysAgo} days ago`;
+
+        // Look up who last completed it
+        let lastDoneByText = "";
+        if (chore.lastDoneBy) {
+            const lastUser = await db.UserGet(chore.lastDoneBy);
+            if (lastUser) {
+                lastDoneByText = ` by ${lastUser.name}`;
+            }
+        }
+
+        // Escape special characters for MarkdownV2
+        const escapedName = chore.name.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+        const escapedDaysAgoText = daysAgoText.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+        const escapedLastDoneByText = lastDoneByText.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+
+        const message = `Just a friendly reminder to complete your chore: *${escapedName}*\\! Last done ${escapedDaysAgoText}${escapedLastDoneByText}\\.`
         await db.GetTelegram().sendTextMessage(x.chat_id, message, undefined, undefined, "MarkdownV2");
         return true;
     })
