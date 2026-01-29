@@ -737,6 +737,8 @@ describe('Chore tests', () => {
       expect(chore2).not.toBeNull();
       expect(chore2!.lastDone).not.toEqual(0);
       expect(chore2!.lastDone).not.toEqual(chore?.lastDone);
+      // Verify lastDoneBy is set to the user who completed it
+      expect(chore2!.lastDoneBy).toBe(user_id);
 
       expect((await db.ChoreGetAll(house_id)).length).toBe(1);
     }
@@ -819,6 +821,36 @@ describe('Chore tests', () => {
       expect(chore_select_1).not.toBeNull();
       expect(chore_select_1?.id).toBe(chore2?.id);
     }
+  });
+
+  it("lastDoneBy tracks who completed the chore", async () => {
+    const house_id = (await db.HouseholdCreate("Test house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const alice_id = (await db.UserCreate("Alice", house_id))?.id;
+    const bob_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(alice_id).not.toBeNull();
+    expect(bob_id).not.toBeNull();
+    if (alice_id == null || bob_id == null) return;
+
+    // Create a chore - lastDoneBy should be null initially
+    const chore = await db.ChoreCreate("dishes", house_id, 1, 5);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+    expect(chore.lastDoneBy).toBeNull();
+
+    // Alice completes the chore
+    expect((await db.ChoreComplete(chore.id, alice_id)).success).toBe(true);
+    const chore_after_alice = await db.ChoreGet(chore.id);
+    expect(chore_after_alice).not.toBeNull();
+    expect(chore_after_alice!.lastDoneBy).toBe(alice_id);
+
+    // Bob completes the chore - lastDoneBy should update to Bob
+    expect((await db.ChoreComplete(chore.id, bob_id)).success).toBe(true);
+    const chore_after_bob = await db.ChoreGet(chore.id);
+    expect(chore_after_bob).not.toBeNull();
+    expect(chore_after_bob!.lastDoneBy).toBe(bob_id);
   });
 
 });
