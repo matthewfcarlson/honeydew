@@ -1,7 +1,8 @@
 <template>
   <div class="chores container">
     <div class="title is-4">Chores</div>
-    <div class="is-danger" v-if="error.length > 0">{{ error }}</div>
+    <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
+    <div class="notification is-success" v-if="streakMessage.length > 0">{{ streakMessage }}</div>
     <h2>Your Chores Per Day: {{ chores_per_day }}</h2>
     <progress class="progress" :class="your_chores_progress_status" :value="chores_per_day" max="1">{{
       chores_per_day
@@ -79,6 +80,7 @@ export default defineComponent({
       chore_name: "",
       chore_freq: "1",
       error: "",
+      streakMessage: "",
     }
 
   },
@@ -153,9 +155,12 @@ export default defineComponent({
         this.error="Chore ID is null";
         return;
       }
+      this.streakMessage = "";
       const status = await useUserStore().ChoreComplete(id);
       if (status.success == false) {
         this.error = status.message
+      } else if (status.data.isFirstToday && status.data.streak && status.data.streak > 1) {
+        this.streakMessage = `🔥 ${status.data.streak}-day streak!`;
       }
     }
   }

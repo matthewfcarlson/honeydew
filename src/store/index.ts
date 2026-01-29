@@ -428,7 +428,7 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async ChoreComplete(id: string): APIResult<boolean> {
+        async ChoreComplete(id: string): APIResult<{success: boolean, streak?: number, isFirstToday?: boolean}> {
             try {
                 this._thinking = true;
                 const result = await client.chores.complete.query(id);

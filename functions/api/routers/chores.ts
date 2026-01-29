@@ -92,7 +92,12 @@ const Router = router({
       })
     }
     // TODO: check if this chore belongs to this household
-    return await db.ChoreComplete(chore_id.data, user.id);
+    const result = await db.ChoreComplete(chore_id.data, user.id);
+    return {
+      success: result.success,
+      streak: result.streak,
+      isFirstToday: result.isFirstToday,
+    };
   }),
   delete: protectedProcedure.input(z.string()).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
