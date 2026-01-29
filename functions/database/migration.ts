@@ -179,6 +179,18 @@ const HoneydewVersion7 = {
     }
 }
 
+const HoneydewVersion8 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CHORES"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('lastDoneBy', "varchar(40)", (col)=>col.defaultTo(null)) // tracks who last completed the chore
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -186,6 +198,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion4,
     HoneydewVersion5,
     HoneydewVersion6,
-    HoneydewVersion7
+    HoneydewVersion7,
+    HoneydewVersion8
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;
