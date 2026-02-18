@@ -9,6 +9,9 @@ test.beforeAll(async () => {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 });
 
+// Use a longer timeout for the full screenshot flow
+test.setTimeout(120_000);
+
 async function takeScreenshot(page: import('@playwright/test').Page, name: string) {
   await page.screenshot({
     path: path.join(SCREENSHOT_DIR, `${name}.png`),
@@ -24,12 +27,14 @@ test.describe('App Screenshots', () => {
 
     // Step 2: Screenshot the landing page (unauthenticated)
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await takeScreenshot(page, '01-landing');
 
     // Step 3: Screenshot the signup page
+    // Note: Don't use 'networkidle' here because the Turnstile widget keeps polling
     await page.goto('/signup');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
+    await page.waitForSelector('input[name="name"]');
     await takeScreenshot(page, '02-signup');
 
     // Step 4: Fill in signup form and submit
@@ -42,7 +47,7 @@ test.describe('App Screenshots', () => {
 
     // Step 5: Navigate home - should now show the dashboard
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await takeScreenshot(page, '04-home-dashboard');
 
     // Step 6: Screenshot authenticated pages
@@ -55,7 +60,7 @@ test.describe('App Screenshots', () => {
 
     for (const { path: pagePath, name } of authenticatedPages) {
       await page.goto(pagePath);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await takeScreenshot(page, name);
     }
   });
