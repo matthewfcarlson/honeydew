@@ -191,6 +191,22 @@ const HoneydewVersion8 = {
     }
 }
 
+const HoneydewVersion9 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "HOUSEAUTOASSIGN"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('outfitHour', "integer", (col)=>col.defaultTo(null)) // hour in UTC (0-23) for outfit suggestions, null means disabled
+                .execute()
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('outfitLastAssignTime', "integer", (col)=>col.defaultTo(0)) // stored as julian day numbers
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -199,6 +215,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion5,
     HoneydewVersion6,
     HoneydewVersion7,
-    HoneydewVersion8
+    HoneydewVersion8,
+    HoneydewVersion9
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;
