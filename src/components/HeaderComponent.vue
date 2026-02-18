@@ -31,6 +31,11 @@
                         <i class="fa-solid fa-hammer"></i>&nbsp;
                         Projects
                     </router-link>
+
+                    <router-link to="/outfits" class="navbar-item">
+                        <i class="fa-solid fa-shirt"></i>&nbsp;
+                        Outfits
+                    </router-link>
                 </template>
                 <template v-else>
                     <router-link to="/about" class="navbar-item">
