@@ -144,6 +144,8 @@ export const DbHouseAutoAssignmentRawZ = z.object({
     house_id: HouseIdZ,
     choreAssignHour: z.number().lt(24).nonnegative(), // the hour that chores should be assigned automatically
     choreLastAssignTime: z.number().nonnegative(), // the last time chores were automatically assigned
+    outfitHour: z.number().lt(24).nonnegative().nullable(), // the hour that outfit suggestions should be sent, null means disabled
+    outfitLastAssignTime: z.number().nonnegative().nullable(), // the last time outfit suggestions were sent
 });
 export const DbHouseAutoAssignmentZ = DbHouseAutoAssignmentRawZ.brand<"House Auto Assign">();
 export type DbHouseAutoAssignmentRaw = z.infer<typeof DbHouseAutoAssignmentRawZ>;
