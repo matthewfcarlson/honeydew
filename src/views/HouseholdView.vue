@@ -55,6 +55,12 @@
             <button class="button is-round" @click="setAutoassignTime">Set Autoassign Time</button>
         </div>
         <div class="box block">
+            The hour you want outfit suggestions via Telegram (UTC). Leave empty to disable.
+            <input class="input" type="number" min="0" max="23" v-model="outfit_hour" />
+            <button class="button is-round" @click="setOutfitHour">Set Outfit Hour</button>
+            <button class="button is-round" @click="clearOutfitHour">Disable Outfit Notifications</button>
+        </div>
+        <div class="box block">
             Expecting? When did it start?
             <input class="input" type="date" :max="max_expecting_date" v-model="expecting_date" />
             <button class="button is-round" @click="setExpectingDate">Set Expecting Time</button>
@@ -79,6 +85,7 @@ export default defineComponent({
             error: "",
             magic_link: "",
             autoassign_hour: 8,
+            outfit_hour: "",
             expecting_date: "",
             max_expecting_date: new Date().toISOString().split("T")[0],
         }
@@ -137,6 +144,31 @@ export default defineComponent({
             }
             else {
                 this.error = invite.message;
+            }
+        },
+        setOutfitHour: async function () {
+            this.error = "";
+            const hour = this.outfit_hour === "" ? null : Number(this.outfit_hour);
+            if (hour != null && (isNaN(hour) || hour < 0 || hour >= 24)) {
+                this.error = "Hour must be between 0 and 23";
+                return;
+            }
+            const result = await useUserStore().HouseholdSetOutfitHour(hour);
+            if (result.success == false) {
+                this.error = (result as any).message;
+            }
+            else {
+                this.error = hour != null ? "successfully set outfit hour" : "outfit notifications disabled";
+            }
+        },
+        clearOutfitHour: async function () {
+            this.outfit_hour = "";
+            const result = await useUserStore().HouseholdSetOutfitHour(null);
+            if (result.success == false) {
+                this.error = (result as any).message;
+            }
+            else {
+                this.error = "outfit notifications disabled";
             }
         },
         setAutoassignTime: async function () {

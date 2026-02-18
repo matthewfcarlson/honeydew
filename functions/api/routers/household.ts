@@ -64,6 +64,27 @@ const Router = router({
     const result = await db.HouseAutoAssignSetTime(user.household, hour);
     return result;
   }),
+  setOutfitHour: protectedProcedure.input(z.number().nonnegative().lt(24).nullable()).query(async (ctx) => {
+
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const hour = ctx.input;
+    const db = ctx.ctx.data.db;
+
+    const result = await db.HouseOutfitSetHour(user.household, hour);
+    return result;
+  }),
   setExpectingDate: protectedProcedure.input(DbHouseholdRawZ.pick({expecting:true})).query(async (ctx) => {
 
     if (ctx.ctx.data.user == null) {

@@ -2,6 +2,7 @@ import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
 import { TelegramAPI } from "../../database/_telegram";
 import { getJulianDate } from "../../_utils";
+import { TriggerOutfits } from "./outfits";
 
 export const TriggerChores = async function (db: Database, hour: number) {
     // then query the database for all the users that need to get processed
@@ -73,12 +74,16 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const date = new Date();
     const hour = date.getUTCHours();
 
-    const raw_results = await TriggerChores(db, hour);
+    const [raw_results, outfit_results] = await Promise.all([
+        TriggerChores(db, hour),
+        TriggerOutfits(db, hour),
+    ]);
     const data = (context.env.PRODUCTION == "true") ?
         {
             hour_processed: hour,
             timestamp: date,
             count: raw_results.users.length,
+            outfit_count: outfit_results.households.length,
         } :
         {
             hour_processed: hour,
@@ -87,6 +92,9 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
             users: raw_results.users,
             results: raw_results.results,
             houses: raw_results.households,
+            outfit_count: outfit_results.households.length,
+            outfit_results: outfit_results.results,
+            outfit_houses: outfit_results.households,
         };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/javascript" } },)
 }

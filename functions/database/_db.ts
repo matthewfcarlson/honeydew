@@ -574,7 +574,9 @@ export default class Database {
                 const raw_assignment: DbHouseAutoAssignmentRaw = {
                     house_id: id,
                     choreAssignHour: hour,
-                    choreLastAssignTime: 0
+                    choreLastAssignTime: 0,
+                    outfitHour: null,
+                    outfitLastAssignTime: 0,
                 };
                 const assignment = DbHouseAutoAssignmentZ.parse(raw_assignment);
                 await this._db.insertInto("houseautoassign").values(assignment).executeTakeFirstOrThrow();
@@ -588,6 +590,81 @@ export default class Database {
         }
         catch (err) {
             console.error("HouseAutoAssignSetTime", err);
+            return false;
+        }
+    }
+
+    async HouseOutfitGetHour(raw_id: HouseId): Promise<number | null> {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            const result = await this._db.selectFrom("houseautoassign").select("outfitHour").where("house_id", "==", id).executeTakeFirst();
+            if (result == undefined) return null;
+            return result.outfitHour;
+        }
+        catch (err) {
+            console.error("HouseOutfitGetHour", err);
+            return null;
+        }
+    }
+
+    async HouseOutfitSetHour(raw_id: HouseId, hour: number | null): Promise<boolean> {
+        try {
+            if (hour != null && (hour >= 24 || hour < 0)) return false;
+            const id = HouseIdZ.parse(raw_id);
+            // Check if the household already has an auto-assign row
+            const existing = await this.HouseAutoAssignGetHour(id);
+            if (existing == null) {
+                // Create a new row with a default chore hour and the outfit hour
+                const raw_assignment: DbHouseAutoAssignmentRaw = {
+                    house_id: id,
+                    choreAssignHour: 0,
+                    choreLastAssignTime: 0,
+                    outfitHour: hour,
+                    outfitLastAssignTime: 0,
+                };
+                const assignment = DbHouseAutoAssignmentZ.parse(raw_assignment);
+                await this._db.insertInto("houseautoassign").values(assignment).executeTakeFirstOrThrow();
+            }
+            else {
+                await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ outfitHour: hour }).executeTakeFirstOrThrow();
+            }
+            await this.CacheInvalidate(id);
+            return true;
+        }
+        catch (err) {
+            console.error("HouseOutfitSetHour", err);
+            return false;
+        }
+    }
+
+    async HouseOutfitGetHousesReadyForGivenHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
+        try {
+            if (timestamp == null) timestamp = (getJulianDate() - 0.5);
+            const raw_results = await this._db.selectFrom("houseautoassign").select("house_id")
+                .where("outfitHour", "==", hour)
+                .where("outfitLastAssignTime", "<", timestamp)
+                .execute();
+            if (raw_results == undefined) return [];
+            return raw_results
+                .map((x) => HouseIdZ.safeParse(x.house_id))
+                .map((x) => (x.success) ? x.data : null)
+                .filter((x): x is HouseId => x != null);
+        }
+        catch (err) {
+            console.error("HouseOutfitGetHousesReadyForGivenHour", err);
+            return [];
+        }
+    }
+
+    async HouseOutfitMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
+        try {
+            if (timestamp == null) timestamp = getJulianDate() + 0.02; // ahead about 30 minutes
+            await this._db.updateTable("houseautoassign").where("house_id", "==", id).set({ outfitLastAssignTime: timestamp }).executeTakeFirstOrThrow();
+            await this.CacheInvalidate(id);
+            return true;
+        }
+        catch (err) {
+            console.error("HouseOutfitMarkComplete", err);
             return false;
         }
     }

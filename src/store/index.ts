@@ -258,6 +258,18 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
+        async HouseholdSetOutfitHour(hour: number | null) {
+            try {
+                const result = await client.household.setOutfitHour.query(hour);
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
         async HouseholdSetExpectingDate(date: string) {
             try {
                 const result = await client.household.setExpectingDate.query({expecting:date});
