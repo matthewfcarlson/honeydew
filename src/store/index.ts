@@ -4,7 +4,7 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbClothing, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, ClothingIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 import { getJulianDate } from '../../functions/_utils';
@@ -74,6 +74,7 @@ interface UserStoreState {
     _projects: AugmentedDbProject[];
     _thinking: boolean;
     _tasks: DbTask[];
+    _clothes: DbClothing[];
 }
 
 export const useUserStore = defineStore("user", {
@@ -109,6 +110,7 @@ export const useUserStore = defineStore("user", {
             _projects: [],
             _thinking: false,
             _tasks: [],
+            _clothes: [],
         }
         return state;
     },
@@ -170,6 +172,9 @@ export const useUserStore = defineStore("user", {
         },
         tasks: (state) => {
             return state._tasks;
+        },
+        clothes: (state) => {
+            return state._clothes;
         },
         household_chores: (state) => {
             if (state._user == null) return [];
@@ -616,6 +621,105 @@ export const useUserStore = defineStore("user", {
             }
             catch (err) {
                 this._thinking = false;
+            }
+        },
+
+        // Clothes
+        async ClothesFetch() {
+            const result = await this.QueryAPI(client.clothes.all.query);
+            if (result.success) {
+                this._clothes = result.data as DbClothing[];
+            }
+        },
+        async ClothesAdd(item: {
+            name: string,
+            category?: string,
+            subcategory?: string,
+            brand?: string,
+            color?: string,
+            size?: string,
+            image_url?: string,
+            tags?: string,
+        }): APIResult<DbClothing> {
+            try {
+                this._thinking = true;
+                const result = await client.clothes.add.query(item);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result as DbClothing };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesDelete(id: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const clothing_id = ClothingIdZ.parse(id);
+                const result = await client.clothes.delete.query(clothing_id);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesMarkWorn(id: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const clothing_id = ClothingIdZ.parse(id);
+                const result = await client.clothes.mark_worn.query(clothing_id);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesMarkClean(id: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const clothing_id = ClothingIdZ.parse(id);
+                const result = await client.clothes.mark_clean.query(clothing_id);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesMarkDirty(id: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const clothing_id = ClothingIdZ.parse(id);
+                const result = await client.clothes.mark_dirty.query(clothing_id);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesImportIndyx(csvContent: string): APIResult<{ imported: number, total: number }> {
+            try {
+                this._thinking = true;
+                const result = await client.clothes.import_indyx.query(csvContent);
+                this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
             }
         },
 
