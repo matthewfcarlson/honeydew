@@ -74,12 +74,11 @@ jobs:
           const labels = {
             '01-landing': 'Landing Page',
             '02-signup': 'Signup Page',
-            '03-signup-success': 'Signup Success',
-            '04-home-dashboard': 'Home Dashboard',
-            '05-chores': 'Chores',
-            '06-recipes': 'Recipes',
-            '07-projects': 'Projects',
-            '08-household': 'Household',
+            '03-home-dashboard': 'Home Dashboard',
+            '04-chores': 'Chores',
+            '05-recipes': 'Recipes',
+            '06-projects': 'Projects',
+            '07-household': 'Household',
           };
 
           for (const file of files) {

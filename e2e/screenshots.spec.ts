@@ -5,7 +5,6 @@ import * as path from 'path';
 const SCREENSHOT_DIR = path.join(__dirname, '..', 'screenshots');
 
 test.beforeAll(async () => {
-  // Ensure screenshots directory exists
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 });
 
@@ -20,7 +19,7 @@ async function takeScreenshot(page: import('@playwright/test').Page, name: strin
 }
 
 test.describe('App Screenshots', () => {
-  test('capture screenshots of all pages', async ({ page }) => {
+  test('capture screenshots of all pages', async ({ page, context }) => {
     // Step 1: Trigger database migration so tables exist
     const migrateResponse = await page.request.get('/auth/migrate');
     expect(migrateResponse.ok()).toBeTruthy();
@@ -31,31 +30,54 @@ test.describe('App Screenshots', () => {
     await takeScreenshot(page, '01-landing');
 
     // Step 3: Screenshot the signup page
-    // Note: Don't use 'networkidle' here because the Turnstile widget keeps polling
     await page.goto('/signup');
     await page.waitForLoadState('load');
     await page.waitForSelector('input[name="name"]');
     await takeScreenshot(page, '02-signup');
 
-    // Step 4: Fill in signup form and submit
-    await page.fill('input[name="name"]', 'Test User');
-    await page.click('a.button.is-primary:has-text("Create")');
+    // Step 4: Sign up via API (more reliable than clicking through the
+    // Turnstile-guarded form - Turnstile widget may not resolve in CI)
+    const signupResponse = await page.request.post('/auth/signup', {
+      data: { name: 'Test User' },
+    });
+    expect(signupResponse.ok()).toBeTruthy();
+    const signupData = await signupResponse.json();
+    expect(signupData.user_id).toBeTruthy();
 
-    // Wait for signup to complete - recovery code should appear
-    await page.waitForSelector('.box .title', { timeout: 30_000 });
-    await takeScreenshot(page, '03-signup-success');
+    // The API response sets auth cookies via Set-Cookie headers.
+    // page.request shares the cookie jar with the browser context,
+    // but we need to explicitly copy them so page navigations use them.
+    const responseHeaders = signupResponse.headers();
+    const setCookies = responseHeaders['set-cookie'];
+    if (setCookies) {
+      const cookieStrings = setCookies.split(/,(?=\s*\w+=)/);
+      for (const cookieStr of cookieStrings) {
+        const [nameVal] = cookieStr.trim().split(';');
+        const eqIdx = nameVal.indexOf('=');
+        if (eqIdx !== -1) {
+          const cookieName = nameVal.substring(0, eqIdx).trim();
+          const cookieValue = nameVal.substring(eqIdx + 1).trim();
+          await context.addCookies([{
+            name: cookieName,
+            value: cookieValue,
+            domain: 'localhost',
+            path: '/',
+          }]);
+        }
+      }
+    }
 
-    // Step 5: Navigate home - should now show the dashboard
+    // Step 5: Navigate home - should now show the authenticated dashboard
     await page.goto('/');
     await page.waitForLoadState('load');
-    await takeScreenshot(page, '04-home-dashboard');
+    await takeScreenshot(page, '03-home-dashboard');
 
     // Step 6: Screenshot authenticated pages
     const authenticatedPages = [
-      { path: '/chores', name: '05-chores' },
-      { path: '/recipes', name: '06-recipes' },
-      { path: '/projects', name: '07-projects' },
-      { path: '/household', name: '08-household' },
+      { path: '/chores', name: '04-chores' },
+      { path: '/recipes', name: '05-recipes' },
+      { path: '/projects', name: '06-projects' },
+      { path: '/household', name: '07-household' },
     ];
 
     for (const { path: pagePath, name } of authenticatedPages) {
