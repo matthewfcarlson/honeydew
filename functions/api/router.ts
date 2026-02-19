@@ -6,6 +6,7 @@ import meRouter from './routers/me';
 import recipeRouter from './routers/recipes';
 import choreRouter from './routers/chores';
 import projectRouter from './routers/projects';
+import clothesRouter from './routers/clothes';
 
 export const appRouter = router({
   household: householdRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   recipes: recipeRouter,
   chores: choreRouter,
   projects: projectRouter,
+  clothes: clothesRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -207,6 +207,32 @@ const HoneydewVersion9 = {
     }
 }
 
+const HoneydewVersion10 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CLOTHES"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
+                .addColumn('name', 'varchar(255)', (col) => col.notNull())
+                .addColumn('category', 'varchar(100)', (col) => col.notNull().defaultTo(''))
+                .addColumn('subcategory', 'varchar(100)', (col) => col.notNull().defaultTo(''))
+                .addColumn('brand', 'varchar(255)', (col) => col.notNull().defaultTo(''))
+                .addColumn('color', 'varchar(100)', (col) => col.notNull().defaultTo(''))
+                .addColumn('size', 'varchar(50)', (col) => col.notNull().defaultTo(''))
+                .addColumn('image_url', 'varchar(1024)', (col) => col.notNull().defaultTo(''))
+                .addColumn('tags', 'varchar(1024)', (col) => col.notNull().defaultTo(''))
+                .addColumn('wear_count', 'integer', (col) => col.notNull().defaultTo(0))
+                .addColumn('is_clean', 'integer', (col) => col.notNull().defaultTo(1))
+                .addColumn('added_by', 'varchar(40)', (col) => col.notNull())
+                .addColumn('created_at', 'integer', (col) => col.notNull()) // julian day number
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -216,6 +242,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion6,
     HoneydewVersion7,
     HoneydewVersion8,
-    HoneydewVersion9
+    HoneydewVersion9,
+    HoneydewVersion10
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

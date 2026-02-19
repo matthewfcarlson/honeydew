@@ -62,6 +62,13 @@ export const ChoreIdz = z.string({
 }).length(38).startsWith("C:", { message: "Must start with C:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ChoreId">()
 export type ChoreId = z.infer<typeof ChoreIdz>;
 
+// ClothingId is CL:{UUID}
+export const ClothingIdZ = z.string({
+    required_error: "ClothingId is required",
+    invalid_type_error: "ClothingId must start with CL:"
+}).length(39).startsWith("CL:", { message: "Must start with CL:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ClothingId">()
+export type ClothingId = z.infer<typeof ClothingIdZ>;
+
 export const DbMagicKeyZ = z.string().length(50).brand<"MagicKey">();
 export type DbMagicKey = z.infer<typeof DbMagicKeyZ>;
 export const MagicKVKeyZ = z.string().length(53).startsWith("MK:").brand<"MagicKVKey">();
@@ -94,7 +101,7 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
-export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId;
+export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId | ClothingId;
 export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
@@ -248,3 +255,26 @@ export const DbHouseholdExtendedRawZ = z.object({
 export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()
 export type DbHouseholdExtendedRaw = z.infer<typeof DbHouseholdExtendedRawZ>;
 export type DbHouseholdExtended = z.infer<typeof DbHouseholdExtendedZ>;
+
+// -------------------------------------------------
+// Clothing Types
+
+export const DbClothingZRaw = z.object({
+    id: ClothingIdZ,
+    household_id: HouseIdZ,
+    name: z.string().max(255),
+    category: z.string().max(100),         // e.g. "Tops", "Bottoms", "Outerwear"
+    subcategory: z.string().max(100),      // e.g. "T-Shirt", "Jeans", "Jacket"
+    brand: z.string().max(255),
+    color: z.string().max(100),
+    size: z.string().max(50),
+    image_url: z.string().max(1024),       // URL to clothing image
+    tags: z.string().max(1024),            // comma-separated tags (e.g. "casual,summer,work")
+    wear_count: z.number().nonnegative(),  // how many times the item has been worn
+    is_clean: z.number().nonnegative(),    // 1 = clean, 0 = dirty (SQLite boolean)
+    added_by: UserIdZ,
+    created_at: z.number().nonnegative(),  // julian day number when added
+});
+export const DbClothingZ = DbClothingZRaw.brand<"Clothing">();
+export type DbClothingRaw = z.infer<typeof DbClothingZRaw>;
+export type DbClothing = z.infer<typeof DbClothingZ>;

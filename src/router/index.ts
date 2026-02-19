@@ -91,6 +91,14 @@ const routes = [
     }
   },
   {
+    path: "/closet",
+    name: "Closet",
+    component: () => import(/* webpackChunkName: "closet" */ '../views/ClosetView.vue'),
+    meta: {
+      noAuthRequired: false,
+    }
+  },
+  {
     path: "/projects/:id",
     name: "projects Tasks",
     component: () => import(/* webpackChunkName: "projects" */ '../views/TasksView.vue'),
