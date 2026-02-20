@@ -7,6 +7,7 @@ import Database from '../database/_db';
 import { DEVICE_TOKEN, TEMP_TOKEN } from './auth_types';
 import { GiveNewTemporaryCookie } from './signup';
 import { UserIdZ } from '../db_types';
+import { LatestHoneydewDBVersion } from '../database/migration';
 
 export const onRequestPost: HoneydewPagesFunction = async function (context) {
     const { request, env, data } = context;
@@ -48,6 +49,18 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
     }
 
     const db = data.db as Database;
+
+    // Check if the database has been migrated before attempting the lookup
+    const dbVersion = await db.GetMigrationVersion();
+    if (dbVersion < LatestHoneydewDBVersion) {
+        console.error("Recovery failed: database not migrated", {
+            currentVersion: dbVersion,
+            requiredVersion: LatestHoneydewDBVersion,
+        });
+        return new Response(JSON.stringify({
+            message: `Database not migrated (version ${dbVersion}, need ${LatestHoneydewDBVersion}). An admin needs to run /auth/migrate first.`,
+        }), { status: 503, headers: { "Content-Type": "application/json" } });
+    }
 
     const user = await db.UserGet(user_id.data);
     if (user == null) {
