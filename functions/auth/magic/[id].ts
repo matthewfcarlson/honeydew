@@ -1,9 +1,8 @@
 import { HoneydewPagesFunction } from "../../types";
 import jwt from '@tsndr/cloudflare-worker-jwt'
 import Database from "../../database/_db";
-import { ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect, setCookie } from "../../_utils";
-import { GiveNewTemporaryCookie } from "../signup";
-import { AuthSignupResponse, DEVICE_TOKEN, TEMP_TOKEN } from "../auth_types";
+import { ResponseJsonMissingData, ResponseRedirect, setCookie } from "../../_utils";
+import { DEVICE_TOKEN, TEMP_TOKEN } from "../auth_types";
 import { DbMagicKeyZ } from "../../db_types";
 
 
@@ -19,26 +18,20 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     }
     const db = context.data.db as Database;
     const user = context.data.user
-    if (user != null) return ResponseJsonNotFound();
+    if (user != null) return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN");
     if (Array.isArray(id)) {
-        console.error("AUTH/JOIN/[id]", "auth/join ID IS ARRAY", id);
+        console.error("AUTH/MAGIC/[id]", "auth/magic ID IS ARRAY", id);
         return ResponseRedirect(context.request, "/error?msg=MAGICKEY_INVALID");
     }
 
-    // TODO: sanitize the database
     const magic_key_raw = DbMagicKeyZ.safeParse(id);
     if (magic_key_raw.success == false) return ResponseRedirect(context.request, "/error?msg=MAGICKEY_INVALID");
     const magic_key = magic_key_raw.data;
 
-    console.error("MagicKey", magic_key_raw, user_agent);
-
-    if (await db.UserMagicKeyExists(magic_key) == false) {
-        return ResponseRedirect(context.request, "/error?msg=MAGICKEY_NOT_FOUND");
-    }
-
-    const magic_user = await db.UserMagicKeyConsume(magic_key);
+    // Look up the magic key without consuming it - links stay valid for their full 1-hour TTL
+    const {user: magic_user, error} = await db.UserMagicKeyLookup(magic_key);
     if (magic_user == null) {
-        return ResponseRedirect(context.request, "/error?msg=USER_NOT_FOUND");
+        return ResponseRedirect(context.request, "/error?msg=" + (error || "UNKNOWN_ERROR"));
     }
 
     const secret = context.env.JWT_SECRET;
