@@ -127,7 +127,7 @@ const Router = router({
   }),
   add: protectedProcedure.input(z.object({
     name: z.string(),
-    frequency: z.number().nonnegative()
+    frequency: z.number().positive()
   })).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({
