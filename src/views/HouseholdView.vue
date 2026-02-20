@@ -55,10 +55,15 @@
             <button class="button is-round" @click="setAutoassignTime">Set Autoassign Time</button>
         </div>
         <div class="box block">
-            The hour you want outfit suggestions via Telegram (UTC). Leave empty to disable.
+            The hour your household wants outfit suggestions via Telegram (UTC). Leave empty to disable.
             <input class="input" type="number" min="0" max="23" v-model="outfit_hour" />
             <button class="button is-round" @click="setOutfitHour">Set Outfit Hour</button>
             <button class="button is-round" @click="clearOutfitHour">Disable Outfit Notifications</button>
+            <hr />
+            <label class="checkbox">
+                <input type="checkbox" v-model="outfit_opted_in" @change="toggleOutfitReminders" />
+                Receive outfit reminder notifications for me
+            </label>
         </div>
         <div class="box block">
             Expecting? When did it start?
@@ -80,12 +85,14 @@ import UserIcon from "@/components/UserIconComponent.vue";
 export default defineComponent({
     name: 'HomeView',
     data() {
+        const store = useUserStore();
         return {
             invite_link: "",
             error: "",
             magic_link: "",
             autoassign_hour: 8,
             outfit_hour: "",
+            outfit_opted_in: store._user != null ? store._user.outfit_reminders === 1 : true,
             expecting_date: "",
             max_expecting_date: new Date().toISOString().split("T")[0],
         }
@@ -154,6 +161,17 @@ export default defineComponent({
             }
             else {
                 this.error = invite.message;
+            }
+        },
+        toggleOutfitReminders: async function () {
+            this.error = "";
+            const result = await useUserStore().SetOutfitReminders(this.outfit_opted_in);
+            if (result.success == false) {
+                this.error = (result as any).message;
+                this.outfit_opted_in = !this.outfit_opted_in;
+            }
+            else {
+                this.error = this.outfit_opted_in ? "outfit reminders enabled for you" : "outfit reminders disabled for you";
             }
         },
         setOutfitHour: async function () {

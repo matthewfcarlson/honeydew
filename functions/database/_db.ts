@@ -218,6 +218,7 @@ export default class Database {
             _chat_id: null,
             last_active_date: null,
             current_streak: 0,
+            outfit_reminders: 1,
         };
         const db_user = DbUserZ.parse(user);
         await this._db.insertInto("users").values(db_user).execute();
@@ -318,6 +319,20 @@ export default class Database {
         } catch (err) {
             console.error("UserUpdateStreak", err);
             return null;
+        }
+    }
+
+    async UserSetOutfitReminders(raw_user_id: UserId, enabled: boolean): Promise<boolean> {
+        try {
+            const user_id = UserIdZ.parse(raw_user_id);
+            if (await this.UserExists(user_id) == false) return false;
+            await this._db.updateTable("users").where("id", "==", user_id).set({ outfit_reminders: enabled ? 1 : 0 }).execute();
+            await this.CacheInvalidate(user_id);
+            return true;
+        }
+        catch (err) {
+            console.error("UserSetOutfitReminders", err);
+            return false;
         }
     }
 
@@ -458,6 +473,27 @@ export default class Database {
         }
         catch (err) {
             console.error("HouseholdTelegramMessageAllMembers", err);
+            return false;
+        }
+    }
+
+    async HouseholdTelegramMessageOutfitMembers(raw_id: HouseId, message: string, use_markdown: boolean = false) {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("outfit_reminders", "==", 1).execute();
+            if (raw_results == undefined) {
+                console.warn("HouseholdTelegramMessageOutfitMembers", `no members of ${raw_id} are opted in for outfit reminders`)
+                return true;
+            }
+            const telegram = this.GetTelegram();
+            const users = raw_results.map((x) => x._chat_id).filter((x): x is number => x != null)
+            const parse_mode = (use_markdown) ? "MarkdownV2" : undefined;
+            const promises = users.map((x) => telegram.sendTextMessage(x, message, undefined, undefined, parse_mode));
+            await Promise.all(promises)
+            return true;
+        }
+        catch (err) {
+            console.error("HouseholdTelegramMessageOutfitMembers", err);
             return false;
         }
     }

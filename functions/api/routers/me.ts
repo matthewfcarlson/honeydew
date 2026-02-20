@@ -4,6 +4,18 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { AuthCheck, AuthCheckZ } from '../../auth/auth_types';
 const Router = router({
+  setOutfitReminders: protectedProcedure.input(z.boolean()).query(async (ctx) => {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    const db = ctx.ctx.data.db;
+    const result = await db.UserSetOutfitReminders(user.id, ctx.input);
+    return result;
+  }),
   magic_link: protectedProcedure.query(async (ctx)=> {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({
@@ -53,6 +65,7 @@ const Router = router({
       id: user.id,
       color: user.color,
       household,
+      outfit_reminders: user.outfit_reminders,
     };
     return AuthCheckZ.parse(result);
   }),

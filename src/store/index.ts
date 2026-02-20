@@ -263,6 +263,21 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
+        async SetOutfitReminders(enabled: boolean) {
+            try {
+                const result = await client.me.setOutfitReminders.query(enabled);
+                if (this._user != null) {
+                    this._user.outfit_reminders = enabled ? 1 : 0;
+                }
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
         async HouseholdSetOutfitHour(hour: number | null) {
             try {
                 const result = await client.household.setOutfitHour.query(hour);
