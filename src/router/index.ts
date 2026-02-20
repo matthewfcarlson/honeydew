@@ -92,11 +92,7 @@ const routes = [
   },
   {
     path: "/closet",
-    name: "Closet",
-    component: () => import(/* webpackChunkName: "closet" */ '../views/ClosetView.vue'),
-    meta: {
-      noAuthRequired: false,
-    }
+    redirect: "/outfits",
   },
   {
     path: "/projects/:id",
