@@ -1,0 +1,70 @@
+name: PR Screenshots
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Run screenshot tests
+      run: npx playwright test
+
+    - name: Install CML system dependencies
+      if: github.event_name == 'pull_request'
+      run: sudo apt-get update && sudo apt-get install -y libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
+    - name: Setup CML
+      if: github.event_name == 'pull_request'
+      uses: iterative/setup-cml@v3
+
+    - name: Comment on PR with screenshots
+      if: github.event_name == 'pull_request'
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "## Screenshots" > comment.md
+        echo "" >> comment.md
+        echo "Screenshots captured from this PR's build." >> comment.md
+        echo "" >> comment.md
+
+        declare -A labels
+        labels[01-landing]="Landing Page"
+        labels[02-signup]="Signup Page"
+        labels[03-home-dashboard]="Home Dashboard"
+        labels[04-chores]="Chores"
+        labels[05-recipes]="Recipes"
+        labels[06-projects]="Projects"
+        labels[07-household]="Household"
+
+        for f in screenshots/*.png; do
+          [ -f "$f" ] || continue
+          name=$(basename "$f" .png)
+          label="${labels[$name]:-$name}"
+          echo "### $label" >> comment.md
+          cml asset publish "$f" --md >> comment.md
+          echo "" >> comment.md
+        done
+
+        cml comment update comment.md

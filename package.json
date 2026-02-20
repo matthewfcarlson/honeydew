@@ -8,7 +8,9 @@
     "lint": "vue-cli-service lint",
     "dev": "npx wrangler pages dev -k HONEYDEW --d1 HONEYDEWSQL --live-reload --persist-to ./.wrangler -- npm run serve",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:screenshots": "playwright test e2e/screenshots.spec.ts"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
@@ -25,6 +27,7 @@
     "@babel/eslint-parser": "^7.26.5",
     "@babel/preset-typescript": "^7.26.0",
     "@cloudflare/vitest-pool-workers": "^0.12.6",
+    "@playwright/test": "^1.58.2",
     "@trpc/client": "^10.45.2",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^7.18.0",

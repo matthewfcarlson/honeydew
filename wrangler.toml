@@ -4,6 +4,9 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 PRODUCTION = "false"
+JWT_SECRET = "dev-test-secret-not-for-production"
+TELEGRAM = "unused-in-dev"
+TURNSTILE = "unused-in-dev"
 
 [[kv_namespaces]]
 binding = "HONEYDEW"
