@@ -47,7 +47,7 @@ const Router = router({
       })
     }
     const db = ctx.ctx.data.db;
-    return await db.ChoreGetCurrentChore(user.id);
+    return await db.ChoreGetNextChore(user.household, user.id, user._chat_id);
   }),
   another: protectedProcedure.query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
