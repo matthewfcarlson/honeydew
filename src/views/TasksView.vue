@@ -7,6 +7,7 @@
         {{ project.total_subtasks - project.done_subtasks }} tasks left |
         {{ project.total_subtasks }} total tasks</span>
     </h1>
+    <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
     <hr />
     <vue-mermaid-string :value="diagram" />
     <div class="subtitle is-3">Ready Tasks: </div>
@@ -71,8 +72,12 @@
       <button disabled class="button is-danger disabled" v-else>Cannot Delete Project</button>
     </div>
   </div>
-  <div v-else>
-    Something went horribly wrong {{ project }}
+  <div v-else class="container">
+    <div class="notification is-danger">
+      <p class="title is-5">Project not found</p>
+      <p>The project could not be loaded. It may have been deleted or the URL may be incorrect.</p>
+      <router-link to="/projects" class="button is-primary mt-3">Back to Projects</router-link>
+    </div>
   </div>
 </template>
 
