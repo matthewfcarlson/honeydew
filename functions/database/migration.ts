@@ -233,6 +233,18 @@ const HoneydewVersion10 = {
     }
 }
 
+const HoneydewVersion11 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "USERS"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('outfit_reminders', "integer", (col)=>col.defaultTo(1).notNull()) // 1 = opted in, 0 = opted out
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -243,6 +255,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion7,
     HoneydewVersion8,
     HoneydewVersion9,
-    HoneydewVersion10
+    HoneydewVersion10,
+    HoneydewVersion11
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

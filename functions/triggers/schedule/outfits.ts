@@ -6,7 +6,7 @@ export const TriggerOutfits = async function (db: Database, hour: number) {
 
     const message = "Clothing choices under construction";
     const promises = households.map(async (house_id) => {
-        await db.HouseholdTelegramMessageAllMembers(house_id, message);
+        await db.HouseholdTelegramMessageOutfitMembers(house_id, message);
         await db.HouseOutfitMarkComplete(house_id);
         return house_id;
     });
