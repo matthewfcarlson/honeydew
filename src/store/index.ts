@@ -748,14 +748,16 @@ export const useUserStore = defineStore("user", {
                     this._user = null;
                     return { success: true, data: true };
                 }
-                return { success: false, message: "Recovery failed" };
+                return { success: false, message: result.data?.message || "Recovery failed (unexpected response)" };
             }
             catch (err) {
                 this._thinking = false;
                 if (err instanceof AxiosError) {
-                    return { success: false, message: err.response?.data?.message || "Recovery failed" };
+                    const status = err.response?.status;
+                    const message = err.response?.data?.message || "Recovery failed";
+                    return { success: false, message: `${message} (HTTP ${status})` };
                 }
-                return { success: false, message: "Unknown error occurred" };
+                return { success: false, message: `Unknown error occurred: ${err}` };
             }
         },
         async signUp(name: string, key?: string, turnstile: string = ""): APIResult<AuthSignupResponse> {

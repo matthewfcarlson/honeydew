@@ -58,6 +58,11 @@ export default class Database {
         return db_version;
     }
 
+    // Returns the current DB migration version from KV without triggering a migration
+    public async GetMigrationVersion(): Promise<number> {
+        return Number(await this._kv.get("SQLDB_VERSION") || "-1");
+    }
+
     public GetTelegram() {
         return this._t;
     }

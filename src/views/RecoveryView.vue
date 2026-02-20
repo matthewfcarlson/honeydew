@@ -71,12 +71,14 @@
         // We need to split on the second colon
         const firstColon = input.indexOf(':');
         if (firstColon == -1) {
-          this.error = "Invalid recovery key format. Expected format: U:xxxxxxxx:xxxxxxxx";
+          console.warn("[Recovery] No colon found in input. Input length:", input.length);
+          this.error = "Invalid recovery key format. Expected format: U:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
           return;
         }
         const secondColon = input.indexOf(':', firstColon + 1);
         if (secondColon == -1) {
-          this.error = "Invalid recovery key format. Expected format: U:xxxxxxxx:xxxxxxxx";
+          console.warn("[Recovery] Only one colon found. Prefix:", input.substring(0, firstColon), "Input length:", input.length);
+          this.error = "Invalid recovery key format: only found one colon. Expected format: U:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
           return;
         }
 
@@ -84,14 +86,18 @@
         const recovery_key = input.substring(secondColon + 1);
 
         if (user_id.length == 0 || recovery_key.length == 0) {
-          this.error = "Invalid recovery key format";
+          console.warn("[Recovery] Empty user_id or recovery_key after parsing. user_id length:", user_id.length, "recovery_key length:", recovery_key.length);
+          this.error = "Invalid recovery key format: user ID or recovery key is empty";
           return;
         }
 
+        console.log("[Recovery] Attempting recovery. user_id:", user_id, "recovery_key length:", recovery_key.length);
         const result = await this.recover(user_id, recovery_key);
         if (result.success) {
+          console.log("[Recovery] Recovery successful, redirecting to home");
           window.location.href = "/";
         } else {
+          console.warn("[Recovery] Recovery failed:", result.message);
           this.error = result.message;
         }
       },
