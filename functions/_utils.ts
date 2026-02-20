@@ -40,11 +40,11 @@ export const ResponseJsonServerError = (data:unknown): Response => {
   }), { status });
 }
 
-export const ResponseJsonAccessDenied = (): Response => {
+export const ResponseJsonAccessDenied = (message?: string): Response => {
   const status = 403;
   return new Response(JSON.stringify({
     status,
-    message: "Access Denied"
+    message: message || "Access Denied"
   }), { status });
 };
 
