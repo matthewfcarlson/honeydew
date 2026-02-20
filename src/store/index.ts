@@ -723,6 +723,26 @@ export const useUserStore = defineStore("user", {
             }
         },
 
+        async recover(user_id: string, recovery_key: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const result = await axios.post("/auth/recover", { user_id, recovery_key });
+                this._thinking = false;
+                if (result.data?.success) {
+                    this._loggedIn = true;
+                    this._user = null;
+                    return { success: true, data: true };
+                }
+                return { success: false, message: "Recovery failed" };
+            }
+            catch (err) {
+                this._thinking = false;
+                if (err instanceof AxiosError) {
+                    return { success: false, message: err.response?.data?.message || "Recovery failed" };
+                }
+                return { success: false, message: "Unknown error occurred" };
+            }
+        },
         async signUp(name: string, key?: string, turnstile: string = ""): APIResult<AuthSignupResponse> {
             const raw_body: AuthSignupRequest = {
                 name,
