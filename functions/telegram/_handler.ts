@@ -42,8 +42,21 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
         await db.GetTelegram().sendTextMessage(chat.id, "I don't recognize, this telegram chat. Mind clicking on this link to refresh my memory?", undefined, keyboard);
         return ResponseJsonOk();
     }
+    // Check if this is a /magic command
+    const text = (x.message.text || '').trim();
+    if (text === '/magic') {
+        const key = await db.UserMagicKeyCreate(user.id);
+        if (key == null) {
+            await db.GetTelegram().sendTextMessage(chat.id, "Sorry, I wasn't able to generate a magic link. Please try again.", x.message.message_id);
+            return ResponseJsonOk();
+        }
+        const link = `https://honeydew.matthewc.dev/auth/magic/${key}`;
+        await db.GetTelegram().sendTextMessage(chat.id, `Here's your magic sign-in link (expires in 1 hour):\n${link}`, x.message.message_id);
+        return ResponseJsonOk();
+    }
+
     // Check if this is a recipe or link
-    if (await HandleRecipeUpdate(db, x, user) == true) return ResponseJsonOk(); 
+    if (await HandleRecipeUpdate(db, x, user) == true) return ResponseJsonOk();
 
     const response = "I'm sorry, I don't understand this message"
     await db.GetTelegram().sendTextMessage(chat.id, response, x.message.message_id);
