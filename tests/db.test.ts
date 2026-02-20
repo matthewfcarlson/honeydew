@@ -50,13 +50,20 @@ describe('User tests', () => {
 
     expect(await db.UserMagicKeyExists(key)).toBe(true);
 
-    const magic_user = await db.UserMagicKeyConsume(key);
-    expect(magic_user).not.toBeNull();
-    if (magic_user == null) return;
+    const result = await db.UserMagicKeyLookup(key);
+    expect(result.user).not.toBeNull();
+    expect(result.error).toBeNull();
+    if (result.user == null) return;
 
-    expect(magic_user.id).toBe(user.id);
+    expect(result.user.id).toBe(user.id);
 
-    expect(await db.UserMagicKeyExists(key)).toBe(false);
+    // Magic links should NOT be consumed - they stay valid for their full TTL
+    expect(await db.UserMagicKeyExists(key)).toBe(true);
+
+    // Looking up again should still work
+    const result2 = await db.UserMagicKeyLookup(key);
+    expect(result2.user).not.toBeNull();
+    expect(result2.error).toBeNull();
 
   });
 
