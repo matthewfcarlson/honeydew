@@ -1857,12 +1857,15 @@ export default class Database {
             }
             const current_task = await this.TaskAutoAssignGet(id);
             const current_project = (current_task != null && current_task.project != null) ? (await self.ProjectGet(current_task.project)) : null;
+            const autoAssign = await this._db.selectFrom("houseautoassign").select(["choreAssignHour", "outfitHour"]).where("house_id", "==", id).executeTakeFirst();
             const extended_household: DbHouseholdExtendedRaw = {
                 id: id,
                 name: sql_household.name,
                 members,
                 current_task,
                 current_project,
+                choreAssignHour: autoAssign?.choreAssignHour ?? null,
+                outfitHour: autoAssign?.outfitHour ?? null,
             }
             const result = DbHouseholdExtendedZ.parse(extended_household);
             await this.CacheSet(cache_key, result);
