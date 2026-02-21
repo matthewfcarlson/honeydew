@@ -245,6 +245,22 @@ const HoneydewVersion11 = {
     }
 }
 
+const HoneydewVersion12 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CLOTHES"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('max_wears', "integer", (col)=>col.defaultTo(1).notNull()) // number of wears before needing a wash
+                .execute()
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('wears_since_wash', "integer", (col)=>col.defaultTo(0).notNull()) // wears since last wash, resets on clean
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -256,6 +272,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion8,
     HoneydewVersion9,
     HoneydewVersion10,
-    HoneydewVersion11
+    HoneydewVersion11,
+    HoneydewVersion12
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

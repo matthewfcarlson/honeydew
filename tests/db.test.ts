@@ -862,6 +862,153 @@ describe('Chore tests', () => {
 
 });
 
+describe('Clothing tests', () => {
+  it('can create and manage clothing items', async () => {
+    const house_id = (await db.HouseholdCreate("Clothing house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Create a clothing item
+    const shirt = await db.ClothingCreate("Blue Polo", house_id, user_id, {
+      category: "Tops",
+      subcategory: "Polo",
+      color: "Blue",
+      brand: "Ralph Lauren",
+      max_wears: 3,
+    });
+    expect(shirt).not.toBeNull();
+    if (shirt == null) return;
+    expect(shirt.is_clean).toBe(1);
+    expect(shirt.max_wears).toBe(3);
+    expect(shirt.wears_since_wash).toBe(0);
+    expect(shirt.wear_count).toBe(0);
+
+    // Get the item
+    const fetched = await db.ClothingGet(shirt.id);
+    expect(fetched).not.toBeNull();
+    expect(fetched!.name).toBe("Blue Polo");
+
+    // Get all items for the household
+    const all = await db.ClothingGetAll(house_id);
+    expect(all.length).toBeGreaterThanOrEqual(1);
+    expect(all.some(c => c.id === shirt.id)).toBe(true);
+
+    // Delete the item
+    expect(await db.ClothingDelete(shirt.id)).toBe(true);
+    expect(await db.ClothingExists(shirt.id)).toBe(false);
+  });
+
+  it('wear tracking respects max_wears', async () => {
+    const house_id = (await db.HouseholdCreate("Wear house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Create an item that can be worn 3 times before washing
+    const jeans = await db.ClothingCreate("Dark Jeans", house_id, user_id, {
+      category: "Bottoms",
+      subcategory: "Jeans",
+      color: "Dark Blue",
+      max_wears: 3,
+    });
+    expect(jeans).not.toBeNull();
+    if (jeans == null) return;
+
+    // Wear 1: should still be clean
+    expect(await db.ClothingMarkWorn(jeans.id)).toBe(true);
+    let item = await db.ClothingGet(jeans.id);
+    expect(item).not.toBeNull();
+    expect(item!.wear_count).toBe(1);
+    expect(item!.wears_since_wash).toBe(1);
+    expect(item!.is_clean).toBe(1);
+
+    // Wear 2: should still be clean
+    expect(await db.ClothingMarkWorn(jeans.id)).toBe(true);
+    item = await db.ClothingGet(jeans.id);
+    expect(item!.wear_count).toBe(2);
+    expect(item!.wears_since_wash).toBe(2);
+    expect(item!.is_clean).toBe(1);
+
+    // Wear 3: should now be dirty (3 >= max_wears of 3)
+    expect(await db.ClothingMarkWorn(jeans.id)).toBe(true);
+    item = await db.ClothingGet(jeans.id);
+    expect(item!.wear_count).toBe(3);
+    expect(item!.wears_since_wash).toBe(3);
+    expect(item!.is_clean).toBe(0);
+
+    // Mark clean: wears_since_wash should reset
+    expect(await db.ClothingMarkClean(jeans.id)).toBe(true);
+    item = await db.ClothingGet(jeans.id);
+    expect(item!.wear_count).toBe(3); // lifetime count stays
+    expect(item!.wears_since_wash).toBe(0);
+    expect(item!.is_clean).toBe(1);
+  });
+
+  it('single-wear items become dirty immediately', async () => {
+    const house_id = (await db.HouseholdCreate("Single wear house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    // default max_wears is 1
+    const tshirt = await db.ClothingCreate("White Tee", house_id, user_id, {
+      category: "Tops",
+      subcategory: "T-Shirt",
+    });
+    expect(tshirt).not.toBeNull();
+    if (tshirt == null) return;
+    expect(tshirt.max_wears).toBe(1);
+
+    // One wear should make it dirty
+    expect(await db.ClothingMarkWorn(tshirt.id)).toBe(true);
+    const item = await db.ClothingGet(tshirt.id);
+    expect(item!.is_clean).toBe(0);
+    expect(item!.wears_since_wash).toBe(1);
+  });
+
+  it('mark all clean resets entire household', async () => {
+    const house_id = (await db.HouseholdCreate("Laundry house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    // Create some items and make them dirty
+    const shirt = await db.ClothingCreate("Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    const pants = await db.ClothingCreate("Pants", house_id, user_id, { category: "Bottoms", subcategory: "Pants" });
+    expect(shirt).not.toBeNull();
+    expect(pants).not.toBeNull();
+    if (shirt == null || pants == null) return;
+
+    await db.ClothingMarkDirty(shirt.id);
+    await db.ClothingMarkDirty(pants.id);
+
+    // Verify they're dirty
+    let s = await db.ClothingGet(shirt.id);
+    let p = await db.ClothingGet(pants.id);
+    expect(s!.is_clean).toBe(0);
+    expect(p!.is_clean).toBe(0);
+
+    // Mark all clean (laundry done)
+    expect(await db.ClothingMarkAllClean(house_id)).toBe(true);
+
+    s = await db.ClothingGet(shirt.id);
+    p = await db.ClothingGet(pants.id);
+    expect(s!.is_clean).toBe(1);
+    expect(s!.wears_since_wash).toBe(0);
+    expect(p!.is_clean).toBe(1);
+    expect(p!.wears_since_wash).toBe(0);
+  });
+});
+
 describe('Telegram callback tests', () => {
   it('can create and consume callback', async () => {
     const house_id = (await db.HouseholdCreate("Bob's house"))?.id;

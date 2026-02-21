@@ -277,6 +277,7 @@ export default class Database {
     async UserRegisterTelegram(user_id: UserId, chat_id: number, tele_user_id: number): Promise<boolean> {
         if (await this.UserExists(user_id) == false) return false;
         await this._db.updateTable("users").where("id", "==", user_id).set({ _chat_id: chat_id }).execute();
+        await this.CacheInvalidate(user_id);
         return true;
     }
 
@@ -497,6 +498,24 @@ export default class Database {
         catch (err) {
             console.error("HouseholdTelegramMessageOutfitMembers", err);
             return false;
+        }
+    }
+
+    async HouseholdGetOutfitOptedInUsers(raw_id: HouseId): Promise<DbUser[]> {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            const raw_results = await this._db.selectFrom("users").selectAll().where("household", "==", id).where("outfit_reminders", "==", 1).execute();
+            if (raw_results == undefined) return [];
+            const users: DbUser[] = [];
+            raw_results.forEach((x) => {
+                const user = DbUserZ.safeParse(x);
+                if (user.success) users.push(user.data);
+            });
+            return users;
+        }
+        catch (err) {
+            console.error("HouseholdGetOutfitOptedInUsers", err);
+            return [];
         }
     }
 
@@ -1721,6 +1740,7 @@ export default class Database {
             image_url?: string,
             tags?: string,
             wear_count?: number,
+            max_wears?: number,
         } = {}
     ): Promise<DbClothing | null> {
         try {
@@ -1741,6 +1761,8 @@ export default class Database {
                 is_clean: 1,
                 added_by,
                 created_at: getJulianDate(),
+                max_wears: opts.max_wears || 1,
+                wears_since_wash: 0,
             };
             const clothing = DbClothingZ.parse(clothing_raw);
             await this._db.insertInto("clothes").values(clothing).executeTakeFirstOrThrow();
@@ -1797,9 +1819,12 @@ export default class Database {
         try {
             const clothing = await this.ClothingGet(id);
             if (clothing == null) return false;
+            const newWearsSinceWash = clothing.wears_since_wash + 1;
+            const needsWash = newWearsSinceWash >= clothing.max_wears;
             await this._db.updateTable("clothes").where("id", "==", id).set({
                 wear_count: clothing.wear_count + 1,
-                is_clean: 0,
+                wears_since_wash: newWearsSinceWash,
+                is_clean: needsWash ? 0 : 1,
             }).execute();
             return true;
         }
@@ -1812,7 +1837,7 @@ export default class Database {
     async ClothingMarkClean(id: ClothingId): Promise<boolean> {
         try {
             if (await this.ClothingExists(id) == false) return false;
-            await this._db.updateTable("clothes").where("id", "==", id).set({ is_clean: 1 }).execute();
+            await this._db.updateTable("clothes").where("id", "==", id).set({ is_clean: 1, wears_since_wash: 0 }).execute();
             return true;
         }
         catch (err) {
@@ -1829,6 +1854,18 @@ export default class Database {
         }
         catch (err) {
             console.error("ClothingMarkDirty", err);
+            return false;
+        }
+    }
+
+    async ClothingMarkAllClean(household_id: HouseId): Promise<boolean> {
+        try {
+            const id = HouseIdZ.parse(household_id);
+            await this._db.updateTable("clothes").where("household_id", "==", id).set({ is_clean: 1, wears_since_wash: 0 }).execute();
+            return true;
+        }
+        catch (err) {
+            console.error("ClothingMarkAllClean", err);
             return false;
         }
     }
