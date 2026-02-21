@@ -58,6 +58,11 @@ export default class Database {
         return db_version;
     }
 
+    // Returns the current DB migration version from KV without triggering a migration
+    public async GetMigrationVersion(): Promise<number> {
+        return Number(await this._kv.get("SQLDB_VERSION") || "-1");
+    }
+
     public GetTelegram() {
         return this._t;
     }
@@ -375,25 +380,22 @@ export default class Database {
         return true;
     }
 
-    async UserMagicKeyConsume(magic_key: DbMagicKey): Promise<DbUser | null> {
+    async UserMagicKeyLookup(magic_key: DbMagicKey): Promise<{user: DbUser | null, error: string | null}> {
         const id = this.UserMagicKeyGetId(magic_key);
-        if (id == null) return null;
+        if (id == null) return {user: null, error: "MAGICKEY_INVALID"};
         const result = await this.queryKVJson(id);
-        if (result == null) return null;
-        // Keep track of this promise so we can make sure it gets done later
-        const promise = this.deleteKey(id);
+        if (result == null) return {user: null, error: "MAGICKEY_NOT_FOUND"};
         const user_id = UserIdZ.safeParse(result);
         if (user_id.success == false) {
-            // This is an error, log it
-            console.error("UserMagicKeyConsume", "Unable to parse information in magic key", result);
-            await promise;
-            return null;
+            console.error("UserMagicKeyLookup", "Unable to parse information in magic key", result);
+            return {user: null, error: "MAGICKEY_CORRUPT"};
         }
-        // Query the user
         const user = await this.UserGet(user_id.data);
-        // make sure to wait for this to get deleted
-        await promise;
-        return user;
+        if (user == null) {
+            console.error("UserMagicKeyLookup", "Magic key references user that no longer exists", user_id.data);
+            return {user: null, error: "USER_DB_MISMATCH"};
+        }
+        return {user, error: null};
     }
 
     async HouseholdGenerateUUID() {
