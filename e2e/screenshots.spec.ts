@@ -9,7 +9,7 @@ test.beforeAll(async () => {
 });
 
 // Use a longer timeout for the full screenshot flow
-test.setTimeout(120_000);
+test.setTimeout(180_000);
 
 async function takeScreenshot(page: import('@playwright/test').Page, name: string) {
   await page.screenshot({
@@ -70,13 +70,13 @@ test.describe('App Screenshots', () => {
     // Step 5: Navigate home - should now show the authenticated dashboard
     await page.goto('/');
     await page.waitForLoadState('load');
-    await takeScreenshot(page, '03-home-dashboard');
+    await takeScreenshot(page, '03-home-dashboard-empty');
 
-    // Step 6: Screenshot authenticated pages
+    // Step 6: Screenshot empty authenticated pages
     const authenticatedPages = [
-      { path: '/chores', name: '04-chores' },
-      { path: '/recipes', name: '05-recipes' },
-      { path: '/projects', name: '06-projects' },
+      { path: '/chores', name: '04-chores-empty' },
+      { path: '/recipes', name: '05-recipes-empty' },
+      { path: '/projects', name: '06-projects-empty' },
       { path: '/household', name: '07-household' },
     ];
 
@@ -85,5 +85,78 @@ test.describe('App Screenshots', () => {
       await page.waitForLoadState('load');
       await takeScreenshot(page, name);
     }
+
+    // Step 7: Add chores via the chores page UI
+    await page.goto('/chores');
+    await page.waitForLoadState('load');
+    await page.waitForSelector('input[placeholder="Chore name"]');
+
+    // Add first chore: "Clean kitchen" every 2 days
+    await page.fill('input[placeholder="Chore name"]', 'Clean kitchen');
+    await page.fill('input[type="number"]', '2');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    // Add second chore: "Vacuum floors" every 3 days
+    await page.fill('input[placeholder="Chore name"]', 'Vacuum floors');
+    await page.fill('input[type="number"]', '3');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    // Add third chore: "Take out trash" every 1 day
+    await page.fill('input[placeholder="Chore name"]', 'Take out trash');
+    await page.fill('input[type="number"]', '1');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    await takeScreenshot(page, '08-chores-with-items');
+
+    // Step 8: Add a project via the projects page UI
+    await page.goto('/projects');
+    await page.waitForLoadState('load');
+    await page.waitForSelector('input[placeholder="Project name"]');
+
+    await page.fill('input[placeholder="Project name"]', 'Organize garage');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    await takeScreenshot(page, '09-projects-with-item');
+
+    // Step 9: Navigate into the project and add tasks
+    await page.click('a.box:has-text("Organize garage")');
+    await page.waitForLoadState('load');
+    await page.waitForSelector('input[placeholder="Task name"]');
+
+    // Add first task
+    await page.fill('input[placeholder="Task name"]', 'Sort items into keep/donate/trash');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    // Add second task
+    await page.fill('input[placeholder="Task name"]', 'Install shelving units');
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    // Add a third task with a dependency on the first
+    await page.fill('input[placeholder="Task name"]', 'Organize items on shelves');
+    await page.locator('select').first().selectOption({ index: 1 });
+    await page.click('button:has-text("Add")');
+    await page.waitForTimeout(1500);
+
+    await takeScreenshot(page, '10-project-with-tasks');
+
+    // Step 10: Complete a ready task
+    const completeBtn = page.locator('button:has-text("Complete")').first();
+    if (await completeBtn.isVisible()) {
+      await completeBtn.click();
+      await page.waitForTimeout(1500);
+    }
+    await takeScreenshot(page, '11-project-task-completed');
+
+    // Step 11: Navigate home to see dashboard with data populated
+    await page.goto('/');
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500);
+    await takeScreenshot(page, '12-home-dashboard-populated');
   });
 });

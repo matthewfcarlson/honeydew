@@ -15,9 +15,9 @@
         </div>
       </div>
     </div>
-    <div class="is-danger" v-if="error.length > 0">{{ error }}</div>
+    <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
     <a class="box" v-if="projects.length == 0">
-      You don't have any chores yet
+      You don't have any projects yet
     </a>
     <router-link class="box" v-for="project in projects" :key="project.id" :to="'/projects/' + project.id">
       <ChoreIconComponent :chore_name="project.description" />
@@ -79,7 +79,7 @@ export default defineComponent({
         this.project_name = "";
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     }
   }

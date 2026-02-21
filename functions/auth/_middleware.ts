@@ -136,14 +136,22 @@ export const topLevelHandler: HoneydewPagesFunction = async (context) => {
     res = await context.next();
   }
   catch (thrown: any) {
-    if (!thrown.stack.includes('\n')) {
+    if (thrown.stack && !thrown.stack.includes('\n')) {
       Error.captureStackTrace(thrown)
     }
-    res = new Response(`Server Error ${thrown}\n${thrown.stack}`, {
+    const url = new URL(context.request.url);
+    const errorMessage = thrown instanceof Error ? thrown.message : String(thrown);
+    const errorStack = thrown?.stack || 'No stack trace available';
+    console.error(`[${context.request.method} ${url.pathname}]`, errorMessage, errorStack);
+    res = new Response(JSON.stringify({
+      error: "Internal Server Error",
+      message: errorMessage,
+      path: url.pathname,
+    }), {
       status: 500,
       statusText: "Internal Server Error",
+      headers: { "Content-Type": "application/json" },
     });
-    console.error(thrown.stack);
   }
   finally {
     const delta = (Date.now() - context.data.timestamp).toString();

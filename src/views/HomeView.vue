@@ -250,7 +250,7 @@ export default defineComponent({
       if (id == null) return;
       const status = await useUserStore().TaskComplete(id);
       if (status.success == false) {
-        this.error = (status as any).message
+        this.error = status.message
       }
     },
   }

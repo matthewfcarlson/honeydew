@@ -1,6 +1,6 @@
 <template>
   <div class="meals container">
-    <p v-if="error.length != 0">{{ error }}</p>
+    <div class="notification is-danger" v-if="error.length != 0">{{ error }}</div>
 
     <article class="panel is-primary">
       <p class="panel-heading">
