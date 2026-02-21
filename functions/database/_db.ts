@@ -708,6 +708,12 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns households that are due for chore/task assignment at the given hour.
+     * "Ready" means: choreAssignHour matches AND choreLastAssignTime is old enough
+     * (default: more than ~12h ago). After assignment, call HouseAutoAssignMarkComplete
+     * to advance choreLastAssignTime and prevent re-processing.
+     */
     async HouseAutoAssignGetHousesReadyForGivenHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
@@ -725,6 +731,12 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns all users in households that are due for chore assignment at the
+     * given hour. Same dedup logic as HouseAutoAssignGetHousesReadyForGivenHour:
+     * choreAssignHour == hour AND choreLastAssignTime < timestamp (default now - 0.5).
+     * Used by TriggerChores Step 1 to find users who need a new chore assigned.
+     */
     async HouseAutoAssignGetUsersReadyForGivenHour(hour: number, timestamp: number | null = null) {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
@@ -761,6 +773,17 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns all users in households whose choreAssignHour matches AND whose
+     * choreLastAssignTime is recent (default: within the last ~18h). This is the
+     * inverse of HouseAutoAssignGetUsersReadyForGivenHour — it finds households
+     * that WERE processed recently rather than those that NEED processing.
+     *
+     * Used by TriggerChores Step 3 to find reminder candidates: if the current
+     * hour is H, we query for choreAssignHour == (H+12)%24 to find users whose
+     * chores were assigned 12 hours ago. The recency check ensures we don't send
+     * reminders for stale assignments from previous days.
+     */
     async HouseAutoAssignGetUsersRecentlyAssigned(hour: number, timestamp: number | null = null) {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.75);
@@ -797,6 +820,18 @@ export default class Database {
         }
     }
 
+    /**
+     * Marks a household as having been processed for chore/task assignment by
+     * advancing choreLastAssignTime to (now + 0.02 Julian days ≈ 30 minutes).
+     *
+     * This timestamp serves dual purposes:
+     * - Prevents re-assignment: HouseAutoAssignGetUsersReadyForGivenHour checks
+     *   choreLastAssignTime < (now - 0.5), so after marking complete the household
+     *   won't be eligible again for ~12+ hours.
+     * - Enables reminders: HouseAutoAssignGetUsersRecentlyAssigned checks
+     *   choreLastAssignTime > (now - 0.75), so the household will be found for
+     *   reminder purposes for ~18 hours after assignment.
+     */
     async HouseAutoAssignMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
         try {
             if (timestamp == null) timestamp = getJulianDate() + 0.02 // ahead about 30 minutes;
