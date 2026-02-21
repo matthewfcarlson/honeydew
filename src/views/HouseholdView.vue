@@ -104,6 +104,16 @@ export default defineComponent({
     computed: {
         ...mapState(useUserStore, ["userName", "household"])
     },
+    mounted() {
+        if (this.household != null) {
+            if (this.household.choreAssignHour != null) {
+                this.autoassign_hour = this.household.choreAssignHour;
+            }
+            if (this.household.outfitHour != null) {
+                this.outfit_hour = String(this.household.outfitHour);
+            }
+        }
+    },
     methods: {
         copyInviteLink: async function () {
             try {
