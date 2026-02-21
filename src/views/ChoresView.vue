@@ -3,6 +3,20 @@
     <div class="title is-4">Chores</div>
     <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
     <div class="notification is-success" v-if="streakMessage.length > 0">{{ streakMessage }}</div>
+
+    <div class="box" v-if="streaks.length > 0">
+      <div class="title is-5">Household Streaks</div>
+      <div v-for="member in streaks" :key="member.userid" class="level">
+        <div class="level-left">
+          <span class="has-text-weight-semibold">{{ member.name }}</span>
+        </div>
+        <div class="level-right">
+          <span v-if="member.current_streak > 1">{{ member.current_streak }}-day streak</span>
+          <span v-else class="has-text-grey">No streak</span>
+        </div>
+      </div>
+    </div>
+
     <h2>Your Chores Per Day: {{ chores_per_day }}</h2>
     <progress class="progress" :class="your_chores_progress_status" :value="chores_per_day" max="1">{{
       chores_per_day
@@ -106,6 +120,11 @@ export default defineComponent({
     chores_per_day_per_pers: function () {
       return (chores_per_day.value / household_members.value.length).toFixed(2);
     },
+    streaks: function () {
+      const household = useUserStore().household;
+      if (household == null) return [];
+      return household.members;
+    },
     ...mapState(useUserStore, ["userName", "chores", "currentDate", "household", "userId", "currentChore"])
   },
   mounted: function () {
@@ -159,7 +178,7 @@ export default defineComponent({
       const status = await useUserStore().ChoreComplete(id);
       if (status.success == false) {
         this.error = status.message
-      } else if (status.data.isFirstToday && status.data.streak && status.data.streak > 1) {
+      } else if (status.data.isFirstToday && status.data.streak && status.data.streak > 2) {
         this.streakMessage = `🔥 ${status.data.streak}-day streak!`;
       }
     }

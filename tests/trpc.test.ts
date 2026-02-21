@@ -226,6 +226,56 @@ describe('chore tests', () => {
         chores = await caller.chores.all();
         expect(chores).toHaveLength(0);
     });
+
+    test('chore completion returns streak data', async () => {
+        const house = await db.HouseholdCreate("STREAK TEST HOUSE");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        const user = await db.UserCreate("STREAKER", house.id);
+        expect(user).not.toBeNull();
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
+
+        expect(await caller.chores.add({name: "Streak chore", frequency: 1})).toBe(true);
+        const chores = await caller.chores.all();
+        expect(chores).toHaveLength(1);
+
+        const result = await caller.chores.complete(chores[0].id);
+        expect(result.success).toBe(true);
+        expect(result.streak).toBe(1);
+        expect(result.isFirstToday).toBe(true);
+
+        // Second completion same day
+        const result2 = await caller.chores.complete(chores[0].id);
+        expect(result2.success).toBe(true);
+        expect(result2.streak).toBe(1);
+        expect(result2.isFirstToday).toBe(false);
+    });
+
+    test('household extended data includes member streaks', async () => {
+        const house = await db.HouseholdCreate("STREAK HOUSEHOLD");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        const user = await db.UserCreate("MEMBER", house.id);
+        expect(user).not.toBeNull();
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
+
+        // Complete a chore to set streak
+        expect(await caller.chores.add({name: "Visible streak chore", frequency: 1})).toBe(true);
+        const chores = await caller.chores.all();
+        await caller.chores.complete(chores[0].id);
+
+        // Get user data which includes household with member streaks
+        const meData = await caller.me.get();
+        const member = meData.household.members.find(m => m.userid === user.id);
+        expect(member).not.toBeUndefined();
+        expect(member!.current_streak).toBe(1);
+    });
 });
 
 describe('project tests', () => {

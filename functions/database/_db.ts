@@ -1376,9 +1376,9 @@ export default class Database {
 
             // If the timestamp was last done at least an hour ago let people know it was done
             if ((timestamp - 0.05) > chore.lastDone) {
-                // Include streak in message if > 1
+                // Include streak in message if > 2
                 let message: string;
-                if (streak > 1) {
+                if (streak > 2) {
                     message = `*${user.name}* just completed _${chore.name}_ \\(🔥 ${streak}\\-day streak\\)`;
                 } else {
                     message = `*${user.name}* just completed _${chore.name}_`;
