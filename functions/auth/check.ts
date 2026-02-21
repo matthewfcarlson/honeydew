@@ -25,9 +25,10 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         name: user.name,
         household,
         id: user.id,
+        task: null,
         color: user.color,
         icon: user.icon,
-        outfit_reminders: user.outfit_reminders,
+        outfit_reminders: user.outfit_reminders ?? 0,
     }
 
     let result_json: string;
