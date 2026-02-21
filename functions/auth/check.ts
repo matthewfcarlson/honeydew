@@ -27,9 +27,19 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         id: user.id,
         color: user.color,
         icon: user.icon,
+        outfit_reminders: user.outfit_reminders,
     }
-    
-    const result_json = JSON.stringify(AuthCheckZ.parse(final_results));
-    // Should we provide information 
+
+    let result_json: string;
+    try {
+        result_json = JSON.stringify(AuthCheckZ.parse(final_results));
+    } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("AUTH_CHECK_PARSE_FAILED", errorMsg, final_results);
+        return new Response(
+            `window.logged_in = false; window.login_error = "AUTH_CHECK_PARSE_FAILED"; // ${errorMsg.replace(/[^\w\s:,]/g, '')}`,
+            { headers: { "Content-Type": "application/javascript" } },
+        );
+    }
     return new Response("window.logged_in = true; window.user_data = " + result_json, { headers: { "Content-Type": "application/javascript" } },)
 }

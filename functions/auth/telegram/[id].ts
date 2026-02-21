@@ -12,7 +12,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
         return ResponseJsonBadRequest();
     }
     if (context.data.userid == null) {
-        return ResponseRedirect(context.request, "/error?t=TelegramNotLoggedIn")
+        return ResponseRedirect(context.request, "/error?msg=TELEGRAM_NOT_LOGGED_IN")
     }
     const db = context.data.db as Database;
     const user = context.data.user
