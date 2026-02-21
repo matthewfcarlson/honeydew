@@ -252,8 +252,8 @@ export const DbHouseholdExtendedRawZ = z.object({
     current_task: DbTaskZ.nullable(),
     current_project: DbProjectZ.nullable(),
     members: z.array(DbHouseholdExtendedMemberRawZ),
-    choreAssignHour: z.number().lt(24).nonnegative().nullable(),
-    outfitHour: z.number().lt(24).nonnegative().nullable(),
+    choreAssignHour: z.number().lt(24).nonnegative().nullable().default(null),
+    outfitHour: z.number().lt(24).nonnegative().nullable().default(null),
 });
 export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()
 export type DbHouseholdExtendedRaw = z.infer<typeof DbHouseholdExtendedRawZ>;
