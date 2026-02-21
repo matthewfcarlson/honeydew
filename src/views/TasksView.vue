@@ -7,6 +7,7 @@
         {{ project.total_subtasks - project.done_subtasks }} tasks left |
         {{ project.total_subtasks }} total tasks</span>
     </h1>
+    <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
     <hr />
     <vue-mermaid-string :value="diagram" />
     <div class="subtitle is-3">Ready Tasks: </div>
@@ -71,8 +72,12 @@
       <button disabled class="button is-danger disabled" v-else>Cannot Delete Project</button>
     </div>
   </div>
-  <div v-else>
-    Something went horribly wrong {{ project }}
+  <div v-else class="container">
+    <div class="notification is-danger">
+      <p class="title is-5">Project not found</p>
+      <p>The project could not be loaded. It may have been deleted or the URL may be incorrect.</p>
+      <router-link to="/projects" class="button is-primary mt-3">Back to Projects</router-link>
+    </div>
   </div>
 </template>
 
@@ -223,7 +228,7 @@ export default defineComponent({
         return;
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     complete_task: async function (id: TaskId) {
@@ -232,7 +237,7 @@ export default defineComponent({
         useUserStore().TasksFetch(this.project_id);
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     delete_task: async function (id: TaskId) {
@@ -241,7 +246,7 @@ export default defineComponent({
         useUserStore().TasksFetch(this.project_id);
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     add_task: async function () {
@@ -261,7 +266,7 @@ export default defineComponent({
         this.requirement2 = "";
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     }
   }

@@ -135,8 +135,7 @@ export default defineComponent({
             this.error = "";
             const result = await useUserStore().HouseholdSetExpectingDate(this.expecting_date);
             if (result.success == false) {
-                // not sure why typescript is being dumb here and no picking up the fact that message will be valid here?
-                this.error = (result as any).message;
+                this.error = result.message;
             }
             else {
                 if (this.expecting_date == "") {
@@ -167,7 +166,7 @@ export default defineComponent({
             this.error = "";
             const result = await useUserStore().SetOutfitReminders(this.outfit_opted_in);
             if (result.success == false) {
-                this.error = (result as any).message;
+                this.error = result.message;
                 this.outfit_opted_in = !this.outfit_opted_in;
             }
             else {
@@ -183,7 +182,7 @@ export default defineComponent({
             }
             const result = await useUserStore().HouseholdSetOutfitHour(hour);
             if (result.success == false) {
-                this.error = (result as any).message;
+                this.error = result.message;
             }
             else {
                 this.error = hour != null ? "successfully set outfit hour" : "outfit notifications disabled";
@@ -193,7 +192,7 @@ export default defineComponent({
             this.outfit_hour = "";
             const result = await useUserStore().HouseholdSetOutfitHour(null);
             if (result.success == false) {
-                this.error = (result as any).message;
+                this.error = result.message;
             }
             else {
                 this.error = "outfit notifications disabled";
@@ -204,8 +203,7 @@ export default defineComponent({
             this.error = "";
             const result = await useUserStore().HouseholdSetSyncTime(this.autoassign_hour);
             if (result.success == false) {
-                // not sure why typescript is being dumb here and no picking up the fact that message will be valid here?
-                this.error = (result as any).message;
+                this.error = result.message;
             }
             else {
                 this.error = "successfully set time"
