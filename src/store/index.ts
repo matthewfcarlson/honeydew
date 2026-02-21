@@ -44,27 +44,58 @@ export function isTRPCClientError(
     return cause instanceof TRPCClientError;
 }
 
+function formatErrorMessage(err: unknown): string {
+    if (err instanceof Error) {
+        return err.message || err.constructor.name;
+    }
+    if (typeof err === 'string') {
+        return err;
+    }
+    try {
+        return JSON.stringify(err);
+    } catch {
+        return String(err);
+    }
+}
+
 function handleError(err: unknown): APIResultError {
     if (isTRPCClientError(err)) {
-        const code = err.data?.code || err.shape?.data?.code;
-        console.error(`[tRPC Error] ${code || 'UNKNOWN'}:`, err.message, err.data);
+        const code = err.data?.code || err.shape?.data?.code || 'UNKNOWN';
+        const httpStatus = err.data?.httpStatus || err.shape?.data?.httpStatus;
+        const message = err.message || "Error querying API";
+        const statusSuffix = httpStatus ? ` (HTTP ${httpStatus})` : '';
+        console.error(`[tRPC Error] ${code}:`, message, err.data);
         return {
             success: false,
-            message: err.message || "Error querying API",
-            code: err.shape?.data?.httpStatus,
+            message: `${message} [${code}]${statusSuffix}`,
+            code: httpStatus,
         }
+    }
+    if (err instanceof AxiosError) {
+        const status = err.response?.status;
+        const serverMessage = err.response?.data?.message;
+        console.error(`[Axios Error] ${err.code}:`, serverMessage || err.message, `(HTTP ${status})`);
+        if (serverMessage) {
+            return { success: false, message: `${serverMessage} (HTTP ${status})`, code: status };
+        }
+        if (err.code === 'ERR_NETWORK') {
+            return { success: false, message: 'Network error: could not reach the server. Check your connection.' };
+        }
+        return { success: false, message: `Request failed (HTTP ${status || err.code || 'unknown'})`, code: status };
+    }
+    if (err instanceof ZodError) {
+        const issues = err.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+        console.error(`[Validation Error]`, issues);
+        return { success: false, message: `Validation error: ${issues}` };
     }
     if (err instanceof Error) {
         console.error(`[API Error] ${err.name}:`, err.message, err.stack);
-        return {
-            success: false,
-            message: err.message || "An unexpected error occurred",
-        }
+        return { success: false, message: err.message || "An unexpected error occurred" };
     }
     console.error("[API Error] Non-error thrown:", err);
     return {
         success: false,
-        message: typeof err === 'string' ? err : "An unexpected error occurred",
+        message: `Unexpected error: ${formatErrorMessage(err)}`
     }
 }
 
@@ -256,13 +287,10 @@ export const useUserStore = defineStore("user", {
                 }
             }
             catch (err) {
-                return {
-                    success: false,
-                    message: "TBI"
-                }
+                return handleError(err);
             }
         },
-        async HouseholdSetSyncTime(hour: number) {
+        async HouseholdSetSyncTime(hour: number): APIResult<boolean> {
             try {
                 const result = await client.household.setAutoAssign.query(hour);
                 return {
@@ -274,7 +302,7 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async SetOutfitReminders(enabled: boolean) {
+        async SetOutfitReminders(enabled: boolean): APIResult<boolean> {
             try {
                 const result = await client.me.setOutfitReminders.query(enabled);
                 if (this._user != null) {
@@ -289,7 +317,7 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async HouseholdSetOutfitHour(hour: number | null) {
+        async HouseholdSetOutfitHour(hour: number | null): APIResult<boolean> {
             try {
                 const result = await client.household.setOutfitHour.query(hour);
                 return {
@@ -301,7 +329,7 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async HouseholdSetExpectingDate(date: string) {
+        async HouseholdSetExpectingDate(date: string): APIResult<boolean> {
             try {
                 const result = await client.household.setExpectingDate.query({expecting:date});
                 return {
@@ -510,7 +538,7 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async ProjectsFetch() {
+        async ProjectsFetch(): APIResult<boolean> {
             try {
                 this._thinking = true;
                 const result = await client.projects.get_projects.query();
@@ -528,7 +556,7 @@ export const useUserStore = defineStore("user", {
 
         },
 
-        async ProjectAdd(name: string) {
+        async ProjectAdd(name: string): APIResult<boolean> {
             try {
                 this._thinking = true;
                 const result = await client.projects.add.query(name);
@@ -546,7 +574,7 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async ProjectDelete(id: ProjectId|null) {
+        async ProjectDelete(id: ProjectId|null): APIResult<boolean> {
             try {
                 if (id == null) return {
                     success: false,
@@ -567,7 +595,7 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async TaskAdd(description: string, project: ProjectId, requirement1: TaskId | null = null, requirement2: TaskId | null = null) {
+        async TaskAdd(description: string, project: ProjectId, requirement1: TaskId | null = null, requirement2: TaskId | null = null): APIResult<boolean> {
             try {
                 this._thinking = true;
                 // TODO: look to see if we're adding a project which has a loop
@@ -589,7 +617,7 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async TaskComplete(id: TaskId) {
+        async TaskComplete(id: TaskId): APIResult<boolean> {
             try {
                 this._thinking = true;
                 // go through our current tasks and complete them
@@ -609,7 +637,7 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async TaskDelete(id: TaskId) {
+        async TaskDelete(id: TaskId): APIResult<boolean> {
             try {
                 this._thinking = true;
                 // go through our current tasks and complete them
@@ -763,12 +791,7 @@ export const useUserStore = defineStore("user", {
             }
             catch (err) {
                 this._thinking = false;
-                if (err instanceof AxiosError) {
-                    const status = err.response?.status;
-                    const message = err.response?.data?.message || "Recovery failed";
-                    return { success: false, message: `${message} (HTTP ${status})` };
-                }
-                return { success: false, message: `Unknown error occurred: ${err}` };
+                return handleError(err);
             }
         },
         async signUp(name: string, key?: string, turnstile: string = ""): APIResult<AuthSignupResponse> {
@@ -790,23 +813,7 @@ export const useUserStore = defineStore("user", {
                 }
             }
             catch (err) {
-                if (err instanceof AxiosError) {
-                    return {
-                        success: false,
-                        message: "Server says no"
-                    }
-                }
-                if (err instanceof ZodError) {
-                    console.error("Zod error", err);
-                    return {
-                        success: false,
-                        message: err.message
-                    }
-                }
-                return {
-                    success: false,
-                    message: "Unknown error occurred"
-                }
+                return handleError(err);
             }
         }
     },
