@@ -51,7 +51,15 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
             return ResponseJsonOk();
         }
         const link = `https://honeydew.matthewc.dev/auth/magic/${key}`;
-        await db.GetTelegram().sendTextMessage(chat.id, `Here's your magic sign-in link (expires in 1 hour):\n${link}`, x.message.message_id);
+        const keyboard: TelegramInlineKeyboardMarkup = {
+            inline_keyboard: [[
+                {
+                    text: "Sign in with magic link",
+                    url: link,
+                },
+            ]]
+        };
+        await db.GetTelegram().sendTextMessage(chat.id, "Here's your magic sign-in link (expires in 1 hour):", x.message.message_id, keyboard);
         return ResponseJsonOk();
     }
 

@@ -39,7 +39,7 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const generic_token = await jwt.sign({
         id: magic_user.id,
         name: magic_user.name,
-        exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
+        exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)), // Expires: Now + 12h
     }, secret);
 
     const redirect = '<head><meta http-equiv="Refresh" content="0; URL=/household" /></head>';
