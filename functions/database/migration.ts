@@ -245,6 +245,25 @@ const HoneydewVersion11 = {
     }
 }
 
+const HoneydewVersion12 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "OUTFITS"
+            await db.schema.dropTable(table_name).ifExists().execute();
+            await db.schema
+                .createTable(table_name)
+                .addColumn('id', 'varchar(40)', (col) => col.primaryKey().unique())
+                .addColumn('household_id', 'varchar(40)', (col) => col.notNull())
+                .addColumn('name', 'varchar(255)', (col) => col.notNull().defaultTo(''))
+                .addColumn('image_url', 'varchar(1024)', (col) => col.notNull().defaultTo(''))
+                .addColumn('clothing_items', 'varchar(2048)', (col) => col.notNull().defaultTo('')) // comma-separated ClothingIds
+                .addColumn('added_by', 'varchar(40)', (col) => col.notNull())
+                .addColumn('created_at', 'integer', (col) => col.notNull()) // julian day number
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -256,6 +275,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion8,
     HoneydewVersion9,
     HoneydewVersion10,
-    HoneydewVersion11
+    HoneydewVersion11,
+    HoneydewVersion12,
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

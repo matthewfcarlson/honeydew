@@ -69,6 +69,13 @@ export const ClothingIdZ = z.string({
 }).length(39).startsWith("CL:", { message: "Must start with CL:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"ClothingId">()
 export type ClothingId = z.infer<typeof ClothingIdZ>;
 
+// OutfitId is O:{UUID}
+export const OutfitIdZ = z.string({
+    required_error: "OutfitId is required",
+    invalid_type_error: "OutfitId must start with O:"
+}).length(38).startsWith("O:", { message: "Must start with O:" }).refine(endsWithUuid, { message: "Must end in UUID" }).brand<"OutfitId">()
+export type OutfitId = z.infer<typeof OutfitIdZ>;
+
 export const DbMagicKeyZ = z.string().length(50).brand<"MagicKey">();
 export type DbMagicKey = z.infer<typeof DbMagicKeyZ>;
 export const MagicKVKeyZ = z.string().length(53).startsWith("MK:").brand<"MagicKVKey">();
@@ -101,7 +108,7 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
-export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId | ClothingId;
+export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId | ClothingId | OutfitId;
 export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
@@ -281,3 +288,19 @@ export const DbClothingZRaw = z.object({
 export const DbClothingZ = DbClothingZRaw.brand<"Clothing">();
 export type DbClothingRaw = z.infer<typeof DbClothingZRaw>;
 export type DbClothing = z.infer<typeof DbClothingZ>;
+
+// -------------------------------------------------
+// Outfit Types
+
+export const DbOutfitZRaw = z.object({
+    id: OutfitIdZ,
+    household_id: HouseIdZ,
+    name: z.string().max(255),
+    image_url: z.string().max(1024),           // preview image URL
+    clothing_items: z.string().max(2048),      // comma-separated ClothingIds
+    added_by: UserIdZ,
+    created_at: z.number().nonnegative(),      // julian day number when added
+});
+export const DbOutfitZ = DbOutfitZRaw.brand<"Outfit">();
+export type DbOutfitRaw = z.infer<typeof DbOutfitZRaw>;
+export type DbOutfit = z.infer<typeof DbOutfitZ>;

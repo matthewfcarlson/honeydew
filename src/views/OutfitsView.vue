@@ -16,7 +16,7 @@
         <li :class="{ 'is-active': activeTab === 'outfits' }">
           <a @click="activeTab = 'outfits'">
             <span class="icon is-small"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-            <span>Outfit Ideas</span>
+            <span>Outfits ({{ outfits.length }})</span>
           </a>
         </li>
       </ul>
@@ -148,11 +148,28 @@
         <p class="panel-heading">Import from Indyx</p>
         <div class="panel-block">
           <div class="field" style="width:100%">
-            <p class="mb-3">Paste your Indyx CSV export data below. You can request a CSV export from Indyx by contacting their support.</p>
-            <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="6" :disabled="thinking"></textarea>
-            <button class="button is-info mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
+            <label class="label">Open Closet URL or Username</label>
+            <p class="mb-3 is-size-7">Enter your Indyx Open Closet URL or username to import your wardrobe and outfits.</p>
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input class="input" v-model="indyxUsername" placeholder="e.g. drxv42gj94 or https://opencloset.myindyx.com/user/..." :disabled="thinking">
+              </div>
+              <div class="control">
+                <button class="button is-info" :disabled="thinking || !indyxUsername" @click="import_opencloset">
+                  <span v-if="thinking">Importing...</span>
+                  <span v-else>Import</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-block">
+          <div class="field" style="width:100%">
+            <label class="label">Or paste CSV export</label>
+            <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="4" :disabled="thinking"></textarea>
+            <button class="button is-info is-light mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
               <span v-if="thinking">Importing...</span>
-              <span v-else>Import from Indyx</span>
+              <span v-else>Import CSV</span>
             </button>
           </div>
         </div>
@@ -161,12 +178,31 @@
 
     <!-- Outfits Tab -->
     <div v-show="activeTab === 'outfits'">
-      <div class="box has-text-centered">
+      <div class="columns is-multiline" v-if="outfits.length > 0">
+        <div class="column is-4" v-for="outfit in outfits" :key="outfit.id">
+          <div class="card">
+            <div class="card-image" v-if="outfit.image_url">
+              <figure class="image is-4by5">
+                <img :src="outfit.image_url" :alt="outfit.name || 'Outfit'">
+              </figure>
+            </div>
+            <div class="card-content">
+              <p class="title is-5">{{ outfit.name || 'Outfit' }}</p>
+              <p class="is-size-7">{{ outfitItemNames(outfit.clothing_items) }}</p>
+            </div>
+            <footer class="card-footer">
+              <a class="card-footer-item has-text-danger" @click="delete_outfit(outfit.id)">Delete</a>
+            </footer>
+          </div>
+        </div>
+      </div>
+
+      <div class="box has-text-centered" v-if="outfits.length === 0">
         <span class="icon is-large">
           <i class="fa-solid fa-wand-magic-sparkles fa-3x"></i>
         </span>
-        <p class="title is-5 mt-4">Under Construction</p>
-        <p class="subtitle is-6">We're working on helping you pick outfits. Check back soon!</p>
+        <p class="title is-5 mt-4">No Outfits Yet</p>
+        <p class="subtitle is-6">Import outfits from your Indyx Open Closet, or check back soon for outfit suggestions!</p>
       </div>
     </div>
   </div>
@@ -189,6 +225,7 @@ export default defineComponent({
       filterClean: "",
       searchQuery: "",
       csvContent: "",
+      indyxUsername: "",
       newItem: {
         name: "",
         category: "",
@@ -229,12 +266,22 @@ export default defineComponent({
       }
       return items;
     },
-    ...mapState(useUserStore, ["clothes", "thinking"])
+    ...mapState(useUserStore, ["clothes", "outfits", "thinking"])
   },
   mounted: function () {
     useUserStore().ClothesFetch();
+    useUserStore().OutfitsFetch();
   },
   methods: {
+    outfitItemNames(clothingItemsStr: string): string {
+      if (!clothingItemsStr) return '';
+      const ids = clothingItemsStr.split(',').filter(Boolean);
+      const names = ids.map((id: string) => {
+        const item = this.clothes.find((c: any) => c.id === id);
+        return item ? item.name : '';
+      }).filter(Boolean);
+      return names.join(', ');
+    },
     add_item: async function () {
       this.error = "";
       this.successMsg = "";
@@ -253,6 +300,13 @@ export default defineComponent({
     delete_item: async function (id: string) {
       this.error = "";
       const status = await useUserStore().ClothesDelete(id);
+      if (status.success == false) {
+        this.error = status.message;
+      }
+    },
+    delete_outfit: async function (id: string) {
+      this.error = "";
+      const status = await useUserStore().OutfitDelete(id);
       if (status.success == false) {
         this.error = status.message;
       }
@@ -289,6 +343,24 @@ export default defineComponent({
       if (status.success) {
         this.successMsg = `Imported ${status.data.imported} of ${status.data.total} items from Indyx`;
         this.csvContent = "";
+      } else {
+        this.error = status.message;
+      }
+    },
+    import_opencloset: async function () {
+      this.error = "";
+      this.successMsg = "";
+      if (!this.indyxUsername.trim()) {
+        this.error = "Please enter an Indyx username or URL";
+        return;
+      }
+      const status = await useUserStore().ClothesImportIndyxOpenCloset(this.indyxUsername);
+      if (status.success) {
+        const d = status.data;
+        const parts = [`Imported ${d.imported_items} of ${d.total_items} items`];
+        if (d.total_outfits > 0) parts.push(`${d.imported_outfits} of ${d.total_outfits} outfits`);
+        this.successMsg = parts.join(' and ') + ' from Indyx';
+        this.indyxUsername = "";
       } else {
         this.error = status.message;
       }

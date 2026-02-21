@@ -123,16 +123,33 @@
       </div>
     </article>
 
-    <!-- Import from Indyx -->
+    <!-- Import from Indyx Open Closet -->
     <article class="panel is-info">
       <p class="panel-heading">Import from Indyx</p>
       <div class="panel-block">
         <div class="field" style="width:100%">
-          <p class="mb-3">Paste your Indyx CSV export data below. You can request a CSV export from Indyx by contacting their support.</p>
-          <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="6" :disabled="thinking"></textarea>
-          <button class="button is-info mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
+          <label class="label">Open Closet URL or Username</label>
+          <p class="mb-3 is-size-7">Enter your Indyx Open Closet URL or username to import your wardrobe and outfits.</p>
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input class="input" v-model="indyxUsername" placeholder="e.g. drxv42gj94 or https://opencloset.myindyx.com/user/..." :disabled="thinking">
+            </div>
+            <div class="control">
+              <button class="button is-info" :disabled="thinking || !indyxUsername" @click="import_opencloset">
+                <span v-if="thinking">Importing...</span>
+                <span v-else>Import</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-block">
+        <div class="field" style="width:100%">
+          <label class="label">Or paste CSV export</label>
+          <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="4" :disabled="thinking"></textarea>
+          <button class="button is-info is-light mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
             <span v-if="thinking">Importing...</span>
-            <span v-else>Import from Indyx</span>
+            <span v-else>Import CSV</span>
           </button>
         </div>
       </div>
@@ -156,6 +173,7 @@ export default defineComponent({
       filterClean: "",
       searchQuery: "",
       csvContent: "",
+      indyxUsername: "",
       newItem: {
         name: "",
         category: "",
@@ -256,6 +274,24 @@ export default defineComponent({
       if (status.success) {
         this.successMsg = `Imported ${status.data.imported} of ${status.data.total} items from Indyx`;
         this.csvContent = "";
+      } else {
+        this.error = status.message;
+      }
+    },
+    import_opencloset: async function () {
+      this.error = "";
+      this.successMsg = "";
+      if (!this.indyxUsername.trim()) {
+        this.error = "Please enter an Indyx username or URL";
+        return;
+      }
+      const status = await useUserStore().ClothesImportIndyxOpenCloset(this.indyxUsername);
+      if (status.success) {
+        const d = status.data;
+        const parts = [`Imported ${d.imported_items} of ${d.total_items} items`];
+        if (d.total_outfits > 0) parts.push(`${d.imported_outfits} of ${d.total_outfits} outfits`);
+        this.successMsg = parts.join(' and ') + ' from Indyx';
+        this.indyxUsername = "";
       } else {
         this.error = status.message;
       }

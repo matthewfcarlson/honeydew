@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ, OutfitId, OutfitIdZ, DbOutfit, DbOutfitRaw, DbOutfitZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -19,6 +19,7 @@ interface DataBaseData {
     projects: DbProjectRaw
     tasks: DbTaskRaw,
     clothes: DbClothingRaw,
+    outfits: DbOutfitRaw,
 }
 
 const uuidv4 = () => (crypto as any).randomUUID();
@@ -1857,6 +1858,115 @@ export default class Database {
                 item
             );
             if (clothing != null) results.push(clothing);
+        }
+        return results;
+    }
+
+    // Outfit methods
+    async OutfitGenerateUUID(): Promise<OutfitId | null> {
+        let id: OutfitId | null = null;
+        let count = 0;
+        while (count < 50) {
+            count += 1;
+            const attempted_id = OutfitIdZ.safeParse("O:" + uuidv4());
+            if (attempted_id.success == false) {
+                continue;
+            }
+            id = attempted_id.data;
+            if (await this.OutfitExists(id) == false) break;
+        }
+        if (count > 50) {
+            console.error("OutfitGenerateUUID", "Unable to generate a new outfit ID");
+        }
+        return id;
+    }
+
+    async OutfitExists(id: OutfitId): Promise<boolean> {
+        const outfit_id = OutfitIdZ.safeParse(id);
+        if (outfit_id.success == false) return false;
+        const result = await this._db.selectFrom("outfits").select("id").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return true;
+    }
+
+    async OutfitCreate(
+        name: string,
+        household_id: HouseId,
+        added_by: UserId,
+        opts: {
+            image_url?: string,
+            clothing_items?: string,
+        } = {}
+    ): Promise<DbOutfit | null> {
+        try {
+            const id = await this.OutfitGenerateUUID();
+            if (id == null) return null;
+            const outfit_raw: DbOutfitRaw = {
+                id,
+                household_id,
+                name,
+                image_url: opts.image_url || '',
+                clothing_items: opts.clothing_items || '',
+                added_by,
+                created_at: getJulianDate(),
+            };
+            const outfit = DbOutfitZ.parse(outfit_raw);
+            await this._db.insertInto("outfits").values(outfit).executeTakeFirstOrThrow();
+            return outfit;
+        }
+        catch (err) {
+            console.error("OutfitCreate", err);
+            return null;
+        }
+    }
+
+    async OutfitGetAll(household_id: HouseId): Promise<DbOutfit[]> {
+        try {
+            const id = HouseIdZ.parse(household_id);
+            const raw_results = await this._db.selectFrom("outfits").selectAll().where("household_id", "==", id).execute();
+            const results: DbOutfit[] = [];
+            raw_results.forEach((x) => {
+                const result = DbOutfitZ.safeParse(x);
+                if (result.success) results.push(result.data);
+            });
+            return results;
+        }
+        catch (err) {
+            console.error("OutfitGetAll", err);
+            return [];
+        }
+    }
+
+    async OutfitDelete(id: OutfitId): Promise<boolean> {
+        try {
+            const outfit_id = OutfitIdZ.parse(id);
+            const result = await this._db.deleteFrom("outfits").where("id", "==", outfit_id).executeTakeFirstOrThrow();
+            return result.numDeletedRows > 0;
+        }
+        catch (err) {
+            console.error("OutfitDelete", err);
+            return false;
+        }
+    }
+
+    async OutfitBulkCreate(
+        outfits: Array<{
+            name: string,
+            image_url?: string,
+            clothing_items?: string,
+        }>,
+        household_id: HouseId,
+        added_by: UserId
+    ): Promise<DbOutfit[]> {
+        const results: DbOutfit[] = [];
+        for (const outfit of outfits) {
+            const created = await this.OutfitCreate(
+                outfit.name,
+                household_id,
+                added_by,
+                outfit
+            );
+            if (created != null) results.push(created);
         }
         return results;
     }

@@ -4,7 +4,7 @@ import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
 import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
 import { boolean, ZodError } from 'zod';
-import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbClothing, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, ClothingIdZ, } from '../../functions/db_types'; // can I bring this in?
+import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbClothing, DbOutfit, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, ClothingIdZ, OutfitIdZ, } from '../../functions/db_types'; // can I bring this in?
 import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
 import { TRPCError } from '@trpc/server';
 import { getJulianDate } from '../../functions/_utils';
@@ -117,6 +117,7 @@ interface UserStoreState {
     _thinking: boolean;
     _tasks: DbTask[];
     _clothes: DbClothing[];
+    _outfits: DbOutfit[];
 }
 
 export const useUserStore = defineStore("user", {
@@ -153,6 +154,7 @@ export const useUserStore = defineStore("user", {
             _thinking: false,
             _tasks: [],
             _clothes: [],
+            _outfits: [],
         }
         return state;
     },
@@ -217,6 +219,9 @@ export const useUserStore = defineStore("user", {
         },
         clothes: (state) => {
             return state._clothes;
+        },
+        outfits: (state) => {
+            return state._outfits;
         },
         household_chores: (state) => {
             if (state._user == null) return [];
@@ -768,6 +773,40 @@ export const useUserStore = defineStore("user", {
                 this._thinking = true;
                 const result = await client.clothes.import_indyx.query(csvContent);
                 this.ClothesFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async ClothesImportIndyxOpenCloset(usernameOrUrl: string): APIResult<{ imported_items: number, total_items: number, imported_outfits: number, total_outfits: number }> {
+            try {
+                this._thinking = true;
+                const result = await client.clothes.import_indyx_opencloset.query(usernameOrUrl);
+                this.ClothesFetch();
+                this.OutfitsFetch();
+                this._thinking = false;
+                return { success: true, data: result };
+            }
+            catch (err) {
+                this._thinking = false;
+                return handleError(err);
+            }
+        },
+        async OutfitsFetch() {
+            const result = await this.QueryAPI(client.clothes.outfits.query);
+            if (result.success) {
+                this._outfits = result.data as DbOutfit[];
+            }
+        },
+        async OutfitDelete(id: string): APIResult<boolean> {
+            try {
+                this._thinking = true;
+                const outfit_id = OutfitIdZ.parse(id);
+                const result = await client.clothes.delete_outfit.query(outfit_id);
+                this.OutfitsFetch();
                 this._thinking = false;
                 return { success: true, data: result };
             }
