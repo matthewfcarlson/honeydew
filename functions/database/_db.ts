@@ -761,6 +761,42 @@ export default class Database {
         }
     }
 
+    async HouseAutoAssignGetUsersRecentlyAssigned(hour: number, timestamp: number | null = null) {
+        try {
+            if (timestamp == null) timestamp = (getJulianDate() - 0.75);
+            const assignment_query = this._db.selectFrom("houseautoassign").where("choreAssignHour", "==", hour).where("choreLastAssignTime", ">", timestamp);
+            const joined_query = assignment_query.innerJoin("users", "users.household", "houseautoassign.house_id").select(["users._chat_id", "users.id", "houseautoassign.house_id as house_id"]);
+            const raw_results = await joined_query.execute();
+            if (raw_results == undefined) return [];
+            interface JoinedResults {
+                chat_id: number | null,
+                house_id: HouseId,
+                user_id: UserId,
+            }
+            const results = raw_results
+                .map((x) => {
+                    return {
+                        chat_id: x._chat_id,
+                        house_id: HouseIdZ.safeParse(x.house_id),
+                        user_id: UserIdZ.safeParse(x.id)
+                    }
+                })
+                .map((x) => {
+                    return {
+                        chat_id: x.chat_id,
+                        house_id: (x.house_id.success) ? x.house_id.data : null,
+                        user_id: (x.user_id.success) ? x.user_id.data : null,
+                    }
+                })
+                .filter((x): x is JoinedResults => x.house_id != null && x.user_id != null)
+            return results;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignGetUsersRecentlyAssigned", err);
+            return [];
+        }
+    }
+
     async HouseAutoAssignMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
         try {
             if (timestamp == null) timestamp = getJulianDate() + 0.02 // ahead about 30 minutes;

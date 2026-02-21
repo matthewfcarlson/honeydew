@@ -21,9 +21,9 @@ export const TriggerChores = async function (db: Database, hour: number) {
     });
 
     // Now look at all the users that need a reminder
+    // Find households where chores were assigned 12 hours ago (recently assigned, not ready-for-assignment)
     const reminder_hour = (hour + 12) % 24;
-    const future_date = getJulianDate() + 5;
-    const reminder_users = await db.HouseAutoAssignGetUsersReadyForGivenHour(reminder_hour, future_date); // passing in a zero for timestamp
+    const reminder_users = await db.HouseAutoAssignGetUsersRecentlyAssigned(reminder_hour);
     const reminder_promises = reminder_users.map(async (x) => {
         const chore = await db.ChoreGetCurrentChore(x.user_id);
         if (chore == null) return false;
