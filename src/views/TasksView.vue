@@ -228,7 +228,7 @@ export default defineComponent({
         return;
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     complete_task: async function (id: TaskId) {
@@ -237,7 +237,7 @@ export default defineComponent({
         useUserStore().TasksFetch(this.project_id);
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     delete_task: async function (id: TaskId) {
@@ -246,7 +246,7 @@ export default defineComponent({
         useUserStore().TasksFetch(this.project_id);
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     },
     add_task: async function () {
@@ -266,7 +266,7 @@ export default defineComponent({
         this.requirement2 = "";
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     }
   }

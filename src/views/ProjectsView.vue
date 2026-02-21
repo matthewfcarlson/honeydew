@@ -79,7 +79,7 @@ export default defineComponent({
         this.project_name = "";
       }
       else {
-        this.error = (status as any).message || "unknown error";
+        this.error = status.message;
       }
     }
   }
