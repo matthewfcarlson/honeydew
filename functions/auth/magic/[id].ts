@@ -10,15 +10,10 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
     const user_agent = context.request.headers.get('user-agent') || '';
     if (id == null || id == undefined) return ResponseJsonMissingData();
-    if (context.data.userid != null) {
-        return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN&k=" + id)
-    }
     if (user_agent.startsWith("Telegram")) {
         return ResponseRedirect(context.request, "/error?msg=TELEGRAM_CRAWLER");
     }
     const db = context.data.db as Database;
-    const user = context.data.user
-    if (user != null) return ResponseRedirect(context.request, "/error?msg=ALREADY_LOGGEDIN");
     if (Array.isArray(id)) {
         console.error("AUTH/MAGIC/[id]", "auth/magic ID IS ARRAY", id);
         return ResponseRedirect(context.request, "/error?msg=MAGICKEY_INVALID");
