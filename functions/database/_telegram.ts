@@ -313,6 +313,16 @@ export class TelegramAPI {
         return results.result;
     }
 
+    public async sendMediaGroup(chat_id: string|number, media: {type: "photo", media: string, caption?: string}[]) {
+        const data = {
+            chat_id,
+            media,
+        };
+        const results = await this.requestPost('sendMediaGroup', data);
+        if (results == false) return false;
+        return results.result;
+    }
+
     public async clearMessageReplyMarkup(chat_id:number|string, message_id: number) {
         const data = {
             chat_id,

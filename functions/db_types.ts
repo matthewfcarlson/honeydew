@@ -94,9 +94,20 @@ const TelegramCallbackKVPayloadCompleteChoreZ = TelegramCallbackKVPayloadBaseZ.e
 const TelegramCallbackKVPayloadAnotherChoreZ = TelegramCallbackKVPayloadBaseZ.extend({
     type: z.literal("ANOTHER_CHORE"),
 });
+const TelegramCallbackKVPayloadOutfitDirtyZ = TelegramCallbackKVPayloadBaseZ.extend({
+    type: z.literal("OUTFIT_DIRTY"),
+    clothing_id: ClothingIdZ,
+    house_id: HouseIdZ,
+});
+const TelegramCallbackKVPayloadOutfitLaundryZ = TelegramCallbackKVPayloadBaseZ.extend({
+    type: z.literal("OUTFIT_LAUNDRY"),
+    house_id: HouseIdZ,
+});
 export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
     TelegramCallbackKVPayloadCompleteChoreZ,
     TelegramCallbackKVPayloadAnotherChoreZ,
+    TelegramCallbackKVPayloadOutfitDirtyZ,
+    TelegramCallbackKVPayloadOutfitLaundryZ,
 ]);
 
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
@@ -273,10 +284,12 @@ export const DbClothingZRaw = z.object({
     size: z.string().max(50),
     image_url: z.string().max(1024),       // URL to clothing image
     tags: z.string().max(1024),            // comma-separated tags (e.g. "casual,summer,work")
-    wear_count: z.number().nonnegative(),  // how many times the item has been worn
+    wear_count: z.number().nonnegative(),  // how many times the item has been worn (lifetime)
     is_clean: z.number().nonnegative(),    // 1 = clean, 0 = dirty (SQLite boolean)
     added_by: UserIdZ,
     created_at: z.number().nonnegative(),  // julian day number when added
+    max_wears: z.number().positive(),      // number of wears before needing a wash (default 1)
+    wears_since_wash: z.number().nonnegative(), // wears since last wash, resets when cleaned
 });
 export const DbClothingZ = DbClothingZRaw.brand<"Clothing">();
 export type DbClothingRaw = z.infer<typeof DbClothingZRaw>;

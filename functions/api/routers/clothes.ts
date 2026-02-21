@@ -35,6 +35,7 @@ const Router = router({
     size: z.string().max(50).optional(),
     image_url: z.string().max(1024).optional(),
     tags: z.string().max(1024).optional(),
+    max_wears: z.number().positive().optional(),
   })).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });

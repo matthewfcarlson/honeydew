@@ -2,6 +2,7 @@ import Database from "../database/_db";
 import { TelegramAnswerCallbackQuery, TelegramCallbackQuery, TelegramInlineKeyboardMarkup, TelegramUpdateCallbackQuery, TelegramUpdateMessage } from "../database/_telegram";
 import { DbUser, TelegramCallbackKVKeyZ, TelegramCallbackKVPayload } from "../db_types";
 import { IsValidHttpUrl, ResponseJsonBadRequest, ResponseJsonOk } from "../_utils";
+import { sendOutfitToUser } from "../triggers/schedule/outfits";
 
 async function HandleRecipeUpdate(db: Database, msg: TelegramUpdateMessage, user: DbUser) {
     const text = msg.message.text || 'N/A';
@@ -85,6 +86,64 @@ async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateC
     }
 }
 
+async function HandleTelegramOutfitDirty(db: Database, message: TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<TelegramAnswerCallbackQuery|null> {
+    if (payload.type != "OUTFIT_DIRTY") return null;
+    // Mark the specific clothing item as dirty
+    const result = await db.ClothingMarkDirty(payload.clothing_id);
+    if (!result) {
+        return {
+            callback_query_id: message.callback_query.id,
+            text: "Failed to mark item as dirty",
+        };
+    }
+
+    // Get the user to send a new outfit
+    const user = await db.UserGet(payload.user_id);
+    if (user == null) {
+        return {
+            callback_query_id: message.callback_query.id,
+            text: "Item marked dirty, but couldn't generate a new outfit",
+        };
+    }
+
+    // Generate and send a new outfit
+    await sendOutfitToUser(db, user, payload.house_id);
+
+    return {
+        callback_query_id: message.callback_query.id,
+        text: "Item marked dirty! Here's a new outfit.",
+    };
+}
+
+async function HandleTelegramOutfitLaundry(db: Database, message: TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<TelegramAnswerCallbackQuery|null> {
+    if (payload.type != "OUTFIT_LAUNDRY") return null;
+    // Mark all clothes as clean for the household
+    const result = await db.ClothingMarkAllClean(payload.house_id);
+    if (!result) {
+        return {
+            callback_query_id: message.callback_query.id,
+            text: "Failed to mark laundry as done",
+        };
+    }
+
+    // Get the user to send a new outfit
+    const user = await db.UserGet(payload.user_id);
+    if (user == null) {
+        return {
+            callback_query_id: message.callback_query.id,
+            text: "Laundry marked done, but couldn't generate a new outfit",
+        };
+    }
+
+    // Generate and send a new outfit from now-clean clothes
+    await sendOutfitToUser(db, user, payload.house_id);
+
+    return {
+        callback_query_id: message.callback_query.id,
+        text: "Laundry done! Here's a fresh outfit.",
+    };
+}
+
 export async function HandleTelegramUpdateCallbackQuery(db: Database, message: TelegramUpdateCallbackQuery) {
     try {
         const uuid = message.callback_query.data;
@@ -108,6 +167,12 @@ export async function HandleTelegramUpdateCallbackQuery(db: Database, message: T
         let answer_callback: TelegramAnswerCallbackQuery|null = null;
         if (payload.type == "COMPLETE_CHORE") {
             answer_callback = await HandleTelegramCompleteChore(db, message, payload);
+        }
+        else if (payload.type == "OUTFIT_DIRTY") {
+            answer_callback = await HandleTelegramOutfitDirty(db, message, payload);
+        }
+        else if (payload.type == "OUTFIT_LAUNDRY") {
+            answer_callback = await HandleTelegramOutfitLaundry(db, message, payload);
         }
         if (answer_callback != null) {
             // console.error("HandleTelegramUpdateCallbackQuery", answer_callback);

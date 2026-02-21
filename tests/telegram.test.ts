@@ -3,9 +3,11 @@ import { env } from 'cloudflare:test';
 import { DbProject } from "functions/db_types";
 import { HandleTelegramUpdate } from "../functions/telegram/webhook"
 import { TriggerChores } from "../functions/triggers/schedule/chores"
+import { TriggerOutfits } from "../functions/triggers/schedule/outfits"
 import { MockedTelegramAPI, TelegramCallbackQuery, TelegramUpdate, TelegramUpdateMessage } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";
+import { classifyClothing, generateOutfit } from "../functions/_outfit";
 
 function generateTelegramResponse(data: any) {
   return new Response(JSON.stringify({
@@ -336,5 +338,370 @@ describe('Trigger tests', () => {
     for (let i = 0; i < 24; i++) {
       await TriggerChores(db, i);
     }
+  });
+});
+
+describe('Outfit classification tests', () => {
+  // Helper to make a mock clothing item for classification
+  function mockClothing(category: string, subcategory: string) {
+    return {
+      id: "CL:00000000-0000-0000-0000-000000000000" as any,
+      household_id: "H:00000000-0000-0000-0000-000000000000" as any,
+      name: "Test Item",
+      category,
+      subcategory,
+      brand: "",
+      color: "",
+      size: "",
+      image_url: "",
+      tags: "",
+      wear_count: 0,
+      is_clean: 1,
+      added_by: "U:00000000-0000-0000-0000-000000000000" as any,
+      created_at: 0,
+      max_wears: 1,
+      wears_since_wash: 0,
+    } as any;
+  }
+
+  it('classifies tops correctly', () => {
+    expect(classifyClothing(mockClothing("Tops", "Polo"))).toBe("shirt");
+    expect(classifyClothing(mockClothing("Tops", "T-Shirt"))).toBe("shirt");
+    expect(classifyClothing(mockClothing("Shirt", "Button Down"))).toBe("shirt");
+    expect(classifyClothing(mockClothing("Tops", "Sweater"))).toBe("shirt");
+  });
+
+  it('classifies bottoms correctly', () => {
+    expect(classifyClothing(mockClothing("Bottoms", "Jeans"))).toBe("pants");
+    expect(classifyClothing(mockClothing("Bottoms", "Chinos"))).toBe("pants");
+    expect(classifyClothing(mockClothing("Pants", "Joggers"))).toBe("pants");
+  });
+
+  it('classifies outerwear correctly', () => {
+    expect(classifyClothing(mockClothing("Outerwear", "Jacket"))).toBe("coat");
+    expect(classifyClothing(mockClothing("Outerwear", "Coat"))).toBe("coat");
+    expect(classifyClothing(mockClothing("Tops", "Hoodie"))).toBe("coat");
+    expect(classifyClothing(mockClothing("Outerwear", "Blazer"))).toBe("coat");
+  });
+
+  it('classifies shoes correctly', () => {
+    expect(classifyClothing(mockClothing("Shoes", "Sneakers"))).toBe("shoes");
+    expect(classifyClothing(mockClothing("Footwear", "Boots"))).toBe("shoes");
+    expect(classifyClothing(mockClothing("Shoes", "Loafer"))).toBe("shoes");
+  });
+
+  it('classifies socks correctly', () => {
+    expect(classifyClothing(mockClothing("Socks", "Crew"))).toBe("socks");
+    expect(classifyClothing(mockClothing("Accessories", "Sock"))).toBe("socks");
+  });
+
+  it('returns null for unrecognized categories', () => {
+    expect(classifyClothing(mockClothing("Accessories", "Belt"))).toBeNull();
+    expect(classifyClothing(mockClothing("Other", "Misc"))).toBeNull();
+  });
+});
+
+describe('Outfit generation tests', () => {
+  it('generates outfit from clean clothing', async () => {
+    const house_id = (await db.HouseholdCreate("Outfit house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Create one item of each required type
+    await db.ClothingCreate("Blue Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt", color: "Blue" });
+    await db.ClothingCreate("Black Jeans", house_id, user_id, { category: "Bottoms", subcategory: "Jeans", color: "Black" });
+    await db.ClothingCreate("White Sneakers", house_id, user_id, { category: "Shoes", subcategory: "Sneakers", color: "White" });
+    await db.ClothingCreate("Black Socks", house_id, user_id, { category: "Socks", subcategory: "Crew", color: "Black" });
+
+    const allClothes = await db.ClothingGetAll(house_id);
+    const { outfit, missingSlots } = generateOutfit(allClothes);
+
+    expect(missingSlots).toHaveLength(0);
+    expect(outfit.shirt).not.toBeNull();
+    expect(outfit.pants).not.toBeNull();
+    expect(outfit.shoes).not.toBeNull();
+    expect(outfit.sockColor).toBe("Black");
+    // Coat is optional, no coat was added
+    expect(outfit.coat).toBeNull();
+  });
+
+  it('reports missing slots when no clean items available', async () => {
+    const house_id = (await db.HouseholdCreate("Empty house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    // Only create a shirt - pants and shoes are missing
+    await db.ClothingCreate("Red Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt", color: "Red" });
+
+    const allClothes = await db.ClothingGetAll(house_id);
+    const { outfit, missingSlots } = generateOutfit(allClothes);
+
+    expect(missingSlots).toContain("pants");
+    expect(missingSlots).toContain("shoes");
+    expect(outfit.shirt).not.toBeNull();
+  });
+
+  it('excludes dirty items from outfit generation', async () => {
+    const house_id = (await db.HouseholdCreate("Dirty house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    const shirt = await db.ClothingCreate("Only Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    await db.ClothingCreate("Jeans", house_id, user_id, { category: "Bottoms", subcategory: "Jeans" });
+    await db.ClothingCreate("Shoes", house_id, user_id, { category: "Shoes", subcategory: "Sneakers" });
+
+    if (shirt == null) return;
+    // Mark the only shirt as dirty
+    await db.ClothingMarkDirty(shirt.id);
+
+    const allClothes = await db.ClothingGetAll(house_id);
+    const { outfit, missingSlots } = generateOutfit(allClothes);
+
+    // Should report shirt as missing since the only one is dirty
+    expect(missingSlots).toContain("shirt");
+    expect(outfit.shirt).toBeNull();
+  });
+});
+
+describe('Outfit trigger tests', () => {
+  it('sends outfit messages to opted-in users', async () => {
+    let message_count = 0;
+    let got_outfit_text = false;
+    let got_dirty_button = false;
+    telegram.registerListener(async (x) => {
+      message_count += 1;
+      if (x.type == "POST" && x.method == "sendMessage") {
+        const text = x.data.text as string;
+        if (text.includes("outfit suggestion")) {
+          got_outfit_text = true;
+        }
+        if (x.data.reply_markup?.inline_keyboard?.length > 0) {
+          const buttons = x.data.reply_markup.inline_keyboard.flat();
+          if (buttons.some((b: any) => b.text.includes("dirty"))) {
+            got_dirty_button = true;
+          }
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("Outfit trigger house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    const chat_id = 99999;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 88888)).toBe(true);
+
+    // Set outfit hour
+    expect(await db.HouseOutfitSetHour(house_id, 8)).toBe(true);
+
+    // Create a full wardrobe
+    await db.ClothingCreate("Polo Shirt", house_id, user_id, { category: "Tops", subcategory: "Polo", color: "Blue", image_url: "https://example.com/polo.jpg" });
+    await db.ClothingCreate("Dark Jeans", house_id, user_id, { category: "Bottoms", subcategory: "Jeans", color: "Dark Blue", image_url: "https://example.com/jeans.jpg" });
+    await db.ClothingCreate("White Sneakers", house_id, user_id, { category: "Shoes", subcategory: "Sneakers", color: "White", image_url: "https://example.com/sneakers.jpg" });
+    await db.ClothingCreate("Black Socks", house_id, user_id, { category: "Socks", subcategory: "Crew", color: "Black" });
+
+    message_count = 0;
+    const result = await TriggerOutfits(db, 8);
+    expect(result.households.length).toBe(1);
+
+    // Should have received messages (media group + text with buttons)
+    expect(message_count).toBeGreaterThan(0);
+    expect(got_outfit_text).toBe(true);
+    expect(got_dirty_button).toBe(true);
+  });
+
+  it('sends laundry prompt when no outfits possible', async () => {
+    let got_laundry_prompt = false;
+    let got_laundry_button = false;
+    telegram.registerListener(async (x) => {
+      if (x.type == "POST" && x.method == "sendMessage") {
+        const text = x.data.text as string;
+        if (text.includes("laundry")) {
+          got_laundry_prompt = true;
+        }
+        if (x.data.reply_markup?.inline_keyboard?.length > 0) {
+          const buttons = x.data.reply_markup.inline_keyboard.flat();
+          if (buttons.some((b: any) => b.text.includes("Laundry"))) {
+            got_laundry_button = true;
+          }
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("No outfits house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    const chat_id = 77777;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 66666)).toBe(true);
+
+    // Set outfit hour
+    expect(await db.HouseOutfitSetHour(house_id, 9)).toBe(true);
+
+    // Create clothing but mark it all dirty
+    const shirt = await db.ClothingCreate("Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    await db.ClothingCreate("Pants", house_id, user_id, { category: "Bottoms", subcategory: "Pants" });
+    await db.ClothingCreate("Shoes", house_id, user_id, { category: "Shoes", subcategory: "Sneakers" });
+
+    if (shirt != null) await db.ClothingMarkDirty(shirt.id);
+
+    const result = await TriggerOutfits(db, 9);
+    expect(result.households.length).toBe(1);
+    expect(got_laundry_prompt).toBe(true);
+    expect(got_laundry_button).toBe(true);
+  });
+
+  it('outfit dirty callback marks item dirty and regenerates', async () => {
+    let message_count = 0;
+    telegram.registerListener(async (x) => {
+      message_count += 1;
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("Callback house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    const chat_id = 55555;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 44444)).toBe(true);
+
+    // Create clothing
+    const shirt = await db.ClothingCreate("Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    const shirt2 = await db.ClothingCreate("Backup Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    await db.ClothingCreate("Pants", house_id, user_id, { category: "Bottoms", subcategory: "Pants" });
+    await db.ClothingCreate("Shoes", house_id, user_id, { category: "Shoes", subcategory: "Sneakers" });
+
+    if (shirt == null) return;
+
+    // Create an OUTFIT_DIRTY callback
+    const callback = await db.TelegramCallbackCreate({
+      user_id,
+      type: "OUTFIT_DIRTY",
+      clothing_id: shirt.id,
+      house_id,
+    });
+    expect(callback).not.toBeNull();
+    if (callback == null) return;
+
+    // Simulate callback query
+    const query: TelegramCallbackQuery = {
+      id: "outfit-dirty-test",
+      message: {
+        message_id: 12345,
+        chat: { id: chat_id, type: "private" },
+        date: Math.floor(getJulianDate()),
+      },
+      from: { id: 44444, is_bot: false, first_name: "Bob" },
+      chat_instance: "test",
+      data: callback,
+    };
+    const update: TelegramUpdate = {
+      update_id: 1,
+      callback_query: query,
+    };
+
+    message_count = 0;
+    const result = await HandleTelegramUpdate(db, update);
+    expect(result.status).toEqual(200);
+
+    // Verify the item was marked dirty
+    const dirtyShirt = await db.ClothingGet(shirt.id);
+    expect(dirtyShirt).not.toBeNull();
+    expect(dirtyShirt!.is_clean).toBe(0);
+
+    // Should have sent new outfit messages
+    expect(message_count).toBeGreaterThan(0);
+  });
+
+  it('laundry callback cleans all clothes and regenerates outfit', async () => {
+    let message_count = 0;
+    let got_outfit = false;
+    telegram.registerListener(async (x) => {
+      message_count += 1;
+      if (x.type == "POST" && x.method == "sendMessage") {
+        if ((x.data.text as string).includes("outfit suggestion")) {
+          got_outfit = true;
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("Laundry callback house"))?.id;
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Bob", house_id))?.id;
+    if (user_id == null) return;
+
+    const chat_id = 33333;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 22222)).toBe(true);
+
+    // Create clothing and make it all dirty
+    const shirt = await db.ClothingCreate("Shirt", house_id, user_id, { category: "Tops", subcategory: "Shirt" });
+    const pants = await db.ClothingCreate("Pants", house_id, user_id, { category: "Bottoms", subcategory: "Pants" });
+    const shoes = await db.ClothingCreate("Shoes", house_id, user_id, { category: "Shoes", subcategory: "Sneakers" });
+
+    if (shirt == null || pants == null || shoes == null) return;
+    await db.ClothingMarkDirty(shirt.id);
+    await db.ClothingMarkDirty(pants.id);
+    await db.ClothingMarkDirty(shoes.id);
+
+    // Create an OUTFIT_LAUNDRY callback
+    const callback = await db.TelegramCallbackCreate({
+      user_id,
+      type: "OUTFIT_LAUNDRY",
+      house_id,
+    });
+    expect(callback).not.toBeNull();
+    if (callback == null) return;
+
+    const query: TelegramCallbackQuery = {
+      id: "laundry-test",
+      message: {
+        message_id: 12345,
+        chat: { id: chat_id, type: "private" },
+        date: Math.floor(getJulianDate()),
+      },
+      from: { id: 22222, is_bot: false, first_name: "Bob" },
+      chat_instance: "test",
+      data: callback,
+    };
+    const update: TelegramUpdate = {
+      update_id: 2,
+      callback_query: query,
+    };
+
+    message_count = 0;
+    got_outfit = false;
+    const result = await HandleTelegramUpdate(db, update);
+    expect(result.status).toEqual(200);
+
+    // Verify all clothes are now clean
+    const s = await db.ClothingGet(shirt.id);
+    const p = await db.ClothingGet(pants.id);
+    const sh = await db.ClothingGet(shoes.id);
+    expect(s!.is_clean).toBe(1);
+    expect(p!.is_clean).toBe(1);
+    expect(sh!.is_clean).toBe(1);
+
+    // Should have generated a new outfit
+    expect(message_count).toBeGreaterThan(0);
+    expect(got_outfit).toBe(true);
   });
 });
