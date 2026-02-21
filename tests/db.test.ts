@@ -955,6 +955,104 @@ describe('Streak tests', () => {
     expect(result2!.streak).toBe(1);
     expect(result2!.isFirstToday).toBe(false);
   });
+
+  it('consecutive day increments streak', async () => {
+    const house_id = (await db.HouseholdCreate("Streak consec house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Eve", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user completed a chore yesterday with a streak of 3
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 1, 3, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Now UserUpdateStreak should see consecutive day and increment to 4
+    const result = await db.UserUpdateStreak(user_id);
+    expect(result).not.toBeNull();
+    expect(result!.streak).toBe(4);
+    expect(result!.isFirstToday).toBe(true);
+
+    // Verify it persisted to the DB
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(4);
+    expect(row!.last_active_date).toBe(today);
+  });
+
+  it('streak resets after a gap day', async () => {
+    const house_id = (await db.HouseholdCreate("Streak gap house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Frank", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user had a 5-day streak but last active 2 days ago (missed yesterday)
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 2, 5, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Streak should reset to 1
+    const result = await db.UserUpdateStreak(user_id);
+    expect(result).not.toBeNull();
+    expect(result!.streak).toBe(1);
+    expect(result!.isFirstToday).toBe(true);
+
+    // Verify it persisted to the DB
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(1);
+    expect(row!.last_active_date).toBe(today);
+  });
+
+  it('streak increments through ChoreComplete on consecutive day', async () => {
+    const house_id = (await db.HouseholdCreate("Streak chore consec"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Grace", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const chore = await db.ChoreCreate("vacuuming", house_id, 7, 5);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user completed a chore yesterday with a streak of 2
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 1, 2, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Complete via ChoreComplete - should increment streak to 3
+    const result = await db.ChoreComplete(chore.id, user_id);
+    expect(result.success).toBe(true);
+    expect(result.streak).toBe(3);
+    expect(result.isFirstToday).toBe(true);
+  });
 });
 
 describe('Telegram callback tests', () => {
