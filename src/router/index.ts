@@ -122,7 +122,11 @@ router.beforeEach((to, from) => {
     return true;
   }
   if (to.meta.noAuthRequired == undefined) return true;
-  if (to.meta.noAuthRequired == false) return { name: '400' };
+  if (to.meta.noAuthRequired == false) {
+    const loginError = (window as any).login_error;
+    const msg = loginError || 'AUTH_REQUIRED';
+    return { name: '400', query: { msg } };
+  }
 })
 
 export default router

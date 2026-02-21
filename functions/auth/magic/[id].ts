@@ -31,16 +31,23 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
 
     const secret = context.env.JWT_SECRET;
 
-    // Creating a more secure token?
-    const refresh_token = await jwt.sign({
-        id: magic_user.id,
-        // tokens do not expire just because why not?
-    }, secret);
-    const generic_token = await jwt.sign({
-        id: magic_user.id,
-        name: magic_user.name,
-        exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)), // Expires: Now + 12h
-    }, secret);
+    let refresh_token: string;
+    let generic_token: string;
+    try {
+        refresh_token = await jwt.sign({
+            id: magic_user.id,
+            // tokens do not expire just because why not?
+        }, secret);
+        generic_token = await jwt.sign({
+            id: magic_user.id,
+            name: magic_user.name,
+            exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)), // Expires: Now + 12h
+        }, secret);
+    } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("AUTH/MAGIC/[id]", "JWT signing failed", errorMsg, { userId: magic_user.id });
+        return ResponseRedirect(context.request, "/error?msg=LOGIN_JWT_FAILED");
+    }
 
     const redirect = '<head><meta http-equiv="Refresh" content="0; URL=/household" /></head>';
 

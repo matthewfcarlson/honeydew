@@ -9,6 +9,11 @@
         <router-link to="/" class="button is-link is-outlined">Take me home</router-link>
         <a v-if="magicKey" :href="'/auth/magic/' + magicKey" class="button is-primary is-outlined ml-2">Try magic link again</a>
     </div>
+    <details v-if="msgCode" class="mt-5">
+        <summary class="has-text-grey is-size-7">Diagnostic info</summary>
+        <pre class="has-text-grey-light is-size-7 mt-2">Error code: {{ msgCode }}
+User agent: {{ userAgent }}</pre>
+    </details>
 </div>
 </template>
 
@@ -52,6 +57,26 @@ const ERROR_MESSAGES: Record<string, { message: string; detail?: string; type: s
         detail: "The magic link is valid, but the linked account could not be found in the database. This can happen after a database migration or reset. Try signing up again or contact your household admin.",
         type: "is-warning",
     },
+    TELEGRAM_NOT_LOGGED_IN: {
+        message: "You need to be logged in to link Telegram.",
+        detail: "Open this link in a browser where you're already signed in to Honeydew, or use a magic link to sign in first.",
+        type: "is-warning",
+    },
+    AUTH_REQUIRED: {
+        message: "You need to sign in first.",
+        detail: "This page requires authentication. Sign in or use a magic link to access it.",
+        type: "is-warning",
+    },
+    AUTH_CHECK_PARSE_FAILED: {
+        message: "Your session loaded but the account data couldn't be read.",
+        detail: "This is a server-side issue. Try clearing your cookies and signing in again, or generate a new magic link.",
+        type: "is-danger",
+    },
+    LOGIN_JWT_FAILED: {
+        message: "Sign-in failed during token creation.",
+        detail: "The server was unable to create your session token. This is a server-side issue. Try again or generate a new magic link.",
+        type: "is-danger",
+    },
     UNKNOWN_ERROR: {
         message: "An unexpected error occurred.",
         detail: "Something went wrong. Try again or generate a new magic link.",
@@ -83,12 +108,15 @@ export default defineComponent({
         const errorMessage = computed(() => errorInfo.value.message);
         const errorDetail = computed(() => errorInfo.value.detail);
         const notificationClass = computed(() => errorInfo.value.type);
+        const userAgent = computed(() => navigator.userAgent);
 
         return {
             errorMessage,
             errorDetail,
             notificationClass,
             magicKey,
+            msgCode,
+            userAgent,
         };
     },
 });
