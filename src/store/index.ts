@@ -46,14 +46,25 @@ export function isTRPCClientError(
 
 function handleError(err: unknown): APIResultError {
     if (isTRPCClientError(err)) {
+        const code = err.data?.code || err.shape?.data?.code;
+        console.error(`[tRPC Error] ${code || 'UNKNOWN'}:`, err.message, err.data);
         return {
             success: false,
             message: err.message || "Error querying API",
+            code: err.shape?.data?.httpStatus,
         }
     }
+    if (err instanceof Error) {
+        console.error(`[API Error] ${err.name}:`, err.message, err.stack);
+        return {
+            success: false,
+            message: err.message || "An unexpected error occurred",
+        }
+    }
+    console.error("[API Error] Non-error thrown:", err);
     return {
         success: false,
-        message: `Unknown error ${err}`
+        message: typeof err === 'string' ? err : "An unexpected error occurred",
     }
 }
 
