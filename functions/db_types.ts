@@ -244,6 +244,7 @@ export const DbHouseholdExtendedMemberRawZ = z.object({
     color: DbUserZRaw.shape.color,
     icon: DbUserZRaw.shape.icon,
     current_chore: DbChoreZ.nullable(),
+    current_streak: DbUserZRaw.shape.current_streak,
 });
 export type DbHouseholdExtendedMemberRaw = z.infer<typeof DbHouseholdExtendedMemberRawZ>;
 export const DbHouseholdExtendedRawZ = z.object({
