@@ -14,7 +14,7 @@ export async function GiveNewTemporaryCookie(env: HoneydewPageEnv, response:Resp
      const generic_token = await jwt.sign({
         id: user.id,
         name: user.name,
-        exp: Math.floor(Date.now() / 1000) + 12, //(12 * (60 * 60)) // Expires: Now + 12h
+        exp: Math.floor(Date.now() / 1000) + (12 * (60 * 60)), // Expires: Now + 12h
     }, secret);
 
     setCookie(response, TEMP_TOKEN, generic_token, false);
