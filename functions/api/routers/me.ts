@@ -65,6 +65,7 @@ const Router = router({
       id: user.id,
       color: user.color,
       household,
+      task: null,
       outfit_reminders: user.outfit_reminders,
     };
     return AuthCheckZ.parse(result);

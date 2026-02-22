@@ -122,7 +122,7 @@ export const DbUserZRaw = z.object({
     _recoverykey: z.string().max(255),
     _chat_id: z.number().nullable(),
     last_active_date: z.number().nullable(), // Julian day number of last chore completion
-    current_streak: z.number().nonnegative(), // Current consecutive days streak
+    current_streak: z.number().nonnegative().default(0), // Current consecutive days streak
     outfit_reminders: z.number().nonnegative(), // 1 = opted in, 0 = opted out of outfit reminders
 })
 export const DbUserZ = DbUserZRaw.brand<"User">()
@@ -244,6 +244,7 @@ export const DbHouseholdExtendedMemberRawZ = z.object({
     color: DbUserZRaw.shape.color,
     icon: DbUserZRaw.shape.icon,
     current_chore: DbChoreZ.nullable(),
+    current_streak: DbUserZRaw.shape.current_streak,
 });
 export type DbHouseholdExtendedMemberRaw = z.infer<typeof DbHouseholdExtendedMemberRawZ>;
 export const DbHouseholdExtendedRawZ = z.object({
@@ -252,8 +253,8 @@ export const DbHouseholdExtendedRawZ = z.object({
     current_task: DbTaskZ.nullable(),
     current_project: DbProjectZ.nullable(),
     members: z.array(DbHouseholdExtendedMemberRawZ),
-    choreAssignHour: z.number().lt(24).nonnegative().nullable(),
-    outfitHour: z.number().lt(24).nonnegative().nullable(),
+    choreAssignHour: z.number().lt(24).nonnegative().nullable().default(null),
+    outfitHour: z.number().lt(24).nonnegative().nullable().default(null),
 });
 export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()
 export type DbHouseholdExtendedRaw = z.infer<typeof DbHouseholdExtendedRawZ>;

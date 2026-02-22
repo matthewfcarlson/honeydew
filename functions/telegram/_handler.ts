@@ -82,9 +82,9 @@ async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateC
             text: "Failed to complete the chore, try and do it from the website",
         }
     }
-    // Show streak message if this was first completion today and streak > 1
+    // Show streak message if this was first completion today and streak > 2
     let responseText = "Chore completed!";
-    if (result.isFirstToday && result.streak && result.streak > 1) {
+    if (result.isFirstToday && result.streak && result.streak > 2) {
         responseText = `Chore completed! 🔥 ${result.streak}-day streak!`;
     }
     return {

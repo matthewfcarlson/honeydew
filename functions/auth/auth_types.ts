@@ -27,7 +27,7 @@ export const AuthCheckZ = z.object({
     task: z.any(),
     color: z.string().min(7),
     icon: z.string(),
-    outfit_reminders: z.number().nonnegative(),
+    outfit_reminders: z.number().nonnegative().default(0),
 }).strict()
 export type AuthCheck = z.infer<typeof AuthCheckZ>;
 

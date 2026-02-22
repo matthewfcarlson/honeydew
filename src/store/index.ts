@@ -117,6 +117,7 @@ interface UserStoreState {
     _thinking: boolean;
     _tasks: DbTask[];
     _clothes: DbClothing[];
+    _needsUserFetch: boolean;
 }
 
 export const useUserStore = defineStore("user", {
@@ -126,6 +127,7 @@ export const useUserStore = defineStore("user", {
         let _currentTask = null;
         let _household = null;
         let _currentProject = null;
+        let _needsUserFetch = false;
         if ((window as any).user_data != undefined) {
             const raw_data = (window as any).user_data;
             const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
@@ -137,7 +139,10 @@ export const useUserStore = defineStore("user", {
                 _currentTask = user_data.data.household.current_task;
                 _currentProject = user_data.data.household.current_project;
             }
-            else console.error("Failed to parse: ", raw_data, user_data.error);
+            else {
+                console.warn("Initial user_data failed validation, will re-fetch from API:", user_data.error);
+                _needsUserFetch = true;
+            }
         }
         const state: UserStoreState = {
             _loggedIn: (window as any).logged_in || false,
@@ -153,6 +158,7 @@ export const useUserStore = defineStore("user", {
             _thinking: false,
             _tasks: [],
             _clothes: [],
+            _needsUserFetch,
         }
         return state;
     },
@@ -242,9 +248,25 @@ export const useUserStore = defineStore("user", {
             return members[0].name;
             return id;
         },
+        _hydrateUser(user: AuthCheck) {
+            this._user = user;
+            this._household = user.household;
+            const current_user_member = user.household.members.filter((x) => x.userid == user.id);
+            this._currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null;
+            this._currentTask = user.household.current_task;
+            this._currentProject = user.household.current_project;
+            this._needsUserFetch = false;
+        },
+        async initialize() {
+            if (!this._loggedIn || !this._needsUserFetch) return;
+            const result = await this.fetchUser();
+            if (!result.success) {
+                console.error("Failed to recover user data from API:", result.message);
+                this._loggedIn = false;
+            }
+        },
         async fetchUser(): APIResult<AuthCheck> {
-            // TODO: use cached information
-            if (this._user != null) return {
+            if (this._user != null && !this._needsUserFetch) return {
                 success: true,
                 data: this._user
             }
@@ -253,8 +275,8 @@ export const useUserStore = defineStore("user", {
             this._thinking = false;
             if (!result.success) return result;
             // Type assertion needed due to Zod branded types not matching across API boundary
-            this._user = result.data as AuthCheck;
-            return { success: true, data: this._user };
+            this._hydrateUser(result.data as AuthCheck);
+            return { success: true, data: this._user! };
         },
         async QueryAPI<R>(query: Query<R>): APIResult<R> {
             try {
