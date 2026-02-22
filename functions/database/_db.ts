@@ -162,6 +162,8 @@ export default class Database {
             if (cached_result != null) {
                 const cached_user = DbUserZ.safeParse(cached_result);
                 if (cached_user.success) return cached_user.data;
+                console.warn("UserGet: stale KV cache for", id, "- invalidating");
+                await this.deleteKey(id);
             }
             const raw = await this._db.selectFrom("users").selectAll().where("id", "==", id).executeTakeFirstOrThrow();
             const results = DbUserZ.safeParse(raw);
@@ -433,6 +435,8 @@ export default class Database {
         if (raw_cache != null) {
             const cached_household = DbHouseholdZ.safeParse(raw_cache);
             if (cached_household.success) return cached_household.data;
+            console.warn("HouseholdGet: stale KV cache for", id, "- invalidating");
+            await this.deleteKey(id);
         }
         const sql_data = await this._db.selectFrom("households").selectAll().where("id", "==", id).executeTakeFirst();
         // TODO use a join to get what I want from the DB?
@@ -1870,6 +1874,8 @@ export default class Database {
             if (raw_cache != null) {
                 const raw_results = DbHouseholdExtendedZ.safeParse(raw_cache);
                 if (raw_results.success) return raw_results.data;
+                console.warn("HouseholdGetExtended: stale KV cache for", cache_key, "- invalidating");
+                await this.deleteKey(cache_key);
             }
             const sql_household = await this._db.selectFrom("households").select("name").where("id", "==", id).executeTakeFirstOrThrow();
             // next we need to query the database
