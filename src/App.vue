@@ -9,11 +9,15 @@
 import { defineComponent } from 'vue';
 import FooterComponent from '@/components/FooterComponent.vue'; // @ is an alias to /src
 import HeaderComponent from './components/HeaderComponent.vue';
+import { useUserStore } from '@/store';
 export default defineComponent({
   name: 'App',
   components: {
     HeaderComponent,
     FooterComponent,
+  },
+  mounted() {
+    useUserStore().initialize();
   },
 });
 </script>
