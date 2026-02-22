@@ -122,7 +122,7 @@ export const DbUserZRaw = z.object({
     _recoverykey: z.string().max(255),
     _chat_id: z.number().nullable(),
     last_active_date: z.number().nullable(), // Julian day number of last chore completion
-    current_streak: z.number().nonnegative(), // Current consecutive days streak
+    current_streak: z.number().nonnegative().default(0), // Current consecutive days streak
     outfit_reminders: z.number().nonnegative(), // 1 = opted in, 0 = opted out of outfit reminders
 })
 export const DbUserZ = DbUserZRaw.brand<"User">()
