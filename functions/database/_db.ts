@@ -712,6 +712,12 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns households that are due for chore/task assignment at the given hour.
+     * "Ready" means: choreAssignHour matches AND choreLastAssignTime is old enough
+     * (default: more than ~12h ago). After assignment, call HouseAutoAssignMarkComplete
+     * to advance choreLastAssignTime and prevent re-processing.
+     */
     async HouseAutoAssignGetHousesReadyForGivenHour(hour: number, timestamp: number | null = null): Promise<HouseId[]> {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
@@ -729,6 +735,12 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns all users in households that are due for chore assignment at the
+     * given hour. Same dedup logic as HouseAutoAssignGetHousesReadyForGivenHour:
+     * choreAssignHour == hour AND choreLastAssignTime < timestamp (default now - 0.5).
+     * Used by TriggerChores Step 1 to find users who need a new chore assigned.
+     */
     async HouseAutoAssignGetUsersReadyForGivenHour(hour: number, timestamp: number | null = null) {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
@@ -765,6 +777,65 @@ export default class Database {
         }
     }
 
+    /**
+     * Returns all users in households whose choreAssignHour matches AND whose
+     * choreLastAssignTime is recent (default: within the last ~18h). This is the
+     * inverse of HouseAutoAssignGetUsersReadyForGivenHour — it finds households
+     * that WERE processed recently rather than those that NEED processing.
+     *
+     * Used by TriggerChores Step 3 to find reminder candidates: if the current
+     * hour is H, we query for choreAssignHour == (H+12)%24 to find users whose
+     * chores were assigned 12 hours ago. The recency check ensures we don't send
+     * reminders for stale assignments from previous days.
+     */
+    async HouseAutoAssignGetUsersRecentlyAssigned(hour: number, timestamp: number | null = null) {
+        try {
+            if (timestamp == null) timestamp = (getJulianDate() - 0.75);
+            const assignment_query = this._db.selectFrom("houseautoassign").where("choreAssignHour", "==", hour).where("choreLastAssignTime", ">", timestamp);
+            const joined_query = assignment_query.innerJoin("users", "users.household", "houseautoassign.house_id").select(["users._chat_id", "users.id", "houseautoassign.house_id as house_id"]);
+            const raw_results = await joined_query.execute();
+            if (raw_results == undefined) return [];
+            interface JoinedResults {
+                chat_id: number | null,
+                house_id: HouseId,
+                user_id: UserId,
+            }
+            const results = raw_results
+                .map((x) => {
+                    return {
+                        chat_id: x._chat_id,
+                        house_id: HouseIdZ.safeParse(x.house_id),
+                        user_id: UserIdZ.safeParse(x.id)
+                    }
+                })
+                .map((x) => {
+                    return {
+                        chat_id: x.chat_id,
+                        house_id: (x.house_id.success) ? x.house_id.data : null,
+                        user_id: (x.user_id.success) ? x.user_id.data : null,
+                    }
+                })
+                .filter((x): x is JoinedResults => x.house_id != null && x.user_id != null)
+            return results;
+        }
+        catch (err) {
+            console.error("HouseAutoAssignGetUsersRecentlyAssigned", err);
+            return [];
+        }
+    }
+
+    /**
+     * Marks a household as having been processed for chore/task assignment by
+     * advancing choreLastAssignTime to (now + 0.02 Julian days ≈ 30 minutes).
+     *
+     * This timestamp serves dual purposes:
+     * - Prevents re-assignment: HouseAutoAssignGetUsersReadyForGivenHour checks
+     *   choreLastAssignTime < (now - 0.5), so after marking complete the household
+     *   won't be eligible again for ~12+ hours.
+     * - Enables reminders: HouseAutoAssignGetUsersRecentlyAssigned checks
+     *   choreLastAssignTime > (now - 0.75), so the household will be found for
+     *   reminder purposes for ~18 hours after assignment.
+     */
     async HouseAutoAssignMarkComplete(id: HouseId, timestamp: number | null = null): Promise<boolean> {
         try {
             if (timestamp == null) timestamp = getJulianDate() + 0.02 // ahead about 30 minutes;

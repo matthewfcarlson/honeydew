@@ -337,4 +337,35 @@ describe('Trigger tests', () => {
       await TriggerChores(db, i);
     }
   });
+  it('no reminder when chores were not recently assigned', async () => {
+    let message_count = 0;
+    telegram.registerListener(async (x) => {
+      message_count += 1;
+      return generateTelegramResponse(null);
+    });
+    // register a user and household
+    const house_id = (await db.HouseholdCreate("Stale house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+    expect(await db.HouseAutoAssignSetTime(house_id, 5)).toBe(true);
+
+    const user_id = (await db.UserCreate("Alice", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const chat_id = 9999999;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 8888888)).toBe(true);
+
+    const chore = await db.ChoreCreate("Old chore", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    // Simulate assignment happening long ago by setting choreLastAssignTime far in the past
+    await db.HouseAutoAssignMarkComplete(house_id, getJulianDate() - 2);
+
+    // At the reminder hour (17), the household should NOT get a reminder
+    // because choreLastAssignTime is too old (> 0.75 days ago)
+    const result = await TriggerChores(db, 17);
+    expect(message_count).toBe(0);
+  });
 });
