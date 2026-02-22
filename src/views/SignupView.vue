@@ -35,6 +35,9 @@
                   <a disabled v-if="thinking" class="button is-primary">
                     Thinking
                   </a>
+                  <a v-else-if="!turnstile_ready" class="button is-primary" disabled>
+                    Waiting for CAPTCHA...
+                  </a>
                   <a v-else @click="press_signup" class="button is-primary">
                     Create
                   </a>
@@ -45,7 +48,9 @@
           </div>
           <cfturnstile
             :sitekey="turnstile_sitekey"
-            @verify="turnstile_verify"
+            @callback="turnstile_verify"
+            @error-callback="turnstile_error"
+            @expired-callback="turnstile_expire"
           />
         </form>
         <div v-if="invite_data.length == 0">
@@ -85,6 +90,7 @@ export default defineComponent({
       recovery_code: "",
       turnstile_sitekey: "0x4AAAAAAABtOYbnvjMckFhC",
       turnstile_response: '',
+      turnstile_ready: false,
     }
 
   },
@@ -95,6 +101,17 @@ export default defineComponent({
     ...mapActions(useUserStore, ["signUp"]),
     turnstile_verify: function (token:string) {
       this.turnstile_response = token;
+      this.turnstile_ready = true;
+    },
+    turnstile_error: function () {
+      this.turnstile_response = '';
+      this.turnstile_ready = false;
+      this.error = "CAPTCHA verification failed. Please try refreshing the page.";
+    },
+    turnstile_expire: function () {
+      this.turnstile_response = '';
+      this.turnstile_ready = false;
+      this.error = "CAPTCHA expired. Please complete it again.";
     },
     copyRecoveryCode: async function () {
       try {
@@ -107,6 +124,10 @@ export default defineComponent({
     press_signup: async function () {
       if (this.$refs["signup-form"] == undefined) {
         this.error="Unable to find form";
+        return;
+      }
+      if (!this.turnstile_response) {
+        this.error = "Please complete the CAPTCHA before signing up.";
         return;
       }
       this.error = "";
