@@ -39,6 +39,7 @@
             <select v-model="filterClean">
               <option value="">All Status</option>
               <option value="clean">Clean</option>
+              <option value="used">Used</option>
               <option value="needs-wash">Needs Wash</option>
             </select>
           </div>
@@ -66,8 +67,8 @@
                 <span class="tag is-light" :title="'Heat index: ' + item.heat_index">
                   {{ heatLabel(item.heat_index) }}
                 </span>
-                <span class="tag" :class="needsWash(item) ? 'is-warning' : 'is-success'">
-                  {{ needsWash(item) ? 'Needs Wash' : 'Clean' }}
+                <span class="tag" :class="statusClass(item)">
+                  {{ statusLabel(item) }}
                 </span>
               </div>
               <div class="tags" v-if="item.tags">
@@ -229,10 +230,8 @@ export default defineComponent({
       if (this.filterCategory) {
         items = items.filter((c: any) => c.category === this.filterCategory);
       }
-      if (this.filterClean === 'clean') {
-        items = items.filter((c: any) => !this.needsWash(c));
-      } else if (this.filterClean === 'needs-wash') {
-        items = items.filter((c: any) => this.needsWash(c));
+      if (this.filterClean) {
+        items = items.filter((c: any) => this.wearStatus(c) === this.filterClean);
       }
       if (this.searchQuery.trim()) {
         const q = this.searchQuery.toLowerCase();
@@ -258,9 +257,23 @@ export default defineComponent({
     heatLabel(index: number): string {
       return HEAT_LABELS[index] || 'Unknown';
     },
-    needsWash(item: any): boolean {
-      if (item.wash_threshold === null) return false;
-      return item.wears_since_wash >= item.wash_threshold;
+    wearStatus(item: any): string {
+      if (item.wears_since_wash === 0) return 'clean';
+      if (item.wash_threshold === null) return 'used';
+      if (item.wears_since_wash >= item.wash_threshold) return 'needs-wash';
+      return 'used';
+    },
+    statusLabel(item: any): string {
+      const s = this.wearStatus(item);
+      if (s === 'clean') return 'Clean';
+      if (s === 'needs-wash') return 'Needs Wash';
+      return 'Used';
+    },
+    statusClass(item: any): string {
+      const s = this.wearStatus(item);
+      if (s === 'clean') return 'is-success';
+      if (s === 'needs-wash') return 'is-warning';
+      return 'is-info';
     },
     onCategoryChange() {
       const defaults = CATEGORY_WASH_DEFAULTS[this.newItem.category];
