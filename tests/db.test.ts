@@ -1156,34 +1156,6 @@ describe('Clothing tests', () => {
     expect(updated.wears_since_wash).toBe(3);
   });
 
-  it('mark_clean resets wears_since_wash but not wear_count', async () => {
-    const house_id = (await db.HouseholdCreate("Clean house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
-
-    const user_id = (await db.UserCreate("Eve", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
-
-    const item = await db.ClothingCreate("T-Shirt", house_id, user_id, { category: 'top' });
-    expect(item).not.toBeNull();
-    if (item == null) return;
-
-    // Wear it twice
-    await db.ClothingMarkWorn(item.id);
-    await db.ClothingMarkWorn(item.id);
-
-    // Wash it
-    await db.ClothingMarkClean(item.id);
-
-    const updated = await db.ClothingGet(item.id);
-    expect(updated).not.toBeNull();
-    if (updated == null) return;
-
-    expect(updated.wear_count).toBe(2); // total preserved
-    expect(updated.wears_since_wash).toBe(0); // reset
-  });
-
   it('heat_index is stored correctly', async () => {
     const house_id = (await db.HouseholdCreate("Heat house"))?.id;
     expect(house_id).not.toBeNull();
@@ -1274,29 +1246,6 @@ describe('Clothing tests', () => {
     expect(afterDelete?.has_photo).toBe(0);
   });
 
-  it('bulk create works with new schema', async () => {
-    const house_id = (await db.HouseholdCreate("Bulk house"))?.id;
-    expect(house_id).not.toBeNull();
-    if (house_id == null) return;
-
-    const user_id = (await db.UserCreate("Jack", house_id))?.id;
-    expect(user_id).not.toBeNull();
-    if (user_id == null) return;
-
-    const items = await db.ClothingBulkCreate([
-      { name: "Tee", category: 'top', color: "white" },
-      { name: "Shorts", category: 'bottom', color: "khaki" },
-      { name: "Watch", category: 'accessory' },
-    ], house_id, user_id);
-
-    expect(items.length).toBe(3);
-    expect(items[0].category).toBe('top');
-    expect(items[0].wash_threshold).toBe(1);
-    expect(items[1].category).toBe('bottom');
-    expect(items[1].wash_threshold).toBe(3);
-    expect(items[2].category).toBe('accessory');
-    expect(items[2].wash_threshold).toBeNull();
-  });
 });
 
 describe('Telegram callback tests', () => {

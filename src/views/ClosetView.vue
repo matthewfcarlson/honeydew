@@ -62,7 +62,6 @@
           </div>
           <footer class="card-footer">
             <a class="card-footer-item" @click="mark_worn(item.id)">Wear</a>
-            <a class="card-footer-item" v-if="item.wears_since_wash > 0" @click="mark_clean(item.id)">Wash</a>
             <a class="card-footer-item has-text-danger" @click="delete_item(item.id)">Delete</a>
           </footer>
         </div>
@@ -73,7 +72,7 @@
       No items match your filters.
     </div>
     <div class="box" v-if="clothes.length === 0">
-      Your closet is empty. Add items manually or import from Indyx below.
+      Your closet is empty. Add items below to get started.
     </div>
 
     <hr />
@@ -140,20 +139,6 @@
       </div>
     </article>
 
-    <!-- Import from Indyx -->
-    <article class="panel is-info">
-      <p class="panel-heading">Import from Indyx</p>
-      <div class="panel-block">
-        <div class="field" style="width:100%">
-          <p class="mb-3">Paste your Indyx CSV export data below. You can request a CSV export from Indyx by contacting their support.</p>
-          <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="6" :disabled="thinking"></textarea>
-          <button class="button is-info mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
-            <span v-if="thinking">Importing...</span>
-            <span v-else>Import from Indyx</span>
-          </button>
-        </div>
-      </div>
-    </article>
   </div>
 </template>
 
@@ -192,7 +177,6 @@ export default defineComponent({
       filterCategory: "",
       filterClean: "",
       searchQuery: "",
-      csvContent: "",
       categoryOptions: ['top', 'bottom', 'outerwear', 'shoes', 'socks', 'accessory'] as string[],
       newItem: {
         name: "",
@@ -275,28 +259,6 @@ export default defineComponent({
       this.error = "";
       const status = await useUserStore().ClothesMarkWorn(id);
       if (status.success == false) {
-        this.error = status.message;
-      }
-    },
-    mark_clean: async function (id: string) {
-      this.error = "";
-      const status = await useUserStore().ClothesMarkClean(id);
-      if (status.success == false) {
-        this.error = status.message;
-      }
-    },
-    import_indyx: async function () {
-      this.error = "";
-      this.successMsg = "";
-      if (!this.csvContent.trim()) {
-        this.error = "Please paste CSV content first";
-        return;
-      }
-      const status = await useUserStore().ClothesImportIndyx(this.csvContent);
-      if (status.success) {
-        this.successMsg = `Imported ${status.data.imported} of ${status.data.total} items from Indyx`;
-        this.csvContent = "";
-      } else {
         this.error = status.message;
       }
     },

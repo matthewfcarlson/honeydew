@@ -2,7 +2,6 @@ import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { ClothingIdZ, ClothingCategoryZ, CATEGORY_WASH_DEFAULTS, ClothingCategory } from '../../db_types';
-import { parseIndyxCSV } from '../../_clothing/indyx';
 
 const Router = router({
   all: protectedProcedure.query(async (ctx) => {
@@ -69,14 +68,6 @@ const Router = router({
     return await db.ClothingMarkWorn(ctx.input);
   }),
 
-  mark_clean: protectedProcedure.input(ClothingIdZ).query(async (ctx) => {
-    if (ctx.ctx.data.user == null) {
-      throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
-    }
-    const db = ctx.ctx.data.db;
-    return await db.ClothingMarkClean(ctx.input);
-  }),
-
   upload_photo: protectedProcedure.input(z.object({
     id: ClothingIdZ,
     photo: z.string().min(1), // base64-encoded WebP image data
@@ -112,25 +103,6 @@ const Router = router({
     return btoa(binary);
   }),
 
-  import_indyx: protectedProcedure.input(z.string().min(1)).query(async (ctx) => {
-    if (ctx.ctx.data.user == null) {
-      throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
-    }
-    const user = ctx.ctx.data.user;
-    const db = ctx.ctx.data.db;
-    const csvContent = ctx.input;
-
-    const items = parseIndyxCSV(csvContent);
-    if (items.length === 0) {
-      throw new TRPCError({ code: "BAD_REQUEST", cause: "No valid clothing items found in CSV" });
-    }
-
-    const created = await db.ClothingBulkCreate(items, user.household, user.id);
-    return {
-      imported: created.length,
-      total: items.length,
-    };
-  }),
 });
 
 export default Router;

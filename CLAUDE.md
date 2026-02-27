@@ -137,9 +137,6 @@ functions/
       ctfb.ts                # Site-specific: Central Texas Food Bank
       debug.ts               # Dev-only debug scraper
 
-  _clothing/
-    indyx.ts                 # Indyx CSV import parser
-
   telegram/
     webhook.ts               # POST webhook handler with secret validation
     _handler.ts              # Message/callback dispatch (URL -> recipe, button -> chore complete)
@@ -168,7 +165,7 @@ Six sub-routers merged into `appRouter`:
 | `chores` | `all`, `next`, `another`, `complete`, `delete`, `add`, `assignTo` | Protected |
 | `recipes` | `favorites`, `toTry`, `mark_favored`, `mark_meal_prep`, `remove`, `add`, `meal_plan`, `create_meal_plan` | Protected |
 | `projects` | `get_projects`, `add`, `add_task`, `delete_task`, `complete_task`, `get_tasks`, `delete` | Protected |
-| `clothes` | `all`, `get`, `add`, `delete`, `mark_worn`, `mark_clean`, `mark_dirty`, `import_indyx` | Protected |
+| `clothes` | `all`, `get`, `add`, `delete`, `mark_worn`, `upload_photo`, `get_photo` | Protected |
 
 #### Authentication Flow
 

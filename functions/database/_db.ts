@@ -1895,18 +1895,6 @@ export default class Database {
         }
     }
 
-    async ClothingMarkClean(id: ClothingId): Promise<boolean> {
-        try {
-            if (await this.ClothingExists(id) == false) return false;
-            await this._db.updateTable("clothes").where("id", "==", id).set({ wears_since_wash: 0 }).execute();
-            return true;
-        }
-        catch (err) {
-            console.error("ClothingMarkClean", err);
-            return false;
-        }
-    }
-
     async ClothingSetPhoto(id: ClothingId, photoData: ArrayBuffer): Promise<boolean> {
         try {
             if (await this.ClothingExists(id) == false) return false;
@@ -1944,34 +1932,6 @@ export default class Database {
             console.error("ClothingDeletePhoto", err);
             return false;
         }
-    }
-
-    async ClothingBulkCreate(
-        items: Array<{
-            name: string,
-            category?: ClothingCategory,
-            brand?: string,
-            color?: string,
-            image_url?: string,
-            tags?: string,
-            heat_index?: number,
-            wear_count?: number,
-            wash_threshold?: number | null,
-        }>,
-        household_id: HouseId,
-        added_by: UserId
-    ): Promise<DbClothing[]> {
-        const results: DbClothing[] = [];
-        for (const item of items) {
-            const clothing = await this.ClothingCreate(
-                item.name,
-                household_id,
-                added_by,
-                item
-            );
-            if (clothing != null) results.push(clothing);
-        }
-        return results;
     }
 
     async HouseholdGetExtended(house_id: HouseId): Promise<DbHouseholdExtended | null> {
