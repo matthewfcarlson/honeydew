@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ, ClothingCategory, ClothingCategoryZ, CATEGORY_WASH_DEFAULTS, ClothingPhotoKVKey, ClothingPhotoKVKeyZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -854,8 +854,9 @@ export default class Database {
             const query_base = this._db.selectFrom("tasks as main").where("main.household", "==", id).where("main.completed", "is", null)
                 .leftJoin("tasks as req1", "main.requirement1", "req1.id")
                 .leftJoin("tasks as req2", "main.requirement2", "req2.id")
-                .leftJoin("projects", "main.project", "projects.id") // get the last time a task was completed on this project
+                .leftJoin("projects", "main.project", "projects.id")
                 .select("main.id").select("main.description")
+                .select("main.project as project_id")
                 .select("projects.description as project_name")
                 .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
                 .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
@@ -866,7 +867,22 @@ export default class Database {
                 return true;
             })
             if (filtered_results.length == 0) return false;
-            const selected_task = filtered_results[0];
+
+            // Group eligible tasks by project so we can rotate across projects daily
+            const projectGroups = new Map<string | null, typeof filtered_results>();
+            for (const task of filtered_results) {
+                const key = task.project_id;
+                if (!projectGroups.has(key)) projectGroups.set(key, []);
+                projectGroups.get(key)!.push(task);
+            }
+            const projectKeys = Array.from(projectGroups.keys());
+
+            // Use the Julian day number as a daily seed to rotate through projects
+            const today = Math.floor(getJulianDate());
+            const projectIndex = today % projectKeys.length;
+            const selectedProjectKey = projectKeys[projectIndex];
+            const projectTasks = projectGroups.get(selectedProjectKey)!;
+            const selected_task = projectTasks[0];
             // Now we message the household that we've assigned a task
             const message = `Today's household project is *${selected_task.description}* as part of _${selected_task.project_name || "a project"}_`;
             const promises = [
@@ -1783,32 +1799,38 @@ export default class Database {
         household_id: HouseId,
         added_by: UserId,
         opts: {
-            category?: string,
-            subcategory?: string,
+            category?: ClothingCategory,
             brand?: string,
             color?: string,
-            size?: string,
             image_url?: string,
             tags?: string,
+            heat_index?: number,
             wear_count?: number,
+            wash_threshold?: number | null,
         } = {}
     ): Promise<DbClothing | null> {
         try {
             const id = await this.ClothingGenerateUUID();
             if (id == null) return null;
+            const category = opts.category || 'top';
+            // If wash_threshold not explicitly set, use category default
+            const wash_threshold = opts.wash_threshold !== undefined
+                ? opts.wash_threshold
+                : CATEGORY_WASH_DEFAULTS[category];
             const clothing_raw: DbClothingRaw = {
                 id,
                 household_id,
                 name,
-                category: opts.category || '',
-                subcategory: opts.subcategory || '',
+                category,
                 brand: opts.brand || '',
                 color: opts.color || '',
-                size: opts.size || '',
                 image_url: opts.image_url || '',
                 tags: opts.tags || '',
+                heat_index: opts.heat_index ?? 0,
                 wear_count: opts.wear_count || 0,
-                is_clean: 1,
+                wears_since_wash: 0,
+                wash_threshold,
+                has_photo: 0,
                 added_by,
                 created_at: getJulianDate(),
             };
@@ -1854,6 +1876,11 @@ export default class Database {
     async ClothingDelete(id: ClothingId): Promise<boolean> {
         try {
             const clothing_id = ClothingIdZ.parse(id);
+            // Clean up photo from KV if it exists
+            const photo_key = ClothingPhotoKVKeyZ.safeParse("CP:" + clothing_id);
+            if (photo_key.success) {
+                await this._kv.delete(photo_key.data);
+            }
             const result = await this._db.deleteFrom("clothes").where("id", "==", clothing_id).executeTakeFirstOrThrow();
             return result.numDeletedRows > 0;
         }
@@ -1869,7 +1896,7 @@ export default class Database {
             if (clothing == null) return false;
             await this._db.updateTable("clothes").where("id", "==", id).set({
                 wear_count: clothing.wear_count + 1,
-                is_clean: 0,
+                wears_since_wash: clothing.wears_since_wash + 1,
             }).execute();
             return true;
         }
@@ -1879,56 +1906,43 @@ export default class Database {
         }
     }
 
-    async ClothingMarkClean(id: ClothingId): Promise<boolean> {
+    async ClothingSetPhoto(id: ClothingId, photoData: ArrayBuffer): Promise<boolean> {
         try {
             if (await this.ClothingExists(id) == false) return false;
-            await this._db.updateTable("clothes").where("id", "==", id).set({ is_clean: 1 }).execute();
+            const kv_key = ClothingPhotoKVKeyZ.parse("CP:" + id);
+            await this._kv.put(kv_key, photoData);
+            await this._db.updateTable("clothes").where("id", "==", id).set({ has_photo: 1 }).execute();
             return true;
         }
         catch (err) {
-            console.error("ClothingMarkClean", err);
+            console.error("ClothingSetPhoto", err);
             return false;
         }
     }
 
-    async ClothingMarkDirty(id: ClothingId): Promise<boolean> {
+    async ClothingGetPhoto(id: ClothingId): Promise<ArrayBuffer | null> {
         try {
-            if (await this.ClothingExists(id) == false) return false;
-            await this._db.updateTable("clothes").where("id", "==", id).set({ is_clean: 0 }).execute();
-            return true;
+            const kv_key = ClothingPhotoKVKeyZ.parse("CP:" + id);
+            const result = await this._kv.get(kv_key, { type: 'arrayBuffer' });
+            return result;
         }
         catch (err) {
-            console.error("ClothingMarkDirty", err);
-            return false;
+            console.error("ClothingGetPhoto", err);
+            return null;
         }
     }
 
-    async ClothingBulkCreate(
-        items: Array<{
-            name: string,
-            category?: string,
-            subcategory?: string,
-            brand?: string,
-            color?: string,
-            size?: string,
-            image_url?: string,
-            tags?: string,
-            wear_count?: number,
-        }>,
-        household_id: HouseId,
-        added_by: UserId
-    ): Promise<DbClothing[]> {
-        const results: DbClothing[] = [];
-        for (const item of items) {
-            const clothing = await this.ClothingCreate(
-                item.name,
-                household_id,
-                added_by,
-                item
-            );
-            if (clothing != null) results.push(clothing);
+    async ClothingDeletePhoto(id: ClothingId): Promise<boolean> {
+        try {
+            const kv_key = ClothingPhotoKVKeyZ.parse("CP:" + id);
+            await this._kv.delete(kv_key);
+            await this._db.updateTable("clothes").where("id", "==", id).set({ has_photo: 0 }).execute();
+            return true;
         }
-        return results;
+        catch (err) {
+            console.error("ClothingDeletePhoto", err);
+            return false;
+        }
     }
 
     async HouseholdGetExtended(house_id: HouseId): Promise<DbHouseholdExtended | null> {
