@@ -859,8 +859,9 @@ export default class Database {
             const query_base = this._db.selectFrom("tasks as main").where("main.household", "==", id).where("main.completed", "is", null)
                 .leftJoin("tasks as req1", "main.requirement1", "req1.id")
                 .leftJoin("tasks as req2", "main.requirement2", "req2.id")
-                .leftJoin("projects", "main.project", "projects.id") // get the last time a task was completed on this project
+                .leftJoin("projects", "main.project", "projects.id")
                 .select("main.id").select("main.description")
+                .select("main.project as project_id")
                 .select("projects.description as project_name")
                 .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
                 .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
@@ -871,7 +872,22 @@ export default class Database {
                 return true;
             })
             if (filtered_results.length == 0) return false;
-            const selected_task = filtered_results[0];
+
+            // Group eligible tasks by project so we can rotate across projects daily
+            const projectGroups = new Map<string | null, typeof filtered_results>();
+            for (const task of filtered_results) {
+                const key = task.project_id;
+                if (!projectGroups.has(key)) projectGroups.set(key, []);
+                projectGroups.get(key)!.push(task);
+            }
+            const projectKeys = Array.from(projectGroups.keys());
+
+            // Use the Julian day number as a daily seed to rotate through projects
+            const today = Math.floor(getJulianDate());
+            const projectIndex = today % projectKeys.length;
+            const selectedProjectKey = projectKeys[projectIndex];
+            const projectTasks = projectGroups.get(selectedProjectKey)!;
+            const selected_task = projectTasks[0];
             // Now we message the household that we've assigned a task
             const message = `Today's household project is *${selected_task.description}* as part of _${selected_task.project_name || "a project"}_`;
             const promises = [
