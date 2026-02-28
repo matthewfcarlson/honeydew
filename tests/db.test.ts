@@ -619,6 +619,45 @@ describe('Task tests', () => {
     expect(selected_task.id).toBe(task.id);
   });
 
+  it('rotates task selection across projects by day', async () => {
+    // Arrange - create a household with tasks across multiple projects
+    const house_id = (await db.HouseholdCreate("Rotation house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Alice", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    // Create several projects each with an eligible task
+    const projectNames = ["Kitchen Reno", "Garage Cleanup", "Garden Work"];
+    const projectIds: string[] = [];
+    const taskIds: string[] = [];
+    for (const name of projectNames) {
+      const project = await db.ProjectCreate(name, house_id);
+      expect(project).not.toBeNull();
+      if (project == null) return;
+      projectIds.push(project.id);
+      const task = await db.TaskCreate(`Do ${name}`, user_id, house_id, project.id);
+      expect(task).not.toBeNull();
+      if (task == null) return;
+      taskIds.push(task.id);
+    }
+
+    // Act - assign a task
+    expect(await db.TaskAutoAssignNextTask(house_id)).toBe(true);
+    const selected_task = await db.TaskAutoAssignGet(house_id);
+    expect(selected_task).not.toBeNull();
+    if (selected_task == null) return;
+
+    // Assert - the selected task should belong to the project picked by
+    // today's Julian day modulo the number of projects
+    const today = Math.floor(getJulianDate());
+    const expectedIndex = today % projectNames.length;
+    expect(selected_task.id).toBe(taskIds[expectedIndex]);
+    expect(selected_task.project).toBe(projectIds[expectedIndex]);
+  });
+
   it('UUIDs should be unique', async () => {
     // Arrange
     const uuids: string[] = [];
