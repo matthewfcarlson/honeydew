@@ -79,6 +79,49 @@ export const ResponseJsonMethodNotAllowed = (): Response => {
   }), { status: 405 });
 };
 
+export const ResponseJsonTooManyRequests = (): Response => {
+  return new Response(JSON.stringify({
+    message: "Too Many Requests"
+  }), { status: 429, headers: { "Retry-After": "60" } });
+};
+
+/**
+ * KV-based rate limiter. Returns true if the request should be allowed, false if rate-limited.
+ * Uses a sliding window counter stored in KV with a TTL.
+ * @param kv - KV namespace
+ * @param key - Unique key for this rate limit bucket (e.g., "rl:signup:<ip>")
+ * @param maxRequests - Maximum requests allowed in the window
+ * @param windowSeconds - Window duration in seconds
+ */
+export async function checkRateLimit(kv: KVNamespace, key: string, maxRequests: number, windowSeconds: number): Promise<boolean> {
+  const now = Math.floor(Date.now() / 1000);
+  const raw = await kv.get(key);
+  let data: { count: number; start: number } | null = null;
+
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = null;
+    }
+  }
+
+  if (data == null || now - data.start >= windowSeconds) {
+    // Start a new window
+    await kv.put(key, JSON.stringify({ count: 1, start: now }), { expirationTtl: windowSeconds });
+    return true;
+  }
+
+  if (data.count >= maxRequests) {
+    return false;
+  }
+
+  data.count++;
+  const remainingTtl = windowSeconds - (now - data.start);
+  await kv.put(key, JSON.stringify(data), { expirationTtl: remainingTtl > 0 ? remainingTtl : 1 });
+  return true;
+}
+
 export const ResponseJsonOk = (): Response => {
   return new Response(JSON.stringify({
     message: "ok"
@@ -116,7 +159,7 @@ export async function readRequestBody(request: Request) {
 
 export function setCookie(response: Response, key: string, value: string, http_only: boolean = true, expires: string = "Fri, 31 Dec 9999 23:59:59 GMT") {
   const http = (http_only) ? "HttpOnly;" : "";
-  const newCookie = `${key}=${value}; SameSite=Strict;Path=/;${http};expires=${expires};`
+  const newCookie = `${key}=${value}; SameSite=Strict;Secure;Path=/;${http}expires=${expires};`
   response.headers.append("Set-Cookie", newCookie);
 }
 export function deleteCookie(response: Response, key: string) {

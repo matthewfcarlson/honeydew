@@ -91,7 +91,13 @@ const Router = router({
         cause: "Invalid Chore ID"
       })
     }
-    // TODO: check if this chore belongs to this household
+    const chore = await db.ChoreGet(chore_id.data);
+    if (chore == null || chore.household_id != user.household) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "Chore was not found"
+      })
+    }
     const result = await db.ChoreComplete(chore_id.data, user.id);
     return {
       success: result.success,
@@ -122,7 +128,13 @@ const Router = router({
         cause: "Invalid Chore ID"
       })
     }
-    // TODO: check if this chore belongs to this household
+    const chore = await db.ChoreGet(chore_id.data);
+    if (chore == null || chore.household_id != user.household) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "Chore was not found"
+      })
+    }
     return await db.ChoreDelete(chore_id.data);
   }),
   add: protectedProcedure.input(z.object({

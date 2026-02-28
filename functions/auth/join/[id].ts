@@ -1,7 +1,7 @@
 import { HouseKeyKVKeyZ, UserId } from "../../db_types";
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
-import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseRedirect } from "../../_utils";
+import { ArrayBufferToHexString, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonMissingData, ResponseJsonNotFound, ResponseJsonTooManyRequests, ResponseRedirect, checkRateLimit } from "../../_utils";
 
 export interface ApiHousehold {
     name:string;
@@ -57,6 +57,11 @@ export async function VerifyHouseKeyCode(id:string, db:Database, secret_key:stri
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
     if (id == null || id == undefined) return ResponseJsonMissingData();
+    const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+    const allowed = await checkRateLimit(context.env.HONEYDEW, `rl:join:${ip}`, 10, 300);
+    if (!allowed) {
+        return ResponseJsonTooManyRequests();
+    }
     if (context.data.userid == null) {
         return ResponseRedirect(context.request, "/signup?k="+id)
     }

@@ -1,6 +1,6 @@
 
 import jwt from '@tsndr/cloudflare-worker-jwt'
-import { readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, setCookie } from "../_utils";
+import { readRequestBody, ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonDebugOnly, ResponseJsonMissingData, ResponseJsonNotImplementedYet, ResponseJsonTooManyRequests, setCookie, checkRateLimit } from "../_utils";
 
 import { HoneydewPageEnv, HoneydewPagesFunction } from '../types';
 import Database from '../database/_db';
@@ -29,6 +29,12 @@ export const onRequestPost: HoneydewPagesFunction = async function (context) {
         next, // used for middleware or to fetch assets
         data, // arbitrary space for passing data between middlewares
     } = context;
+
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const allowed = await checkRateLimit(env.HONEYDEW, `rl:signup:${ip}`, 5, 300);
+    if (!allowed) {
+        return ResponseJsonTooManyRequests();
+    }
 
     const body = await readRequestBody(request) as any;
 

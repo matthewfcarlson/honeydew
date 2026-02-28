@@ -62,21 +62,30 @@ const Router = router({
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
     const task_id = ctx.input;
-    // TODO: get the task/project and make sure the user can do this
+    const task = await db.TaskGet(task_id);
+    if (task == null || task.household != user.household) {
+      throw new TRPCError({ code: "NOT_FOUND", cause: "Task was not found" });
+    }
     return await db.TaskDelete(task_id);
   }),
   complete_task: protectedProcedure.input(TaskIdZ).query(async (ctx): Promise<boolean> => {
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
     const task_id = ctx.input;
-    // TODO: get the task/project and make sure the user can do this
+    const task = await db.TaskGet(task_id);
+    if (task == null || task.household != user.household) {
+      throw new TRPCError({ code: "NOT_FOUND", cause: "Task was not found" });
+    }
     return await db.TaskMarkComplete(task_id, user.id);
   }),
   get_tasks: protectedProcedure.input(ProjectIdZ).query(async (ctx): Promise<DbTask[]> => {
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
     const project_id = ctx.input;
-    // TODO: get the project and make sure the user can do this
+    const project = await db.ProjectGet(project_id);
+    if (project == null || project.household != user.household) {
+      throw new TRPCError({ code: "NOT_FOUND", cause: "Project was not found" });
+    }
     const tasks = await db.TaskGetAll(project_id);
     return tasks;
   }),
@@ -84,9 +93,11 @@ const Router = router({
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
     const project_id = ctx.input;
-    // TODO: get the project and make sure the user can do this
-    const tasks = await db.ProjectDelete(project_id);
-    return tasks;
+    const project = await db.ProjectGet(project_id);
+    if (project == null || project.household != user.household) {
+      throw new TRPCError({ code: "NOT_FOUND", cause: "Project was not found" });
+    }
+    return await db.ProjectDelete(project_id);
   }),
 });
 

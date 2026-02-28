@@ -1,7 +1,7 @@
 import { HoneydewPagesFunction } from "../../types";
 import jwt from '@tsndr/cloudflare-worker-jwt'
 import Database from "../../database/_db";
-import { ResponseJsonMissingData, ResponseRedirect, setCookie } from "../../_utils";
+import { ResponseJsonMissingData, ResponseJsonTooManyRequests, ResponseRedirect, setCookie, checkRateLimit } from "../../_utils";
 import { DEVICE_TOKEN, TEMP_TOKEN } from "../auth_types";
 import { DbMagicKeyZ } from "../../db_types";
 
@@ -10,6 +10,11 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     const id = context.params.id;
     const user_agent = context.request.headers.get('user-agent') || '';
     if (id == null || id == undefined) return ResponseJsonMissingData();
+    const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+    const allowed = await checkRateLimit(context.env.HONEYDEW, `rl:magic:${ip}`, 10, 300);
+    if (!allowed) {
+        return ResponseRedirect(context.request, "/error?msg=TOO_MANY_REQUESTS");
+    }
     if (user_agent.startsWith("Telegram")) {
         return ResponseRedirect(context.request, "/error?msg=TELEGRAM_CRAWLER");
     }
