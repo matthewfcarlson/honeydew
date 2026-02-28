@@ -14,11 +14,11 @@ import { deleteCookie } from '../_utils';
  */
 function getCookie(cookieString:string, key: string) {
   if (cookieString) {
+    const prefix = key + "=";
     const allCookies = cookieString.split("; ")
-    const targetCookie = allCookies.find(cookie => cookie.includes(key))
+    const targetCookie = allCookies.find(cookie => cookie.startsWith(prefix))
     if (targetCookie) {
-      const [_, value] = targetCookie.split("=")
-      return value
+      return targetCookie.substring(prefix.length)
     }
   }
   return null

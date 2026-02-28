@@ -3,6 +3,7 @@ import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { AuthCheck, AuthCheckZ } from '../../auth/auth_types';
+import { checkRateLimit } from '../../_utils';
 const Router = router({
   setOutfitReminders: protectedProcedure.input(z.boolean()).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
@@ -25,6 +26,13 @@ const Router = router({
     }
     const user = ctx.ctx.data.user;
     const db = ctx.ctx.data.db;
+    const allowed = await checkRateLimit(ctx.ctx.env.HONEYDEW, `rl:magicgen:${user.id}`, 5, 300);
+    if (!allowed) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        cause: "Too many magic link requests"
+      })
+    }
     const key = await db.UserMagicKeyCreate(user.id);
     if (key=="" || key == null) {
       throw new TRPCError({
