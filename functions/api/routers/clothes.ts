@@ -1,8 +1,7 @@
 import { router, protectedProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { ClothingIdZ } from '../../db_types';
-import { parseIndyxCSV } from '../../_clothing/indyx';
+import { ClothingIdZ, ClothingCategoryZ, CATEGORY_WASH_DEFAULTS, ClothingCategory } from '../../db_types';
 
 const Router = router({
   all: protectedProcedure.query(async (ctx) => {
@@ -28,13 +27,13 @@ const Router = router({
 
   add: protectedProcedure.input(z.object({
     name: z.string().min(1).max(255),
-    category: z.string().max(100).optional(),
-    subcategory: z.string().max(100).optional(),
+    category: ClothingCategoryZ.optional(),
     brand: z.string().max(255).optional(),
     color: z.string().max(100).optional(),
-    size: z.string().max(50).optional(),
     image_url: z.string().max(1024).optional(),
     tags: z.string().max(1024).optional(),
+    heat_index: z.number().int().min(0).max(3).optional(),
+    wash_threshold: z.number().int().nonnegative().nullable().optional(),
   })).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
@@ -69,41 +68,41 @@ const Router = router({
     return await db.ClothingMarkWorn(ctx.input);
   }),
 
-  mark_clean: protectedProcedure.input(ClothingIdZ).query(async (ctx) => {
+  upload_photo: protectedProcedure.input(z.object({
+    id: ClothingIdZ,
+    photo: z.string().min(1), // base64-encoded WebP image data
+  })).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
     }
     const db = ctx.ctx.data.db;
-    return await db.ClothingMarkClean(ctx.input);
+    // Decode base64 to ArrayBuffer
+    const binaryString = atob(ctx.input.photo);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return await db.ClothingSetPhoto(ctx.input.id, bytes.buffer);
   }),
 
-  mark_dirty: protectedProcedure.input(ClothingIdZ).query(async (ctx) => {
+  get_photo: protectedProcedure.input(ClothingIdZ).query(async (ctx) => {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
     }
     const db = ctx.ctx.data.db;
-    return await db.ClothingMarkDirty(ctx.input);
+    const photo = await db.ClothingGetPhoto(ctx.input);
+    if (photo == null) {
+      return null;
+    }
+    // Encode ArrayBuffer to base64
+    const bytes = new Uint8Array(photo);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   }),
 
-  import_indyx: protectedProcedure.input(z.string().min(1)).query(async (ctx) => {
-    if (ctx.ctx.data.user == null) {
-      throw new TRPCError({ code: "NOT_FOUND", cause: "User was not found" });
-    }
-    const user = ctx.ctx.data.user;
-    const db = ctx.ctx.data.db;
-    const csvContent = ctx.input;
-
-    const items = parseIndyxCSV(csvContent);
-    if (items.length === 0) {
-      throw new TRPCError({ code: "BAD_REQUEST", cause: "No valid clothing items found in CSV" });
-    }
-
-    const created = await db.ClothingBulkCreate(items, user.household, user.id);
-    return {
-      imported: created.length,
-      total: items.length,
-    };
-  }),
 });
 
 export default Router;

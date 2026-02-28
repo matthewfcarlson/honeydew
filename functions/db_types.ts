@@ -102,7 +102,7 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId | ClothingId;
-export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey;
+export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey | ClothingPhotoKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
 export interface KVDataObj {
@@ -263,22 +263,47 @@ export type DbHouseholdExtended = z.infer<typeof DbHouseholdExtendedZ>;
 // -------------------------------------------------
 // Clothing Types
 
+export const CLOTHING_CATEGORIES = ['top', 'bottom', 'outerwear', 'shoes', 'socks', 'accessory'] as const;
+export const ClothingCategoryZ = z.enum(CLOTHING_CATEGORIES);
+export type ClothingCategory = z.infer<typeof ClothingCategoryZ>;
+
+// Default wash thresholds by category (null = never needs washing)
+export const CATEGORY_WASH_DEFAULTS: Record<ClothingCategory, number | null> = {
+    top: 1,
+    bottom: 3,
+    outerwear: 12,
+    shoes: 10,
+    socks: 1,
+    accessory: null,
+};
+
+// KV key for clothing photos: CP:{ClothingId}
+export const ClothingPhotoKVKeyZ = z.string().startsWith("CP:").brand<"ClothingPhotoKVKey">();
+export type ClothingPhotoKVKey = z.infer<typeof ClothingPhotoKVKeyZ>;
+
 export const DbClothingZRaw = z.object({
     id: ClothingIdZ,
     household_id: HouseIdZ,
     name: z.string().max(255),
-    category: z.string().max(100),         // e.g. "Tops", "Bottoms", "Outerwear"
-    subcategory: z.string().max(100),      // e.g. "T-Shirt", "Jeans", "Jacket"
+    category: ClothingCategoryZ,                          // top, bottom, outerwear, shoes, socks, accessory
     brand: z.string().max(255),
     color: z.string().max(100),
-    size: z.string().max(50),
-    image_url: z.string().max(1024),       // URL to clothing image
-    tags: z.string().max(1024),            // comma-separated tags (e.g. "casual,summer,work")
-    wear_count: z.number().nonnegative(),  // how many times the item has been worn
-    is_clean: z.number().nonnegative(),    // 1 = clean, 0 = dirty (SQLite boolean)
+    image_url: z.string().max(1024),                      // URL to clothing image (legacy/external)
+    tags: z.string().max(1024),                           // comma-separated tags (e.g. "casual,summer,work")
+    heat_index: z.number().int().min(0).max(3),           // 0=lightest, 3=warmest (additive for layers)
+    wear_count: z.number().nonnegative(),                 // total times worn
+    wears_since_wash: z.number().nonnegative(),           // times worn since last wash
+    wash_threshold: z.number().int().nonnegative().nullable(), // wears before needing wash (null = never)
+    has_photo: z.number().nonnegative(),                  // 1 = has photo in KV, 0 = no photo
     added_by: UserIdZ,
-    created_at: z.number().nonnegative(),  // julian day number when added
+    created_at: z.number().nonnegative(),                 // julian day number when added
 });
 export const DbClothingZ = DbClothingZRaw.brand<"Clothing">();
 export type DbClothingRaw = z.infer<typeof DbClothingZRaw>;
 export type DbClothing = z.infer<typeof DbClothingZ>;
+
+// Helper to check if a clothing item needs washing
+export function clothingNeedsWash(item: DbClothingRaw): boolean {
+    if (item.wash_threshold === null) return false; // accessories never need washing
+    return item.wears_since_wash >= item.wash_threshold;
+}

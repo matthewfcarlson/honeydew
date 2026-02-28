@@ -709,13 +709,13 @@ export const useUserStore = defineStore("user", {
         },
         async ClothesAdd(item: {
             name: string,
-            category?: string,
-            subcategory?: string,
+            category?: 'top' | 'bottom' | 'outerwear' | 'shoes' | 'socks' | 'accessory',
             brand?: string,
             color?: string,
-            size?: string,
             image_url?: string,
             tags?: string,
+            heat_index?: number,
+            wash_threshold?: number | null,
         }): APIResult<DbClothing> {
             try {
                 this._thinking = true;
@@ -757,11 +757,11 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async ClothesMarkClean(id: string): APIResult<boolean> {
+        async ClothesUploadPhoto(id: string, photoBase64: string): APIResult<boolean> {
             try {
                 this._thinking = true;
                 const clothing_id = ClothingIdZ.parse(id);
-                const result = await client.clothes.mark_clean.query(clothing_id);
+                const result = await client.clothes.upload_photo.query({ id: clothing_id, photo: photoBase64 });
                 this.ClothesFetch();
                 this._thinking = false;
                 return { success: true, data: result };
@@ -771,12 +771,11 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async ClothesMarkDirty(id: string): APIResult<boolean> {
+        async ClothesGetPhoto(id: string): APIResult<string | null> {
             try {
                 this._thinking = true;
                 const clothing_id = ClothingIdZ.parse(id);
-                const result = await client.clothes.mark_dirty.query(clothing_id);
-                this.ClothesFetch();
+                const result = await client.clothes.get_photo.query(clothing_id);
                 this._thinking = false;
                 return { success: true, data: result };
             }
@@ -785,20 +784,6 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
-        async ClothesImportIndyx(csvContent: string): APIResult<{ imported: number, total: number }> {
-            try {
-                this._thinking = true;
-                const result = await client.clothes.import_indyx.query(csvContent);
-                this.ClothesFetch();
-                this._thinking = false;
-                return { success: true, data: result };
-            }
-            catch (err) {
-                this._thinking = false;
-                return handleError(err);
-            }
-        },
-
         async recover(user_id: string, recovery_key: string): APIResult<boolean> {
             try {
                 this._thinking = true;
