@@ -10,7 +10,7 @@
         <div class="select is-small">
           <select v-model="filterCategory">
             <option value="">All Categories</option>
-            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+            <option v-for="cat in categoryOptions" :key="cat" :value="cat">{{ categoryLabel(cat) }}</option>
           </select>
         </div>
       </div>
@@ -19,7 +19,8 @@
           <select v-model="filterClean">
             <option value="">All Status</option>
             <option value="clean">Clean</option>
-            <option value="dirty">Dirty</option>
+            <option value="used">Used</option>
+            <option value="needs-wash">Needs Wash</option>
           </select>
         </div>
       </div>
@@ -41,23 +42,27 @@
             <p class="title is-5">{{ item.name }}</p>
             <p class="subtitle is-6" v-if="item.brand">{{ item.brand }}</p>
             <div class="tags">
-              <span class="tag is-info" v-if="item.category">{{ item.category }}</span>
-              <span class="tag is-primary" v-if="item.subcategory">{{ item.subcategory }}</span>
+              <span class="tag is-info">{{ categoryLabel(item.category) }}</span>
               <span class="tag" v-if="item.color">{{ item.color }}</span>
-              <span class="tag" v-if="item.size">{{ item.size }}</span>
-              <span class="tag" :class="item.is_clean ? 'is-success' : 'is-warning'">
-                {{ item.is_clean ? 'Clean' : 'Dirty' }}
+              <span class="tag is-light" :title="'Heat index: ' + item.heat_index">
+                {{ heatLabel(item.heat_index) }}
+              </span>
+              <span class="tag" :class="statusClass(item)">
+                {{ statusLabel(item) }}
               </span>
             </div>
             <div class="tags" v-if="item.tags">
               <span class="tag is-light" v-for="tag in item.tags.split(',').filter((t: string) => t.trim())" :key="tag">{{ tag.trim() }}</span>
             </div>
-            <p class="is-size-7">Worn {{ item.wear_count }} time{{ item.wear_count === 1 ? '' : 's' }}</p>
+            <p class="is-size-7">
+              Worn {{ item.wear_count }} time{{ item.wear_count === 1 ? '' : 's' }}
+              <span v-if="item.wash_threshold !== null">
+                &middot; {{ item.wears_since_wash }}/{{ item.wash_threshold }} wears since wash
+              </span>
+            </p>
           </div>
           <footer class="card-footer">
             <a class="card-footer-item" @click="mark_worn(item.id)">Wear</a>
-            <a class="card-footer-item" v-if="item.is_clean" @click="mark_dirty(item.id)">Mark Dirty</a>
-            <a class="card-footer-item" v-else @click="mark_clean(item.id)">Mark Clean</a>
             <a class="card-footer-item has-text-danger" @click="delete_item(item.id)">Delete</a>
           </footer>
         </div>
@@ -68,7 +73,7 @@
       No items match your filters.
     </div>
     <div class="box" v-if="clothes.length === 0">
-      Your closet is empty. Add items manually or import from Indyx below.
+      Your closet is empty. Add items below to get started.
     </div>
 
     <hr />
@@ -91,11 +96,22 @@
           <div class="columns">
             <div class="column">
               <label class="label">Category</label>
-              <input class="input" v-model="newItem.category" placeholder="e.g. Tops, Bottoms, Outerwear" :disabled="thinking">
+              <div class="select is-fullwidth">
+                <select v-model="newItem.category" :disabled="thinking" @change="onCategoryChange">
+                  <option v-for="cat in categoryOptions" :key="cat" :value="cat">{{ categoryLabel(cat) }}</option>
+                </select>
+              </div>
             </div>
             <div class="column">
-              <label class="label">Subcategory</label>
-              <input class="input" v-model="newItem.subcategory" placeholder="e.g. T-Shirt, Jeans" :disabled="thinking">
+              <label class="label">Heat Index</label>
+              <div class="select is-fullwidth">
+                <select v-model.number="newItem.heat_index" :disabled="thinking">
+                  <option :value="0">0 - Lightest</option>
+                  <option :value="1">1 - Light</option>
+                  <option :value="2">2 - Medium</option>
+                  <option :value="3">3 - Heavy</option>
+                </select>
+              </div>
             </div>
           </div>
           <div class="columns">
@@ -104,8 +120,9 @@
               <input class="input" v-model="newItem.color" placeholder="Color" :disabled="thinking">
             </div>
             <div class="column">
-              <label class="label">Size</label>
-              <input class="input" v-model="newItem.size" placeholder="Size" :disabled="thinking">
+              <label class="label">Washes after (wears)</label>
+              <input class="input" v-model.number="newItem.wash_threshold" type="number" min="1" placeholder="Auto from category" :disabled="thinking || newItem.category === 'accessory'">
+              <p class="help" v-if="newItem.category === 'accessory'">Accessories don't need washing</p>
             </div>
           </div>
           <div class="columns">
@@ -123,28 +140,34 @@
       </div>
     </article>
 
-    <!-- Import from Indyx -->
-    <article class="panel is-info">
-      <p class="panel-heading">Import from Indyx</p>
-      <div class="panel-block">
-        <div class="field" style="width:100%">
-          <p class="mb-3">Paste your Indyx CSV export data below. You can request a CSV export from Indyx by contacting their support.</p>
-          <textarea class="textarea" v-model="csvContent" placeholder="Paste CSV content here..." rows="6" :disabled="thinking"></textarea>
-          <button class="button is-info mt-3" :disabled="thinking || !csvContent" @click="import_indyx">
-            <span v-if="thinking">Importing...</span>
-            <span v-else>Import from Indyx</span>
-          </button>
-        </div>
-      </div>
-    </article>
   </div>
 </template>
 
 <script lang="ts">
 
-import { defineComponent, computed } from 'vue';
+import { defineComponent } from 'vue';
 import { useUserStore } from "@/store";
 import { mapState } from "pinia";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  top: 'Top',
+  bottom: 'Bottom',
+  outerwear: 'Outerwear',
+  shoes: 'Shoes',
+  socks: 'Socks',
+  accessory: 'Accessory',
+};
+
+const HEAT_LABELS = ['Lightest', 'Light', 'Medium', 'Heavy'];
+
+const CATEGORY_WASH_DEFAULTS: Record<string, number | null> = {
+  top: 1,
+  bottom: 3,
+  outerwear: 12,
+  shoes: 10,
+  socks: 1,
+  accessory: null,
+};
 
 export default defineComponent({
   name: 'ClosetView',
@@ -155,33 +178,27 @@ export default defineComponent({
       filterCategory: "",
       filterClean: "",
       searchQuery: "",
-      csvContent: "",
+      categoryOptions: ['top', 'bottom', 'outerwear', 'shoes', 'socks', 'accessory'] as string[],
       newItem: {
         name: "",
-        category: "",
-        subcategory: "",
+        category: "top" as 'top' | 'bottom' | 'outerwear' | 'shoes' | 'socks' | 'accessory',
         brand: "",
         color: "",
-        size: "",
         image_url: "",
         tags: "",
+        heat_index: 0,
+        wash_threshold: 1 as number | null,
       },
     }
   },
   computed: {
-    categories(): string[] {
-      const cats = new Set(this.clothes.map((c: any) => c.category).filter((c: string) => c.length > 0));
-      return Array.from(cats).sort();
-    },
     filteredClothes(): any[] {
       let items = this.clothes;
       if (this.filterCategory) {
         items = items.filter((c: any) => c.category === this.filterCategory);
       }
-      if (this.filterClean === 'clean') {
-        items = items.filter((c: any) => c.is_clean);
-      } else if (this.filterClean === 'dirty') {
-        items = items.filter((c: any) => !c.is_clean);
+      if (this.filterClean) {
+        items = items.filter((c: any) => this.wearStatus(c) === this.filterClean);
       }
       if (this.searchQuery.trim()) {
         const q = this.searchQuery.toLowerCase();
@@ -190,8 +207,7 @@ export default defineComponent({
           c.brand.toLowerCase().includes(q) ||
           c.color.toLowerCase().includes(q) ||
           c.tags.toLowerCase().includes(q) ||
-          c.category.toLowerCase().includes(q) ||
-          c.subcategory.toLowerCase().includes(q)
+          c.category.toLowerCase().includes(q)
         );
       }
       return items;
@@ -202,6 +218,34 @@ export default defineComponent({
     useUserStore().ClothesFetch();
   },
   methods: {
+    categoryLabel(cat: string): string {
+      return CATEGORY_LABELS[cat] || cat;
+    },
+    heatLabel(index: number): string {
+      return HEAT_LABELS[index] || 'Unknown';
+    },
+    wearStatus(item: any): string {
+      if (item.wears_since_wash === 0) return 'clean';
+      if (item.wash_threshold === null) return 'used';
+      if (item.wears_since_wash >= item.wash_threshold) return 'needs-wash';
+      return 'used';
+    },
+    statusLabel(item: any): string {
+      const s = this.wearStatus(item);
+      if (s === 'clean') return 'Clean';
+      if (s === 'needs-wash') return 'Needs Wash';
+      return 'Used';
+    },
+    statusClass(item: any): string {
+      const s = this.wearStatus(item);
+      if (s === 'clean') return 'is-success';
+      if (s === 'needs-wash') return 'is-warning';
+      return 'is-info';
+    },
+    onCategoryChange() {
+      const defaults = CATEGORY_WASH_DEFAULTS[this.newItem.category];
+      this.newItem.wash_threshold = defaults;
+    },
     add_item: async function () {
       this.error = "";
       this.successMsg = "";
@@ -212,7 +256,7 @@ export default defineComponent({
       const status = await useUserStore().ClothesAdd(this.newItem);
       if (status.success) {
         this.successMsg = `Added "${this.newItem.name}" to closet`;
-        this.newItem = { name: "", category: "", subcategory: "", brand: "", color: "", size: "", image_url: "", tags: "" };
+        this.newItem = { name: "", category: "top", brand: "", color: "", image_url: "", tags: "", heat_index: 0, wash_threshold: 1 };
       } else {
         this.error = status.message;
       }
@@ -228,35 +272,6 @@ export default defineComponent({
       this.error = "";
       const status = await useUserStore().ClothesMarkWorn(id);
       if (status.success == false) {
-        this.error = status.message;
-      }
-    },
-    mark_clean: async function (id: string) {
-      this.error = "";
-      const status = await useUserStore().ClothesMarkClean(id);
-      if (status.success == false) {
-        this.error = status.message;
-      }
-    },
-    mark_dirty: async function (id: string) {
-      this.error = "";
-      const status = await useUserStore().ClothesMarkDirty(id);
-      if (status.success == false) {
-        this.error = status.message;
-      }
-    },
-    import_indyx: async function () {
-      this.error = "";
-      this.successMsg = "";
-      if (!this.csvContent.trim()) {
-        this.error = "Please paste CSV content first";
-        return;
-      }
-      const status = await useUserStore().ClothesImportIndyx(this.csvContent);
-      if (status.success) {
-        this.successMsg = `Imported ${status.data.imported} of ${status.data.total} items from Indyx`;
-        this.csvContent = "";
-      } else {
         this.error = status.message;
       }
     },

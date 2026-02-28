@@ -245,6 +245,34 @@ const HoneydewVersion11 = {
     }
 }
 
+const HoneydewVersion12 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "CLOTHES"
+            // Add heat_index: 0=lightest, 3=warmest
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('heat_index', 'integer', (col) => col.notNull().defaultTo(0))
+                .execute()
+            // Add wears_since_wash counter (resets on wash)
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('wears_since_wash', 'integer', (col) => col.notNull().defaultTo(0))
+                .execute()
+            // Add per-item wash threshold (null = never needs washing, e.g. accessories)
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('wash_threshold', 'integer', (col) => col.defaultTo(1))
+                .execute()
+            // Add has_photo flag (1 = photo stored in KV, 0 = no photo)
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('has_photo', 'integer', (col) => col.notNull().defaultTo(0))
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -256,6 +284,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion8,
     HoneydewVersion9,
     HoneydewVersion10,
-    HoneydewVersion11
+    HoneydewVersion11,
+    HoneydewVersion12
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;
