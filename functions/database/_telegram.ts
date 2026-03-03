@@ -313,6 +313,19 @@ export class TelegramAPI {
         return results.result;
     }
 
+    public async editMessageText(chat_id:number|string, message_id: number, text: string, parse_mode?: TelegramSendMessageParseMode) {
+        const data: Record<string, any> = {
+            chat_id,
+            message_id,
+            text,
+            reply_markup: {inline_keyboard: []},
+        };
+        if (parse_mode) data.parse_mode = parse_mode;
+        const results = await this.requestPost('editMessageText', data);
+        if (results == false) return false;
+        return true;
+    }
+
     public async clearMessageReplyMarkup(chat_id:number|string, message_id: number) {
         const data = {
             chat_id,
