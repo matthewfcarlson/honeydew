@@ -106,7 +106,60 @@ const Router = router({
     // TODO: check if a user is in a household
     const result = await db.HouseExpectingSetDate(user.household, date);
     return result;
-  })
+  }),
+  createEinkToken: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const db = ctx.data.db;
+    const url = new URL(ctx.url);
+    const token = await db.EinkTokenCreate(user.id, user.household);
+    if (token == null) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        cause: "Could not generate eink token"
+      })
+    }
+    return {
+      token,
+      display_url: `https://${url.host}/eink/${token}`,
+    };
+  }),
+  revokeEinkToken: protectedProcedure.input(z.string().min(1)).query(async (ctx) => {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const db = ctx.ctx.data.db;
+    // Verify the token belongs to this household before revoking
+    const payload = await db.EinkTokenLookup(ctx.input);
+    if (payload == null || payload.house_id != user.household) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "Token not found or does not belong to this household"
+      })
+    }
+    return await db.EinkTokenRevoke(ctx.input);
+  }),
 });
 
 export default Router;

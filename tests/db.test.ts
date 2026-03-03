@@ -1314,3 +1314,55 @@ describe('Telegram callback tests', () => {
 
   });
 });
+
+describe('Eink token tests', () => {
+  it('can create and lookup an eink token', async () => {
+    const house = await db.HouseholdCreate("EINK HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const user = await db.UserCreate("EINK USER", house.id);
+    expect(user).not.toBeNull();
+    if (user == null) return;
+
+    const token = await db.EinkTokenCreate(user.id, house.id);
+    expect(token).not.toBeNull();
+    if (token == null) return;
+    expect(token.length).toBe(50);
+
+    const payload = await db.EinkTokenLookup(token);
+    expect(payload).not.toBeNull();
+    if (payload == null) return;
+    expect(payload.house_id).toBe(house.id);
+    expect(payload.user_id).toBe(user.id);
+  });
+
+  it('returns null for invalid token lookup', async () => {
+    const payload = await db.EinkTokenLookup("this-is-not-a-real-token-but-it-needs-to-be-50chr");
+    expect(payload).toBeNull();
+  });
+
+  it('can revoke an eink token', async () => {
+    const house = await db.HouseholdCreate("EINK REVOKE HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const user = await db.UserCreate("EINK REVOKE USER", house.id);
+    expect(user).not.toBeNull();
+    if (user == null) return;
+
+    const token = await db.EinkTokenCreate(user.id, house.id);
+    expect(token).not.toBeNull();
+    if (token == null) return;
+
+    // Token should be valid
+    const payload = await db.EinkTokenLookup(token);
+    expect(payload).not.toBeNull();
+
+    // Revoke it
+    const revoked = await db.EinkTokenRevoke(token);
+    expect(revoked).toBe(true);
+
+    // Should no longer be valid
+    const payload2 = await db.EinkTokenLookup(token);
+    expect(payload2).toBeNull();
+  });
+});
