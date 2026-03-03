@@ -1,8 +1,9 @@
 import { HoneydewPagesFunction } from "../../types";
 import Database from "../../database/_db";
-import { TelegramAPI } from "../../database/_telegram";
+import { TelegramAPI, TelegramInlineKeyboardMarkup } from "../../database/_telegram";
 import { getJulianDate } from "../../_utils";
 import { TriggerOutfits } from "./outfits";
+import { TelegramCallbackKVPayload } from "../../db_types";
 
 /**
  * Chore scheduling trigger — called once per hour with the current UTC hour.
@@ -88,7 +89,31 @@ export const TriggerChores = async function (db: Database, hour: number) {
         const escapedLastDoneByText = lastDoneByText.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 
         const message = `Just a friendly reminder to complete your chore: *${escapedName}*\\! Last done ${escapedDaysAgoText}${escapedLastDoneByText}\\.`
-        await db.GetTelegram().sendTextMessage(x.chat_id, message, undefined, undefined, "MarkdownV2");
+
+        // If the user has an active streak, add an "I'm out of town" button
+        // that freezes the streak without resetting it
+        const user = await db.UserGet(x.user_id);
+        let keyboard: TelegramInlineKeyboardMarkup | undefined;
+        if (user && user.current_streak > 0) {
+            const payload: TelegramCallbackKVPayload = {
+                user_id: x.user_id,
+                type: "OUT_OF_TOWN",
+                chore_id: chore.id,
+            };
+            const payload_key = await db.TelegramCallbackCreate(payload);
+            if (payload_key != null) {
+                keyboard = {
+                    inline_keyboard: [[
+                        {
+                            text: "I'm Out of Town",
+                            callback_data: payload_key
+                        },
+                    ]]
+                };
+            }
+        }
+
+        await db.GetTelegram().sendTextMessage(x.chat_id, message, undefined, keyboard, "MarkdownV2");
         return true;
     })
 
