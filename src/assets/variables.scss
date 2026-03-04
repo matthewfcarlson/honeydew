@@ -1,16 +1,6 @@
 @import "../../node_modules/nord/src/sass/nord.scss";
 
 $sailwind_colors: (
-  'gray-100': #f7fafc,
-  'gray-200': #edf2f7,
-  'gray-300': #e2e8f0,
-  'gray-400': #cbd5e0,
-  'gray-500': #a0aec0,
-  'gray-600': #718096,
-  'gray-700': #4a5568,
-  'gray-800': #2d3748,
-  'gray-900': #1a202c,
-  'body-background': $nord0,
   'success': $nord14,
   'primary': $nord8,
   'info': $nord7,
@@ -18,10 +8,9 @@ $sailwind_colors: (
   'danger': $nord11,
   'link': $nord9,
 );
-$sailwind_sizes: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18,
-  20,24, 32, 40, 42, 50, 56;
-$sailwind_weights: 100, 200, 300, 400, 500, 600, 700, 800, 900;
-$sailwind_percents: 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100;
+$sailwind_sizes: 0, 1, 2, 3, 4, 5, 6;
+$sailwind_weights: 300, 700;
+$sailwind_percents: 25;
 $sides: 'top', 'right', 'bottom', 'left';
 $sailwind_types: 'success', 'info', 'link', 'warning', 'danger';
 

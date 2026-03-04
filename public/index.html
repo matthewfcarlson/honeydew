@@ -22,8 +22,9 @@
     <link rel="icon" type="image/png" sizes="32x32" href="<%= BASE_URL %>favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="<%= BASE_URL %>favicon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="<%= BASE_URL %>favicon-16x16.png">
-    <!-- Google Fonts with display=swap to prevent FOIT -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;400;700&display=swap">
+    <!-- Google Fonts loaded as non-render-blocking -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;400;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;400;700&display=swap"></noscript>
     <!-- Font Awesome loaded as non-render-blocking -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" crossorigin="anonymous" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" crossorigin="anonymous"></noscript>
