@@ -3,7 +3,7 @@ import { env } from 'cloudflare:test';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";
-import { HouseId } from "functions/db_types";
+import { HouseId, EinkTokenKVKeyZ } from "functions/db_types";
 
 function createDB() {
   const telegram = new TelegramAPI("TESTING");
@@ -1329,7 +1329,8 @@ describe('Eink token tests', () => {
     if (token == null) return;
     expect(token.length).toBe(50);
 
-    const payload = await db.EinkTokenLookup(token);
+    const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
+    const payload = await db.EinkTokenLookup(kv_key);
     expect(payload).not.toBeNull();
     if (payload == null) return;
     expect(payload.house_id).toBe(house.id);
@@ -1337,7 +1338,8 @@ describe('Eink token tests', () => {
   });
 
   it('returns null for invalid token lookup', async () => {
-    const payload = await db.EinkTokenLookup("this-is-not-a-real-token-but-it-needs-to-be-50chr");
+    const kv_key = EinkTokenKVKeyZ.parse("EK:this-is-not-a-real-token-but-it-needs-to-be-50chr");
+    const payload = await db.EinkTokenLookup(kv_key);
     expect(payload).toBeNull();
   });
 
@@ -1353,16 +1355,18 @@ describe('Eink token tests', () => {
     expect(token).not.toBeNull();
     if (token == null) return;
 
+    const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
+
     // Token should be valid
-    const payload = await db.EinkTokenLookup(token);
+    const payload = await db.EinkTokenLookup(kv_key);
     expect(payload).not.toBeNull();
 
     // Revoke it
-    const revoked = await db.EinkTokenRevoke(token);
+    const revoked = await db.EinkTokenRevoke(kv_key);
     expect(revoked).toBe(true);
 
     // Should no longer be valid
-    const payload2 = await db.EinkTokenLookup(token);
+    const payload2 = await db.EinkTokenLookup(kv_key);
     expect(payload2).toBeNull();
   });
 });

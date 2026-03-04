@@ -1,7 +1,7 @@
 
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { z } from 'zod';
-import { DbHouseholdRawZ, DbHouseholdZ, DbUser } from '../../db_types';
+import { DbHouseholdRawZ, DbHouseholdZ, DbUser, EinkTokenKVKeyZ } from '../../db_types';
 import type Database from '../../database/_db';
 import { TRPCError } from '@trpc/server';
 import { ArrayBufferToHexString } from '../../_utils';
@@ -151,14 +151,21 @@ const Router = router({
     }
     const db = ctx.ctx.data.db;
     // Verify the token belongs to this household before revoking
-    const payload = await db.EinkTokenLookup(ctx.input);
+    const kv_key = EinkTokenKVKeyZ.safeParse("EK:" + ctx.input);
+    if (!kv_key.success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        cause: "Invalid token format"
+      })
+    }
+    const payload = await db.EinkTokenLookup(kv_key.data);
     if (payload == null || payload.house_id != user.household) {
       throw new TRPCError({
         code: "NOT_FOUND",
         cause: "Token not found or does not belong to this household"
       })
     }
-    return await db.EinkTokenRevoke(ctx.input);
+    return await db.EinkTokenRevoke(kv_key.data);
   }),
 });
 

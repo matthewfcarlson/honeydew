@@ -7,7 +7,7 @@ import { createInnerContext } from '../functions/api/context';
 import { appRouter } from '../functions/api/router';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
-import { DbUser } from '../functions/db_types';
+import { DbUser, EinkTokenKVKeyZ } from '../functions/db_types';
 import { HoneydewPageData, HoneydewPageEnv } from '../functions/types';
 import { getJulianDate } from '../functions/_utils';
 
@@ -371,7 +371,8 @@ describe('eink token tests', () => {
         expect(result.token).toBeTruthy();
 
         // Verify we can look up the token
-        const payload = await db.EinkTokenLookup(result.token);
+        const kv_key = EinkTokenKVKeyZ.parse("EK:" + result.token);
+        const payload = await db.EinkTokenLookup(kv_key);
         expect(payload).not.toBeNull();
 
         // Revoke it
@@ -379,7 +380,7 @@ describe('eink token tests', () => {
         expect(revoked).toBe(true);
 
         // Verify it's gone
-        const payload2 = await db.EinkTokenLookup(result.token);
+        const payload2 = await db.EinkTokenLookup(kv_key);
         expect(payload2).toBeNull();
     });
 

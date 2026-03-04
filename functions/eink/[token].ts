@@ -1,5 +1,6 @@
 import { HoneydewPagesFunction } from "../types";
 import Database from "../database/_db";
+import { EinkTokenKVKeyZ } from "../db_types";
 import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonServerError, getJulianDate, checkRateLimit } from "../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
@@ -16,7 +17,9 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     }
 
     const db = context.data.db as Database;
-    const payload = await db.EinkTokenLookup(token);
+    const kv_key = EinkTokenKVKeyZ.safeParse("EK:" + token);
+    if (!kv_key.success) return ResponseJsonBadRequest("Invalid token format");
+    const payload = await db.EinkTokenLookup(kv_key.data);
     if (payload == null) return ResponseJsonAccessDenied("Invalid or expired token");
 
     try {
@@ -33,15 +36,17 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
             return b_score - a_score;
         });
 
-        // Build member summaries
+        // Build member summaries with chore completion status
         const members = household.members.map((m) => ({
             name: m.name,
             color: m.color,
             icon: m.icon,
             streak: m.current_streak,
-            current_chore: m.current_chore ? {
+            chore: m.current_chore ? {
                 id: m.current_chore.id,
                 name: m.current_chore.name,
+                completed: false,
+                complete_url: `/eink/complete/${token}/${m.current_chore.id}`,
             } : null,
         }));
 
@@ -60,10 +65,15 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
             };
         });
 
-        // Current project task
+        // Current household project task
         const current_task = household.current_task ? {
+            id: household.current_task.id,
             description: household.current_task.description,
-            project: household.current_project?.description ?? null,
+            project: household.current_project ? {
+                id: household.current_project.id,
+                name: household.current_project.description,
+            } : null,
+            completed: household.current_task.completed != null,
         } : null;
 
         const response_data = {

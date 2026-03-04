@@ -412,9 +412,8 @@ export default class Database {
         }
     }
 
-    async EinkTokenLookup(token: string): Promise<EinkTokenKVPayload | null> {
+    async EinkTokenLookup(kv_key: EinkTokenKVKey): Promise<EinkTokenKVPayload | null> {
         try {
-            const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
             const raw = await this.queryKVJson(kv_key);
             if (raw == null) return null;
             return EinkTokenKVPayloadZ.parse(raw);
@@ -424,9 +423,8 @@ export default class Database {
         }
     }
 
-    async EinkTokenRevoke(token: string): Promise<boolean> {
+    async EinkTokenRevoke(kv_key: EinkTokenKVKey): Promise<boolean> {
         try {
-            const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
             await this.deleteKey(kv_key);
             return true;
         } catch (err) {

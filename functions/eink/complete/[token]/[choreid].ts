@@ -1,6 +1,6 @@
 import { HoneydewPagesFunction } from "../../../types";
 import Database from "../../../database/_db";
-import { ChoreIdz } from "../../../db_types";
+import { ChoreIdz, EinkTokenKVKeyZ } from "../../../db_types";
 import { ResponseJsonAccessDenied, ResponseJsonBadRequest, ResponseJsonServerError, checkRateLimit } from "../../../_utils";
 
 export const onRequestGet: HoneydewPagesFunction = async function (context) {
@@ -19,7 +19,9 @@ export const onRequestGet: HoneydewPagesFunction = async function (context) {
     }
 
     const db = context.data.db as Database;
-    const payload = await db.EinkTokenLookup(token);
+    const kv_key = EinkTokenKVKeyZ.safeParse("EK:" + token);
+    if (!kv_key.success) return ResponseJsonBadRequest("Invalid token format");
+    const payload = await db.EinkTokenLookup(kv_key.data);
     if (payload == null) return ResponseJsonAccessDenied("Invalid or expired token");
 
     const chore_id = ChoreIdz.safeParse(choreid);
