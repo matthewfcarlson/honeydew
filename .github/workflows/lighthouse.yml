@@ -25,6 +25,36 @@ jobs:
     - name: Build frontend
       run: npm run build
 
+    - name: Inject mock auth data for logged-in view
+      run: |
+        mkdir -p dist/auth
+        cat > dist/auth/check << 'AUTHEOF'
+        window.logged_in = true;
+        window.user_data = {
+          name: "Test User",
+          id: "U:00000000-0000-0000-0000-000000000000",
+          color: "#88c0d0",
+          icon: "fa-user",
+          outfit_reminders: 0,
+          household: {
+            id: "H:00000000-0000-0000-0000-000000000000",
+            name: "Test Household",
+            auto_assign: null,
+            outfit_hour: null,
+            expecting: null,
+            current_task: null,
+            current_project: null,
+            members: [{
+              userid: "U:00000000-0000-0000-0000-000000000000",
+              name: "Test User",
+              color: "#88c0d0",
+              icon: "fa-user",
+              current_chore: { id: "C:00000000-0000-0000-0000-000000000000", name: "Test Chore", frequency: 7, household: "H:00000000-0000-0000-0000-000000000000", doneBy: null, doneDate: null, assignedTo: null, assignedDate: null, streak: 0 }
+            }]
+          }
+        };
+        AUTHEOF
+
     - name: Run Lighthouse CI
       id: lighthouse
       uses: treosh/lighthouse-ci-action@v12
