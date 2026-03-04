@@ -173,11 +173,15 @@ describe('Telegram tests', () => {
 describe('Telegram callback tests', () => {
   it('can handle a chore callback', async () => {
     let removed_markup = false;
+    let edited_message_text = "";
     telegram.registerListener(async (x) => {
       // I don't check for anything more fancy
       // console.error("chore callback", x);
       if (x.type == "POST" && x.method == "editMessageReplyMarkup") {
         removed_markup = true;
+      }
+      if (x.type == "POST" && x.method == "editMessageText") {
+        edited_message_text = x.data.text;
       }
       return generateTelegramResponse(null);
     });
@@ -221,6 +225,7 @@ describe('Telegram callback tests', () => {
           type: "private"
         },
         date: timestamp,
+        text: "Hey, today your chore is: Do the thing!",
       },
       from: {
         id: tuser_id,
@@ -245,6 +250,9 @@ describe('Telegram callback tests', () => {
     // Check to make sure we've removed the markup and the chore has been completed
     expect(removed_markup).toBe(true);
     expect(chore_done.lastDone).toBeGreaterThan(chore.lastDone);
+    // Check that the message was updated to indicate completion
+    expect(edited_message_text).toContain("You completed this chore!");
+    expect(edited_message_text).toContain("Hey, today your chore is: Do the thing!");
   });
 });
 
