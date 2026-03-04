@@ -72,14 +72,22 @@ export async function HandleTelegramUpdateMessage(db: Database, message: Telegra
 }
 
 
-async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<TelegramAnswerCallbackQuery|null> {
+interface ChoreCompleteResult {
+    answer: TelegramAnswerCallbackQuery;
+    completed: boolean;
+}
+
+async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<ChoreCompleteResult|null> {
     if (payload.type != "COMPLETE_CHORE") return null;
     // console.log("Completing chore", payload.chore_id, message.callback_query.data)
     const result = await db.ChoreComplete(payload.chore_id, payload.user_id);
     if (!result.success) {
         return {
-            callback_query_id: message.callback_query.id,
-            text: "Failed to complete the chore, try and do it from the website",
+            answer: {
+                callback_query_id: message.callback_query.id,
+                text: "Failed to complete the chore, try and do it from the website",
+            },
+            completed: false,
         }
     }
     // Show streak message if this was first completion today and streak > 2
@@ -88,8 +96,11 @@ async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateC
         responseText = `Chore completed! 🔥 ${result.streak}-day streak!`;
     }
     return {
-        callback_query_id: message.callback_query.id,
-        text: responseText
+        answer: {
+            callback_query_id: message.callback_query.id,
+            text: responseText
+        },
+        completed: true,
     }
 }
 
@@ -115,7 +126,16 @@ export async function HandleTelegramUpdateCallbackQuery(db: Database, message: T
         }
         let answer_callback: TelegramAnswerCallbackQuery|null = null;
         if (payload.type == "COMPLETE_CHORE") {
-            answer_callback = await HandleTelegramCompleteChore(db, message, payload);
+            const result = await HandleTelegramCompleteChore(db, message, payload);
+            if (result != null) {
+                answer_callback = result.answer;
+                // Update the message text to indicate completion
+                if (result.completed && chat_id != null && message_id != null) {
+                    const originalText = message.callback_query.message?.text || "";
+                    const completedText = originalText + "\n\n✅ You completed this chore!";
+                    await db.GetTelegram().editMessageText(chat_id, message_id, completedText);
+                }
+            }
         }
         if (answer_callback != null) {
             // console.error("HandleTelegramUpdateCallbackQuery", answer_callback);
