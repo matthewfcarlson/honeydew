@@ -149,7 +149,6 @@ $family-sans-serif: "Nunito", BlinkMacSystemFont, -apple-system, "Segoe UI", "Ro
 // @import "../node_modules/bulma/sass/components/navbar.sass";
 // @import "../node_modules/bulma/sass/layout/hero.sass";
 // @import "../node_modules/bulma/sass/layout/section.sass";
-// Import a Google Font
-@import url('https://fonts.googleapis.com/css?family=Nunito:200,400,700');
+// Google Fonts loaded via <link> in index.html with display=swap for better FCP
 @import "../node_modules/bulma/bulma.sass";
 </style>
