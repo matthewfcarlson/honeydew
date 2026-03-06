@@ -94,9 +94,6 @@ nav a {
   .text-#{$name} {
     color: $hex;
   }
-  .bg-#{$name} {
-    background-color: $hex;
-  }
 }
 
 @each $weight in $sailwind_weights {
@@ -108,9 +105,6 @@ nav a {
 @each $perc in $sailwind_percents {
   .maxh-#{$perc}vh {
     max-height: #{$perc}vh;
-  }
-  .maxw-#{$perc}vw {
-    max-width: #{$perc}vw;
   }
 }
 
@@ -149,7 +143,35 @@ $family-sans-serif: "Nunito", BlinkMacSystemFont, -apple-system, "Segoe UI", "Ro
 // @import "../node_modules/bulma/sass/components/navbar.sass";
 // @import "../node_modules/bulma/sass/layout/hero.sass";
 // @import "../node_modules/bulma/sass/layout/section.sass";
-// Import a Google Font
-@import url('https://fonts.googleapis.com/css?family=Nunito:200,400,700');
-@import "../node_modules/bulma/bulma.sass";
+// Google Fonts loaded via <link> in index.html with display=swap for better FCP
+// Selective Bulma imports - skip unused modules (breadcrumb, dropdown, menu, message, modal, pagination, table)
+@import "../node_modules/bulma/sass/utilities/_all";
+@import "../node_modules/bulma/sass/base/_all";
+// Elements
+@import "../node_modules/bulma/sass/elements/box";
+@import "../node_modules/bulma/sass/elements/button";
+@import "../node_modules/bulma/sass/elements/container";
+@import "../node_modules/bulma/sass/elements/content";
+@import "../node_modules/bulma/sass/elements/icon";
+@import "../node_modules/bulma/sass/elements/image";
+@import "../node_modules/bulma/sass/elements/notification";
+@import "../node_modules/bulma/sass/elements/progress";
+@import "../node_modules/bulma/sass/elements/tag";
+@import "../node_modules/bulma/sass/elements/title";
+@import "../node_modules/bulma/sass/elements/other";
+// Forms
+@import "../node_modules/bulma/sass/form/_all";
+// Components (only used ones)
+@import "../node_modules/bulma/sass/components/card";
+@import "../node_modules/bulma/sass/components/level";
+@import "../node_modules/bulma/sass/components/media";
+@import "../node_modules/bulma/sass/components/navbar";
+@import "../node_modules/bulma/sass/components/panel";
+@import "../node_modules/bulma/sass/components/tabs";
+// Grid
+@import "../node_modules/bulma/sass/grid/_all";
+// Helpers
+@import "../node_modules/bulma/sass/helpers/_all";
+// Layout
+@import "../node_modules/bulma/sass/layout/_all";
 </style>

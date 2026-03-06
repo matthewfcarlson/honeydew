@@ -1,8 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import IndexView from '../views/IndexView.vue';
-import SignoutView from '../views/SignoutView.vue'
-import SignupView from '../views/SignupView.vue'
-import NotFoundView from '../views/404View.vue'
 import { useUserStore } from '@/store';
 
 import 'vue-router'
@@ -30,7 +27,7 @@ const routes = [
   {
     path: '/signout',
     name: 'signout',
-    component: SignoutView,
+    component: () => import(/* webpackChunkName: "signout" */ '../views/SignoutView.vue'),
     meta: {
       noAuthRequired: false,
     }
@@ -38,7 +35,7 @@ const routes = [
   {
     path: '/signup',
     name: 'signup',
-    component: SignupView,
+    component: () => import(/* webpackChunkName: "signup" */ '../views/SignupView.vue'),
   },
   {
     path: '/recover',
@@ -105,7 +102,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: '404',
-    component: NotFoundView,
+    component: () => import(/* webpackChunkName: "error" */ '../views/404View.vue'),
     meta: {
       noAuthRequired: true,
     }
@@ -113,7 +110,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 

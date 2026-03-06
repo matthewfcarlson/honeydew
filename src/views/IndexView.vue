@@ -7,17 +7,15 @@
   
 <script lang="ts">
 
-import { defineComponent } from 'vue';
-import HomeView from '@/views/HomeView.vue';
-import LandingView from '@/views/LandingView.vue';
+import { defineComponent, defineAsyncComponent } from 'vue';
 import { mapState } from 'pinia';
 import { useUserStore } from '@/store';
 
 export default defineComponent({
     name: 'IndexView',
     components: {
-        HomeView,
-        LandingView
+        HomeView: defineAsyncComponent(() => import(/* webpackChunkName: "home" */ '@/views/HomeView.vue')),
+        LandingView: defineAsyncComponent(() => import(/* webpackChunkName: "landing" */ '@/views/LandingView.vue')),
     },
     computed: {
         ...mapState(useUserStore, ["isLoggedIn"])
