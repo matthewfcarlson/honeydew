@@ -1092,6 +1092,103 @@ describe('Streak tests', () => {
     expect(result.streak).toBe(3);
     expect(result.isFirstToday).toBe(true);
   });
+
+  it('UserFreezeStreak preserves streak without incrementing', async () => {
+    const house_id = (await db.HouseholdCreate("Freeze streak house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Hank", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user had a 5-day streak, last active yesterday
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 1, 5, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Freeze the streak - should keep streak at 5 and update last_active_date
+    const result = await db.UserFreezeStreak(user_id);
+    expect(result).not.toBeNull();
+    expect(result!.streak).toBe(5);
+
+    // Verify it persisted: last_active_date updated but streak unchanged
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(5);
+    expect(row!.last_active_date).toBe(today);
+  });
+
+  it('UserFreezeStreak is idempotent on same day', async () => {
+    const house_id = (await db.HouseholdCreate("Freeze idempotent house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Ivy", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user already active today with a 3-day streak
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today, 3, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Freeze should be a no-op, returning the same streak
+    const result = await db.UserFreezeStreak(user_id);
+    expect(result).not.toBeNull();
+    expect(result!.streak).toBe(3);
+
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(3);
+    expect(row!.last_active_date).toBe(today);
+  });
+
+  it('UserFreezeStreak saves streak even after a gap day', async () => {
+    const house_id = (await db.HouseholdCreate("Freeze gap house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Jack", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    const kv = env.HONEYDEW as KVNamespace;
+
+    // Simulate: user had a 4-day streak but last active 2 days ago (missed yesterday)
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 2, 4, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    // Freeze should still preserve the streak value (4) even though there's a gap
+    const result = await db.UserFreezeStreak(user_id);
+    expect(result).not.toBeNull();
+    expect(result!.streak).toBe(4);
+
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(4);
+    expect(row!.last_active_date).toBe(today);
+  });
 });
 
 describe('Clothing tests', () => {
