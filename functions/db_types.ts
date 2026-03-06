@@ -94,9 +94,14 @@ const TelegramCallbackKVPayloadCompleteChoreZ = TelegramCallbackKVPayloadBaseZ.e
 const TelegramCallbackKVPayloadAnotherChoreZ = TelegramCallbackKVPayloadBaseZ.extend({
     type: z.literal("ANOTHER_CHORE"),
 });
+const TelegramCallbackKVPayloadOutOfTownZ = TelegramCallbackKVPayloadBaseZ.extend({
+    type: z.literal("OUT_OF_TOWN"),
+    chore_id: ChoreIdz,
+});
 export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
     TelegramCallbackKVPayloadCompleteChoreZ,
     TelegramCallbackKVPayloadAnotherChoreZ,
+    TelegramCallbackKVPayloadOutOfTownZ,
 ]);
 
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
