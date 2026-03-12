@@ -254,6 +254,91 @@ describe('Telegram callback tests', () => {
     expect(edited_message_text).toContain("You completed this chore!");
     expect(edited_message_text).toContain("Hey, today your chore is: Do the thing!");
   });
+
+  it('can handle an out-of-town callback and freeze streak', async () => {
+    let removed_markup = false;
+    let answer_text = "";
+    telegram.registerListener(async (x) => {
+      if (x.type == "POST" && x.method == "editMessageReplyMarkup") {
+        removed_markup = true;
+      }
+      if (x.type == "POST" && x.method == "answerCallbackQuery") {
+        answer_text = x.data.text || "";
+      }
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("Out of town house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+
+    const user_id = (await db.UserCreate("Traveler", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const timestamp = getJulianDate();
+    const chat_id = 5555555;
+    const tuser_id = 6666666;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, tuser_id)).toBe(true);
+
+    // Give the user a streak
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 1, 5, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    const chore = await db.ChoreCreate("Water plants", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    // Create an out-of-town callback
+    const callback = await db.TelegramCallbackCreate({
+      user_id,
+      type: "OUT_OF_TOWN",
+      chore_id: chore.id
+    });
+    expect(callback).not.toBeNull();
+    if (callback == null) return;
+
+    const query: TelegramCallbackQuery = {
+      id: "out-of-town-callback-id",
+      message: {
+        message_id: 99999,
+        chat: { id: chat_id, type: "private" },
+        date: timestamp,
+      },
+      from: { id: tuser_id, is_bot: false, first_name: "Traveler" },
+      chat_instance: "the chat instance",
+      data: callback,
+    };
+    const update1: TelegramUpdate = {
+      update_id: Math.floor(timestamp),
+      callback_query: query
+    };
+
+    const result = await HandleTelegramUpdate(db, update1);
+    expect(result.status).toEqual(200);
+    expect(removed_markup).toBe(true);
+
+    // Verify streak is frozen (5) and last_active_date is today
+    const row = await d1.prepare("SELECT current_streak, last_active_date FROM users WHERE id = ?")
+      .bind(user_id)
+      .first();
+    expect(row).not.toBeNull();
+    expect(row!.current_streak).toBe(5);
+    expect(row!.last_active_date).toBe(today);
+
+    // Verify the chore was NOT completed (lastDone should not change)
+    const chore_after = await db.ChoreGet(chore.id);
+    expect(chore_after).not.toBeNull();
+    expect(chore_after!.lastDone).toBe(chore.lastDone);
+
+    // Verify answer text mentions frozen streak
+    expect(answer_text).toContain("frozen");
+    expect(answer_text).toContain("5");
+  });
 });
 
 // Also stick the trigger stuff in here, because why not?
@@ -345,6 +430,58 @@ describe('Trigger tests', () => {
       await TriggerChores(db, i);
     }
   });
+  it('reminder includes out-of-town button when user has a streak', async () => {
+    let message_count = 0;
+    let has_out_of_town_button = false;
+    telegram.registerListener(async (x) => {
+      message_count += 1;
+      if (x.type == "POST" && x.method == "sendMessage" && x.data.reply_markup) {
+        const keyboard = x.data.reply_markup;
+        if (keyboard.inline_keyboard?.some((row: any[]) =>
+          row.some((btn: any) => btn.text === "I'm Out of Town")
+        )) {
+          has_out_of_town_button = true;
+        }
+      }
+      return generateTelegramResponse(null);
+    });
+
+    const house_id = (await db.HouseholdCreate("Streak reminder house"))?.id;
+    expect(house_id).not.toBeNull();
+    if (house_id == null) return;
+    expect(await db.HouseAutoAssignSetTime(house_id, 5)).toBe(true);
+
+    const user_id = (await db.UserCreate("Streaker", house_id))?.id;
+    expect(user_id).not.toBeNull();
+    if (user_id == null) return;
+
+    const chat_id = 7777777;
+    expect(await db.UserRegisterTelegram(user_id, chat_id, 8888888)).toBe(true);
+
+    // Give the user a streak
+    const today = Math.floor(getJulianDate());
+    const d1 = env.HONEYDEWSQL as D1Database;
+    await d1.prepare("UPDATE users SET last_active_date = ?, current_streak = ? WHERE id = ?")
+      .bind(today - 1, 3, user_id)
+      .run();
+    await kv.delete(user_id);
+
+    const chore = await db.ChoreCreate("Sweep floor", house_id, 1, 10);
+    expect(chore).not.toBeNull();
+    if (chore == null) return;
+
+    // Run assignment at hour 5
+    await TriggerChores(db, 5);
+    // message_count = 1 (assignment message)
+    const assignment_messages = message_count;
+
+    // Run reminder at hour 17 (5 + 12)
+    await TriggerChores(db, 17);
+    // Should have sent a reminder with the out-of-town button
+    expect(message_count).toBeGreaterThan(assignment_messages);
+    expect(has_out_of_town_button).toBe(true);
+  });
+
   it('no reminder when chores were not recently assigned', async () => {
     let message_count = 0;
     telegram.registerListener(async (x) => {

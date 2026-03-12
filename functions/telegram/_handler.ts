@@ -104,6 +104,27 @@ async function HandleTelegramCompleteChore(db: Database, message:TelegramUpdateC
     }
 }
 
+async function HandleTelegramOutOfTown(db: Database, message: TelegramUpdateCallbackQuery, payload: TelegramCallbackKVPayload): Promise<TelegramAnswerCallbackQuery|null> {
+    if (payload.type != "OUT_OF_TOWN") return null;
+    const result = await db.UserFreezeStreak(payload.user_id);
+    if (result == null) {
+        return {
+            callback_query_id: message.callback_query.id,
+            text: "Something went wrong, try again from the website",
+        }
+    }
+    // Skip the current chore so it can be reassigned
+    await db.ChoreSkipCurrentChore(payload.user_id);
+    let responseText = "Streak frozen! Enjoy your time away.";
+    if (result.streak > 2) {
+        responseText = `Streak frozen at ${result.streak} days! Enjoy your time away.`;
+    }
+    return {
+        callback_query_id: message.callback_query.id,
+        text: responseText
+    }
+}
+
 export async function HandleTelegramUpdateCallbackQuery(db: Database, message: TelegramUpdateCallbackQuery) {
     try {
         const uuid = message.callback_query.data;
@@ -136,6 +157,9 @@ export async function HandleTelegramUpdateCallbackQuery(db: Database, message: T
                     await db.GetTelegram().editMessageText(chat_id, message_id, completedText);
                 }
             }
+        }
+        if (payload.type == "OUT_OF_TOWN") {
+            answer_callback = await HandleTelegramOutOfTown(db, message, payload);
         }
         if (answer_callback != null) {
             // console.error("HandleTelegramUpdateCallbackQuery", answer_callback);

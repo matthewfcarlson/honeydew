@@ -2,12 +2,13 @@ import { defineStore } from 'pinia';
 import { createTRPCProxyClient, httpBatchLink, TRPCClientError } from '@trpc/client';
 import type { AppRouter } from "../../functions/api/router";
 import axios, { AxiosError } from "axios";
-import { AuthCheck, AuthCheckZ, AuthSignupRequest, AuthSignupRequestZ, AuthSignupResponse, AuthSignupResponseZ } from "../../functions/auth/auth_types";
-import { boolean, ZodError } from 'zod';
-import { AugmentedDbProject, ChoreIdz, DbCardBoxRecipe, DbChore, DbClothing, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId, UserIdZ, ClothingIdZ, } from '../../functions/db_types'; // can I bring this in?
-import { RecipeIdZ } from '../../functions/db_types'; // can I bring this in?
-import { TRPCError } from '@trpc/server';
+import type { AuthCheck, AuthSignupRequest, AuthSignupResponse } from "../../functions/auth/auth_types";
+import type { AugmentedDbProject, DbCardBoxRecipe, DbChore, DbClothing, DbHouseholdExtended, DbProject, DbTask, ProjectId, TaskId } from '../../functions/db_types';
 import { getJulianDate } from '../../functions/_utils';
+
+// Lazy-load Zod schemas to keep them out of the initial vendor bundle
+const loadAuthSchemas = () => import("../../functions/auth/auth_types");
+const loadDbSchemas = () => import("../../functions/db_types");
 
 interface APIResultSuccess<T> {
     success: true;
@@ -83,8 +84,8 @@ function handleError(err: unknown): APIResultError {
         }
         return { success: false, message: `Request failed (HTTP ${status || err.code || 'unknown'})`, code: status };
     }
-    if (err instanceof ZodError) {
-        const issues = err.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+    if (err instanceof Error && err.name === 'ZodError' && 'issues' in err) {
+        const issues = (err as any).issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join('; ');
         console.error(`[Validation Error]`, issues);
         return { success: false, message: `Validation error: ${issues}` };
     }
@@ -129,18 +130,18 @@ export const useUserStore = defineStore("user", {
         let _currentProject = null;
         let _needsUserFetch = false;
         if ((window as any).user_data != undefined) {
-            const raw_data = (window as any).user_data;
-            const user_data = AuthCheckZ.strict().safeParse(raw_data, {});
-            if (user_data.success) {
-                _user = user_data.data;
+            // Trust server-provided data shape for fast init; Zod validation deferred to initialize()
+            const raw_data = (window as any).user_data as AuthCheck;
+            if (raw_data && raw_data.id && raw_data.household) {
+                _user = raw_data;
                 _household = _user.household;
-                const current_user_member = _household.members.filter((x) => x.userid == user_data.data.id);
+                const current_user_member = _household.members.filter((x: any) => x.userid == raw_data.id);
                 _currentChore = (current_user_member.length > 0) ? current_user_member[0].current_chore : null;
-                _currentTask = user_data.data.household.current_task;
-                _currentProject = user_data.data.household.current_project;
+                _currentTask = raw_data.household.current_task;
+                _currentProject = raw_data.household.current_project;
             }
             else {
-                console.warn("Initial user_data failed validation, will re-fetch from API:", user_data.error);
+                console.warn("Initial user_data missing required fields, will re-fetch from API");
                 _needsUserFetch = true;
             }
         }
@@ -258,6 +259,15 @@ export const useUserStore = defineStore("user", {
             this._needsUserFetch = false;
         },
         async initialize() {
+            // Deferred Zod validation of server-provided user data
+            if (this._loggedIn && this._user && !this._needsUserFetch) {
+                const { AuthCheckZ } = await loadAuthSchemas();
+                const validation = AuthCheckZ.strict().safeParse(this._user);
+                if (!validation.success) {
+                    console.warn("Deferred user_data validation failed, re-fetching:", validation.error);
+                    this._needsUserFetch = true;
+                }
+            }
             if (!this._loggedIn || !this._needsUserFetch) return;
             const result = await this.fetchUser();
             if (!result.success) {
@@ -392,6 +402,7 @@ export const useUserStore = defineStore("user", {
         async RecipeFavorite(id: string, favored: boolean): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { RecipeIdZ } = await loadDbSchemas();
                 const recipe_id = RecipeIdZ.parse(id);
                 if (favored) {
                     // First remove it from to try
@@ -419,6 +430,7 @@ export const useUserStore = defineStore("user", {
         async RecipeRemove(id: string): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { RecipeIdZ } = await loadDbSchemas();
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.remove.query(recipe_id);
                 this.RecipeFetch(); // kick off a request to refresh this
@@ -435,6 +447,7 @@ export const useUserStore = defineStore("user", {
         },
         async RecipeMarkMealPrep(id: string, prepared: boolean): APIResult<boolean> {
             try {
+                const { RecipeIdZ } = await loadDbSchemas();
                 const recipe_id = RecipeIdZ.parse(id);
                 const result = await client.recipes.mark_meal_prep.query({ recipe_id, prepared });
                 this.RecipeFetch(); // kick off a request to refresh this
@@ -505,6 +518,7 @@ export const useUserStore = defineStore("user", {
         async ChoreAssign(chore_id_str: string, assignee_id_str: string | null): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { ChoreIdz, UserIdZ } = await loadDbSchemas();
                 const chore_id = ChoreIdz.parse(chore_id_str);
                 const assignee_id = UserIdZ.nullable().parse(assignee_id_str);
                 const result = await client.chores.assignTo.query({ raw_choreid: chore_id, raw_assigneeid: assignee_id });
@@ -732,6 +746,7 @@ export const useUserStore = defineStore("user", {
         async ClothesDelete(id: string): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { ClothingIdZ } = await loadDbSchemas();
                 const clothing_id = ClothingIdZ.parse(id);
                 const result = await client.clothes.delete.query(clothing_id);
                 this.ClothesFetch();
@@ -746,6 +761,7 @@ export const useUserStore = defineStore("user", {
         async ClothesMarkWorn(id: string): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { ClothingIdZ } = await loadDbSchemas();
                 const clothing_id = ClothingIdZ.parse(id);
                 const result = await client.clothes.mark_worn.query(clothing_id);
                 this.ClothesFetch();
@@ -760,6 +776,7 @@ export const useUserStore = defineStore("user", {
         async ClothesUploadPhoto(id: string, photoBase64: string): APIResult<boolean> {
             try {
                 this._thinking = true;
+                const { ClothingIdZ } = await loadDbSchemas();
                 const clothing_id = ClothingIdZ.parse(id);
                 const result = await client.clothes.upload_photo.query({ id: clothing_id, photo: photoBase64 });
                 this.ClothesFetch();
@@ -774,6 +791,7 @@ export const useUserStore = defineStore("user", {
         async ClothesGetPhoto(id: string): APIResult<string | null> {
             try {
                 this._thinking = true;
+                const { ClothingIdZ } = await loadDbSchemas();
                 const clothing_id = ClothingIdZ.parse(id);
                 const result = await client.clothes.get_photo.query(clothing_id);
                 this._thinking = false;
@@ -808,6 +826,7 @@ export const useUserStore = defineStore("user", {
                 turnstile
             }
             try {
+                const { AuthSignupRequestZ, AuthSignupResponseZ } = await loadAuthSchemas();
                 const post_body = AuthSignupRequestZ.parse(raw_body);
                 const result = await axios.post("/auth/signup", post_body);
                 const data = AuthSignupResponseZ.parse(result.data);

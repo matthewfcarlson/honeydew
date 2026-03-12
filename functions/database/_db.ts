@@ -324,6 +324,38 @@ export default class Database {
         }
     }
 
+    /**
+     * Freezes the user's streak by updating last_active_date to today without
+     * incrementing the streak counter. This prevents the streak from resetting
+     * when the user is out of town.
+     * @returns Object with current streak, or null on failure
+     */
+    async UserFreezeStreak(user_id: UserId): Promise<{ streak: number } | null> {
+        try {
+            const user = await this.UserGet(user_id);
+            if (user == null) return null;
+
+            const today = Math.floor(getJulianDate());
+
+            // If already active today, nothing to do
+            if (user.last_active_date === today) {
+                return { streak: user.current_streak };
+            }
+
+            // Set last_active_date to today but keep the same streak value
+            await this._db.updateTable("users")
+                .where("id", "==", user_id)
+                .set({ last_active_date: today })
+                .execute();
+
+            await this.CacheInvalidate(user_id);
+            return { streak: user.current_streak };
+        } catch (err) {
+            console.error("UserFreezeStreak", err);
+            return null;
+        }
+    }
+
     async UserSetOutfitReminders(raw_user_id: UserId, enabled: boolean): Promise<boolean> {
         try {
             const user_id = UserIdZ.parse(raw_user_id);
