@@ -106,8 +106,18 @@ export const TelegramCallbackKVPayloadZ = z.discriminatedUnion("type", [
 
 export type TelegramCallbackKVPayload = z.infer<typeof TelegramCallbackKVPayloadZ>;
 
+// Eink display token: EK:{50-char random key} -> stored payload with household + user
+export const EinkTokenKVKeyZ = z.string().startsWith("EK:").brand<"EinkTokenKVKey">();
+export type EinkTokenKVKey = z.infer<typeof EinkTokenKVKeyZ>;
+
+export const EinkTokenKVPayloadZ = z.object({
+    house_id: HouseIdZ,
+    user_id: UserIdZ,
+});
+export type EinkTokenKVPayload = z.infer<typeof EinkTokenKVPayloadZ>;
+
 export type DbIds = UserId | HouseId | ProjectId | TaskId | RecipeId | ChoreId | ClothingId;
-export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey | ClothingPhotoKVKey;
+export type KVIds = CacheIds | UserChoreCacheKVKey | MagicKVKey | HouseKeyKVKey | TelegramCallbackKVKey | HouseholdTaskAssignmentKVKey | HouseExpectingKVKey | ClothingPhotoKVKey | EinkTokenKVKey;
 export type CacheIds = UserId | HouseId | HouseExtendedKVId;
 
 export interface KVDataObj {

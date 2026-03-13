@@ -20,6 +20,7 @@ export default defineWorkersConfig({
         "functions/triggers/**/*.ts",
         "functions/telegram/**/*.ts",
         "functions/api/**/*.ts",
+        "functions/eink/**/*.ts",
       ],
     },
   },

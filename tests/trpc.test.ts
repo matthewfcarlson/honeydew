@@ -7,7 +7,7 @@ import { createInnerContext } from '../functions/api/context';
 import { appRouter } from '../functions/api/router';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
-import { DbUser } from '../functions/db_types';
+import { DbUser, EinkTokenKVKeyZ } from '../functions/db_types';
 import { HoneydewPageData, HoneydewPageEnv } from '../functions/types';
 import { getJulianDate } from '../functions/_utils';
 
@@ -338,12 +338,81 @@ describe('project tests', () => {
     });
 });
 
-//   const input: inferProcedureInput<AppRouter[']['add']> = {
-//     text: 'hello test',
-//     title: 'hello test',
-//   };
+describe('eink token tests', () => {
+    test('you can create an eink token', async () => {
+        const house = await db.HouseholdCreate("EINK HOUSE");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        const user = await db.UserCreate("EINK USER", house.id);
+        expect(user).not.toBeNull();
+        if (user == null) return;
 
-//   const post = await caller.post.add(input);
-//   const byId = await caller.post.byId({ id: post.id });
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
 
-//   expect(byId).toMatchObject(input);
+        const result = await caller.household.createEinkToken();
+        expect(result.token).toBeTruthy();
+        expect(result.token.length).toBe(50);
+        expect(result.display_url).toContain("/eink/");
+    });
+
+    test('you can revoke an eink token', async () => {
+        const house = await db.HouseholdCreate("EINK HOUSE 2");
+        expect(house).not.toBeNull();
+        if (house == null) return;
+        const user = await db.UserCreate("EINK USER 2", house.id);
+        expect(user).not.toBeNull();
+        if (user == null) return;
+
+        const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
+
+        const result = await caller.household.createEinkToken();
+        expect(result.token).toBeTruthy();
+
+        // Verify we can look up the token
+        const kv_key = EinkTokenKVKeyZ.parse("EK:" + result.token);
+        const payload = await db.EinkTokenLookup(kv_key);
+        expect(payload).not.toBeNull();
+
+        // Revoke it
+        const revoked = await caller.household.revokeEinkToken(result.token);
+        expect(revoked).toBe(true);
+
+        // Verify it's gone
+        const payload2 = await db.EinkTokenLookup(kv_key);
+        expect(payload2).toBeNull();
+    });
+
+    test('cannot revoke a token from another household', async () => {
+        const house1 = await db.HouseholdCreate("EINK HOUSE A");
+        expect(house1).not.toBeNull();
+        if (house1 == null) return;
+        const user1 = await db.UserCreate("EINK USER A", house1.id);
+        expect(user1).not.toBeNull();
+        if (user1 == null) return;
+
+        const house2 = await db.HouseholdCreate("EINK HOUSE B");
+        expect(house2).not.toBeNull();
+        if (house2 == null) return;
+        const user2 = await db.UserCreate("EINK USER B", house2.id);
+        expect(user2).not.toBeNull();
+        if (user2 == null) return;
+
+        // User1 creates a token
+        const ctx1 = await createInnerContext(createData(user1), ENV, ROOT_URL);
+        const caller1 = appRouter.createCaller(ctx1);
+        const result = await caller1.household.createEinkToken();
+
+        // User2 tries to revoke it
+        const ctx2 = await createInnerContext(createData(user2), ENV, ROOT_URL);
+        const caller2 = appRouter.createCaller(ctx2);
+        await expect(caller2.household.revokeEinkToken(result.token)).rejects.toThrowError();
+    });
+
+    test('unauthenticated user cannot create eink token', async () => {
+        const ctx = await createInnerContext(createData(null), ENV, ROOT_URL);
+        const caller = appRouter.createCaller(ctx);
+        await expect(caller.household.createEinkToken()).rejects.toThrowError();
+    });
+});

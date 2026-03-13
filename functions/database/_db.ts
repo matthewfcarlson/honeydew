@@ -1,7 +1,7 @@
 import { TelegramAPI, TelegramInlineKeyboardMarkup } from "./_telegram";
 import { z } from "zod";
 import { getJulianDate, pickRandomUserIconAndColor } from "../_utils";
-import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ, ClothingCategory, ClothingCategoryZ, CATEGORY_WASH_DEFAULTS, ClothingPhotoKVKey, ClothingPhotoKVKeyZ } from "../db_types";
+import { ChoreIdz, ChoreId, DbCardBox, DbCardBoxRaw, DbCardBoxZ, DbChoreRaw, KVDataObj, DbHousehold, DbHouseholdRaw, DbHouseholdZ, DbHouseKey, DbHouseKeyRaw, DbHouseKeyZ, DbProject, DbProjectRaw, DbProjectZ, DbRecipe, DbRecipeRaw, DbRecipeZ, DbTask, DbTaskRaw, DbTaskZ, DbUser, DbUserRaw, DbUserZ, HouseId, HouseIdZ, HouseKeyKVKey, HouseKeyKVKeyZ, ProjectId, ProjectIdZ, RecipeId, RecipeIdZ, TaskId, TaskIdZ, UserId, UserIdZ, DbChoreZ, DbChore, DbCardBoxRecipe, DbCardBoxRecipeZ, DbMagicKey, DbMagicKeyZ, MagicKVKey, MagicKVKeyZ, KVIds, UserChoreCacheKVKeyZ, DbHouseAutoAssignment, DbHouseAutoAssignmentRaw, DbHouseAutoAssignmentZ, TelegramCallbackKVKey, TelegramCallbackKVPayload, TelegramCallbackKVKeyZ, TelegramCallbackKVPayloadZ, AugmentedDbProject, DbHouseholdExtended, DbHouseholdExtendedZ, HouseExtendedKVIdZ, DbHouseholdExtendedRaw, CacheIds, DbHouseholdExtendedMemberRaw, DbHouseholdExtendedMemberRawZ, HouseExtendedKVIdFromHouseId, HouseholdTaskAssignmentKVKeyZ, DbDateZ, HouseExpectingKVKeyZ, ClothingId, ClothingIdZ, DbClothing, DbClothingRaw, DbClothingZ, ClothingCategory, ClothingCategoryZ, CATEGORY_WASH_DEFAULTS, ClothingPhotoKVKey, ClothingPhotoKVKeyZ, EinkTokenKVKey, EinkTokenKVKeyZ, EinkTokenKVPayload, EinkTokenKVPayloadZ } from "../db_types";
 import { Kysely, Migrator, ColumnType } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { HoneydewMigrations, LatestHoneydewDBVersion } from "./migration";
@@ -425,6 +425,44 @@ export default class Database {
             return {user: null, error: "USER_DB_MISMATCH"};
         }
         return {user, error: null};
+    }
+
+    // ---- Eink Display Token Methods ----
+
+    async EinkTokenCreate(user_id: UserId, house_id: HouseId): Promise<string | null> {
+        try {
+            UserIdZ.parse(user_id);
+            HouseIdZ.parse(house_id);
+            const token = makeid(50);
+            const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
+            const payload: EinkTokenKVPayload = EinkTokenKVPayloadZ.parse({ house_id, user_id });
+            await this.setKVRaw(kv_key, payload, 0); // no TTL (0 = never expire) - stays until revoked
+            return token;
+        } catch (err) {
+            console.error("EinkTokenCreate", err);
+            return null;
+        }
+    }
+
+    async EinkTokenLookup(kv_key: EinkTokenKVKey): Promise<EinkTokenKVPayload | null> {
+        try {
+            const raw = await this.queryKVJson(kv_key);
+            if (raw == null) return null;
+            return EinkTokenKVPayloadZ.parse(raw);
+        } catch (err) {
+            console.error("EinkTokenLookup", err);
+            return null;
+        }
+    }
+
+    async EinkTokenRevoke(kv_key: EinkTokenKVKey): Promise<boolean> {
+        try {
+            await this.deleteKey(kv_key);
+            return true;
+        } catch (err) {
+            console.error("EinkTokenRevoke", err);
+            return false;
+        }
     }
 
     async HouseholdGenerateUUID() {

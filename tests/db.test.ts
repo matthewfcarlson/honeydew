@@ -3,7 +3,7 @@ import { env } from 'cloudflare:test';
 import { TelegramAPI } from "../functions/database/_telegram";
 import Database from "../functions/database/_db";
 import { getJulianDate } from "../functions/_utils";
-import { HouseId } from "functions/db_types";
+import { HouseId, EinkTokenKVKeyZ } from "functions/db_types";
 
 function createDB() {
   const telegram = new TelegramAPI("TESTING");
@@ -1409,5 +1409,61 @@ describe('Telegram callback tests', () => {
 
     expect(await db.TelegramCallbackExists(id)).toBe(false);
 
+  });
+});
+
+describe('Eink token tests', () => {
+  it('can create and lookup an eink token', async () => {
+    const house = await db.HouseholdCreate("EINK HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const user = await db.UserCreate("EINK USER", house.id);
+    expect(user).not.toBeNull();
+    if (user == null) return;
+
+    const token = await db.EinkTokenCreate(user.id, house.id);
+    expect(token).not.toBeNull();
+    if (token == null) return;
+    expect(token.length).toBe(50);
+
+    const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
+    const payload = await db.EinkTokenLookup(kv_key);
+    expect(payload).not.toBeNull();
+    if (payload == null) return;
+    expect(payload.house_id).toBe(house.id);
+    expect(payload.user_id).toBe(user.id);
+  });
+
+  it('returns null for invalid token lookup', async () => {
+    const kv_key = EinkTokenKVKeyZ.parse("EK:this-is-not-a-real-token-but-it-needs-to-be-50chr");
+    const payload = await db.EinkTokenLookup(kv_key);
+    expect(payload).toBeNull();
+  });
+
+  it('can revoke an eink token', async () => {
+    const house = await db.HouseholdCreate("EINK REVOKE HOUSE");
+    expect(house).not.toBeNull();
+    if (house == null) return;
+    const user = await db.UserCreate("EINK REVOKE USER", house.id);
+    expect(user).not.toBeNull();
+    if (user == null) return;
+
+    const token = await db.EinkTokenCreate(user.id, house.id);
+    expect(token).not.toBeNull();
+    if (token == null) return;
+
+    const kv_key = EinkTokenKVKeyZ.parse("EK:" + token);
+
+    // Token should be valid
+    const payload = await db.EinkTokenLookup(kv_key);
+    expect(payload).not.toBeNull();
+
+    // Revoke it
+    const revoked = await db.EinkTokenRevoke(kv_key);
+    expect(revoked).toBe(true);
+
+    // Should no longer be valid
+    const payload2 = await db.EinkTokenLookup(kv_key);
+    expect(payload2).toBeNull();
   });
 });
