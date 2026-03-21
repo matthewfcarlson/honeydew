@@ -273,6 +273,22 @@ const HoneydewVersion12 = {
     }
 }
 
+const HoneydewVersion13 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "PROJECTS"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('prep_time', 'integer', (col) => col.notNull().defaultTo(15)) // prep time in minutes
+                .execute()
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('work_time', 'integer', (col) => col.notNull().defaultTo(45)) // work time in minutes
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -285,6 +301,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion9,
     HoneydewVersion10,
     HoneydewVersion11,
-    HoneydewVersion12
+    HoneydewVersion12,
+    HoneydewVersion13
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

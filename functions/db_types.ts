@@ -188,6 +188,8 @@ export const DbProjectZRaw = z.object({
     id: ProjectIdZ,
     description: z.string().min(1).max(255),
     household: HouseIdZ,
+    prep_time: z.number().nonnegative().default(15), // prep time in minutes
+    work_time: z.number().nonnegative().default(45), // work time in minutes
 });
 export const DbProjectZ = DbProjectZRaw.brand<"Project">();
 export type DbProjectRaw = z.infer<typeof DbProjectZRaw>;

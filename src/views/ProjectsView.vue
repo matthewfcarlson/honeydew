@@ -22,6 +22,10 @@
     <router-link class="box" v-for="project in projects" :key="project.id" :to="'/projects/' + project.id">
       <ChoreIconComponent :chore_name="project.description" />
       <span class="title is-5">{{ project.description }}</span>
+      <div class="tags mt-1">
+        <span class="tag is-info is-light">{{ project.prep_time }} min prep</span>
+        <span class="tag is-primary is-light">{{ project.work_time }} min work</span>
+      </div>
       <div v-if="project.total_subtasks > 0">
         <progress class="progress" :value="project.done_subtasks" :max="project.total_subtasks">{{
           Math.round(project.done_subtasks / project.total_subtasks * 100)
@@ -34,6 +38,18 @@
     <div class="box">
       <div>Add a new project</div>
       <input v-model="project_name" placeholder="Project name" />
+      <div class="field is-horizontal mt-2">
+        <div class="field-body">
+          <div class="field">
+            <label class="label is-small">Prep time (min)</label>
+            <input v-model.number="prep_time" type="number" min="0" placeholder="15" class="input is-small" />
+          </div>
+          <div class="field">
+            <label class="label is-small">Work time (min)</label>
+            <input v-model.number="work_time" type="number" min="0" placeholder="45" class="input is-small" />
+          </div>
+        </div>
+      </div>
       <button @click="add_project">Add</button>
     </div>
   </div>
@@ -51,6 +67,8 @@ export default defineComponent({
   data() {
     return {
       project_name: "",
+      prep_time: 15,
+      work_time: 45,
       error: "",
     }
 
@@ -73,10 +91,12 @@ export default defineComponent({
   },
   methods: {
     add_project: async function () {
-      const status = await useUserStore().ProjectAdd(this.project_name);
+      const status = await useUserStore().ProjectAdd(this.project_name, this.prep_time, this.work_time);
       console.log(status);
       if (status.success == true) {
         this.project_name = "";
+        this.prep_time = 15;
+        this.work_time = 45;
       }
       else {
         this.error = status.message;

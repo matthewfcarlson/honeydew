@@ -291,7 +291,7 @@ describe('project tests', () => {
         const ctx = await createInnerContext(createData(user), ENV, ROOT_URL);
         const caller = appRouter.createCaller(ctx);
 
-        expect(await caller.projects.add("Test Project")).toBe(true);
+        expect(await caller.projects.add({ description: "Test Project" })).toBe(true);
 
         let projects = await caller.projects.get_projects();
         expect(projects).not.toBeNull();
@@ -659,7 +659,7 @@ describe('cross-household permission tests', () => {
         const caller2 = appRouter.createCaller(ctx2);
 
         // User1 creates a project
-        await caller1.projects.add("Secret Project");
+        await caller1.projects.add({ description: "Secret Project" });
         const projects = await caller1.projects.get_projects();
         expect(projects).toHaveLength(1);
         const project_id = projects[0].id;
@@ -689,7 +689,7 @@ describe('cross-household permission tests', () => {
         const caller2 = appRouter.createCaller(ctx2);
 
         // User1 creates a project + task
-        await caller1.projects.add("Protected Project");
+        await caller1.projects.add({ description: "Protected Project" });
         const projects = await caller1.projects.get_projects();
         const project_id = projects[0].id;
         await caller1.projects.add_task({description: "Protected Task", project: project_id, requirement1: null, requirement2: null});
@@ -726,7 +726,7 @@ describe('cross-household permission tests', () => {
         const caller2 = appRouter.createCaller(ctx2);
 
         // User1 creates a project + task
-        await caller1.projects.add("Secure Project");
+        await caller1.projects.add({ description: "Secure Project" });
         const projects = await caller1.projects.get_projects();
         const project_id = projects[0].id;
         await caller1.projects.add_task({description: "Secure Task", project: project_id, requirement1: null, requirement2: null});
@@ -758,7 +758,7 @@ describe('cross-household permission tests', () => {
         const caller2 = appRouter.createCaller(ctx2);
 
         // User1 creates a project
-        await caller1.projects.add("Guarded Project");
+        await caller1.projects.add({ description: "Guarded Project" });
         const projects = await caller1.projects.get_projects();
         const project_id = projects[0].id;
 

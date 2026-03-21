@@ -1069,7 +1069,7 @@ export default class Database {
         }
     }
 
-    async ProjectCreate(description: string, household: HouseId) {
+    async ProjectCreate(description: string, household: HouseId, prep_time: number = 15, work_time: number = 45) {
         try {
             const id = await this.ProjectGenerateUUID();
             if (id == null) {
@@ -1079,6 +1079,8 @@ export default class Database {
                 id,
                 household,
                 description,
+                prep_time,
+                work_time,
             } as DbProjectRaw);
             await this._db.insertInto("projects").values(project).executeTakeFirstOrThrow();
 

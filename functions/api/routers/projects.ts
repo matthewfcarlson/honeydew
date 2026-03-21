@@ -32,11 +32,15 @@ const Router = router({
     const projects = await db.ProjectsListAugmented(user.household);
     return projects;
   }),
-  add: protectedProcedure.input(DbProjectZRaw.shape.description).query(async (ctx) => {
+  add: protectedProcedure.input(DbProjectZRaw.pick({
+    description: true,
+    prep_time: true,
+    work_time: true,
+  })).query(async (ctx) => {
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
-    const description = ctx.input;
-    const project = await db.ProjectCreate(description, user.household);
+    const { description, prep_time, work_time } = ctx.input;
+    const project = await db.ProjectCreate(description, user.household, prep_time, work_time);
     if (project == null) throw new TRPCError({ code: "UNAUTHORIZED" });
     return true;
   }),
