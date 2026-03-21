@@ -592,10 +592,10 @@ export const useUserStore = defineStore("user", {
 
         },
 
-        async ProjectAdd(name: string): APIResult<boolean> {
+        async ProjectAdd(name: string, prep_time: number = 15, work_time: number = 45): APIResult<boolean> {
             try {
                 this._thinking = true;
-                const result = await client.projects.add.query(name);
+                const result = await client.projects.add.query({ description: name, prep_time, work_time });
                 // TODO add the core to the list
                 this.ProjectsFetch(); // kick off a request to refresh this
                 this._thinking = false;

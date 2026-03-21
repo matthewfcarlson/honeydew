@@ -7,6 +7,10 @@
         {{ project.total_subtasks - project.done_subtasks }} tasks left |
         {{ project.total_subtasks }} total tasks</span>
     </h1>
+    <div class="tags">
+      <span class="tag is-info is-light">{{ project.prep_time }} min prep</span>
+      <span class="tag is-primary is-light">{{ project.work_time }} min work</span>
+    </div>
     <div class="notification is-danger" v-if="error.length > 0">{{ error }}</div>
     <hr />
     <vue-mermaid-string :value="diagram" />

@@ -69,6 +69,9 @@
             <ChoreIconComponent :chore_name="currentTask.description" />
             <div class="is-size-4 is-capitalized has-text-weight-semibold"> {{ currentTask.description }} </div> &nbsp;
             <div class="is-size-4" v-if="currentProject != null">{{ currentProject.description }}</div>
+            <div class="tags ml-2" v-if="currentProject != null && (currentProject.prep_time + currentProject.work_time) > 0">
+              <span class="tag is-info is-light">{{ currentProject.prep_time + currentProject.work_time }} min</span>
+            </div>
           </div>
           <div class="level-right" v-if="currentTask.completed == null">
             <a :href="'/projects/' + currentProject.id" v-if="currentProject != null">View Project</a> &nbsp;
