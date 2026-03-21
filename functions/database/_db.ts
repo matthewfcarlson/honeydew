@@ -928,6 +928,8 @@ export default class Database {
                 .select("main.id").select("main.description")
                 .select("main.project as project_id")
                 .select("projects.description as project_name")
+                .select("projects.prep_time as prep_time")
+                .select("projects.work_time as work_time")
                 .select("main.requirement1 as req1_id").select("main.requirement2 as req2_id")
                 .select("req1.completed as req1_completed").select("req2.completed as req2_completed");
             const results = await query_base.execute();
@@ -954,7 +956,9 @@ export default class Database {
             const projectTasks = projectGroups.get(selectedProjectKey)!;
             const selected_task = projectTasks[0];
             // Now we message the household that we've assigned a task
-            const message = `Today's household project is *${selected_task.description}* as part of _${selected_task.project_name || "a project"}_`;
+            const totalTime = (selected_task.prep_time || 0) + (selected_task.work_time || 0);
+            const timeStr = totalTime > 0 ? ` \\(${totalTime} min\\)` : "";
+            const message = `Today's household project is *${selected_task.description}* as part of _${selected_task.project_name || "a project"}_${timeStr}`;
             const promises = [
                 this.HouseholdTelegramMessageAllMembers(id, message, true),
                 this.setKVRaw(kv_key, selected_task.id, (60 * 60 * 23)), // if will last 23 hours

@@ -36,6 +36,9 @@ const Router = router({
     description: true,
     prep_time: true,
     work_time: true,
+  }).refine((data) => data.prep_time + data.work_time > 0, {
+    message: "Total time (prep + work) must be greater than zero",
+    path: ["prep_time"],
   })).query(async (ctx) => {
     const user = check_context(ctx);
     const db = ctx.ctx.data.db;
