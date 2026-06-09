@@ -221,6 +221,7 @@ export default class Database {
             last_active_date: null,
             current_streak: 0,
             outfit_reminders: 1,
+            telegram_notifications: 1,
         };
         const db_user = DbUserZ.parse(user);
         await this._db.insertInto("users").values(db_user).execute();
@@ -366,6 +367,20 @@ export default class Database {
         }
         catch (err) {
             console.error("UserSetOutfitReminders", err);
+            return false;
+        }
+    }
+
+    async UserSetTelegramNotifications(raw_user_id: UserId, enabled: boolean): Promise<boolean> {
+        try {
+            const user_id = UserIdZ.parse(raw_user_id);
+            if (await this.UserExists(user_id) == false) return false;
+            await this._db.updateTable("users").where("id", "==", user_id).set({ telegram_notifications: enabled ? 1 : 0 }).execute();
+            await this.CacheInvalidate(user_id);
+            return true;
+        }
+        catch (err) {
+            console.error("UserSetTelegramNotifications", err);
             return false;
         }
     }
@@ -524,10 +539,17 @@ export default class Database {
     async HouseholdTelegramMessageAllMembers(raw_id: HouseId, message: string, use_markdown: boolean = false, exclude_user?: UserId) {
         try {
             const id = HouseIdZ.parse(raw_id);
-            let query = this._db.selectFrom("users").select("_chat_id").where("household", "==", id);
+            // Only message members whose personal toggle is on AND whose household
+            // has telegram notifications enabled (both checked in a single query).
+            let query = this._db.selectFrom("users")
+                .innerJoin("households", "households.id", "users.household")
+                .select("users._chat_id")
+                .where("users.household", "==", id)
+                .where("users.telegram_notifications", "==", 1)
+                .where("households.telegram_notifications", "==", 1);
             if (exclude_user != undefined) {
                 const exclude_id = UserIdZ.parse(exclude_user);
-                query = query.where("id", "!=", exclude_id);
+                query = query.where("users.id", "!=", exclude_id);
             }
             const raw_results = await query.execute();
             if (raw_results == undefined) {
@@ -551,7 +573,16 @@ export default class Database {
     async HouseholdTelegramMessageOutfitMembers(raw_id: HouseId, message: string, use_markdown: boolean = false) {
         try {
             const id = HouseIdZ.parse(raw_id);
-            const raw_results = await this._db.selectFrom("users").select("_chat_id").where("household", "==", id).where("outfit_reminders", "==", 1).execute();
+            // Only message opted-in members whose personal telegram toggle is on AND
+            // whose household has telegram notifications enabled (single query).
+            const raw_results = await this._db.selectFrom("users")
+                .innerJoin("households", "households.id", "users.household")
+                .select("users._chat_id")
+                .where("users.household", "==", id)
+                .where("users.outfit_reminders", "==", 1)
+                .where("users.telegram_notifications", "==", 1)
+                .where("households.telegram_notifications", "==", 1)
+                .execute();
             if (raw_results == undefined) {
                 console.warn("HouseholdTelegramMessageOutfitMembers", `no members of ${raw_id} are opted in for outfit reminders`)
                 return true;
@@ -579,6 +610,7 @@ export default class Database {
                 id,
                 name,
                 expecting:null,
+                telegram_notifications: 1,
             };
             const house: DbHousehold = DbHouseholdZ.parse({
                 ...sql_house,
@@ -669,6 +701,27 @@ export default class Database {
             console.error("HouseExpectingSetDate", err);
             return false;
         }
+    }
+
+    async HouseholdSetTelegramNotifications(raw_id: HouseId, enabled: boolean): Promise<boolean> {
+        try {
+            const id = HouseIdZ.parse(raw_id);
+            if ((await this.HouseholdExists(id)) == false) return false;
+            await this._db.updateTable("households").where("id", "==", id).set({ telegram_notifications: enabled ? 1 : 0 }).executeTakeFirstOrThrow();
+            await this.CacheInvalidate(id);
+            return true;
+        }
+        catch (err) {
+            console.error("HouseholdSetTelegramNotifications", err);
+            return false;
+        }
+    }
+
+    // Returns true if the household has telegram notifications enabled (defaults to enabled if unset)
+    private async HouseholdTelegramEnabled(id: HouseId): Promise<boolean> {
+        const result = await this._db.selectFrom("households").select("telegram_notifications").where("id", "==", id).executeTakeFirst();
+        if (result == undefined) return false;
+        return result.telegram_notifications != 0;
     }
 
     async HouseAutoAssignSetTime(raw_id: HouseId, hour: number): Promise<boolean> {
@@ -810,7 +863,10 @@ export default class Database {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.5);
             const assignment_query = this._db.selectFrom("houseautoassign").where("choreAssignHour", "==", hour).where("choreLastAssignTime", "<", timestamp);
-            const joined_query = assignment_query.innerJoin("users", "users.household", "houseautoassign.house_id").select(["users._chat_id", "users.id", "houseautoassign.house_id as house_id"]);
+            const joined_query = assignment_query
+                .innerJoin("users", "users.household", "houseautoassign.house_id")
+                .innerJoin("households", "households.id", "houseautoassign.house_id")
+                .select(["users._chat_id", "users.id", "users.telegram_notifications as user_telegram_notifications", "households.telegram_notifications as house_telegram_notifications", "houseautoassign.house_id as house_id"]);
             const raw_results = await joined_query.execute();
             if (raw_results == undefined) return [];
             interface JoinedResults {
@@ -820,8 +876,11 @@ export default class Database {
             }
             const results = raw_results
                 .map((x) => {
+                    // Suppress the telegram notification (but still assign the chore)
+                    // when the user or their household has opted out of notifications.
+                    const notifications_enabled = x.user_telegram_notifications != 0 && x.house_telegram_notifications != 0;
                     return {
-                        chat_id: x._chat_id,
+                        chat_id: notifications_enabled ? x._chat_id : null,
                         house_id: HouseIdZ.safeParse(x.house_id),
                         user_id: UserIdZ.safeParse(x.id)
                     }
@@ -857,7 +916,10 @@ export default class Database {
         try {
             if (timestamp == null) timestamp = (getJulianDate() - 0.75);
             const assignment_query = this._db.selectFrom("houseautoassign").where("choreAssignHour", "==", hour).where("choreLastAssignTime", ">", timestamp);
-            const joined_query = assignment_query.innerJoin("users", "users.household", "houseautoassign.house_id").select(["users._chat_id", "users.id", "houseautoassign.house_id as house_id"]);
+            const joined_query = assignment_query
+                .innerJoin("users", "users.household", "houseautoassign.house_id")
+                .innerJoin("households", "households.id", "houseautoassign.house_id")
+                .select(["users._chat_id", "users.id", "users.telegram_notifications as user_telegram_notifications", "households.telegram_notifications as house_telegram_notifications", "houseautoassign.house_id as house_id"]);
             const raw_results = await joined_query.execute();
             if (raw_results == undefined) return [];
             interface JoinedResults {
@@ -867,8 +929,10 @@ export default class Database {
             }
             const results = raw_results
                 .map((x) => {
+                    // Suppress reminders for users (or households) that opted out of notifications
+                    const notifications_enabled = x.user_telegram_notifications != 0 && x.house_telegram_notifications != 0;
                     return {
-                        chat_id: x._chat_id,
+                        chat_id: notifications_enabled ? x._chat_id : null,
                         house_id: HouseIdZ.safeParse(x.house_id),
                         user_id: UserIdZ.safeParse(x.id)
                     }
@@ -1776,6 +1840,10 @@ export default class Database {
             const user_id = UserIdZ.parse(raw_user_id);
             const user = await this.UserGet(user_id);
             if (user == null) return null;
+            // Respect the user's personal telegram notifications toggle
+            if (user.telegram_notifications == 0) return false;
+            // Respect the household-wide telegram notifications toggle
+            if ((await this.HouseholdTelegramEnabled(user.household)) == false) return false;
             const telegram_id = user._chat_id;
             // TODO: figure out a better way to return error types
             if (telegram_id == null) return false;
@@ -2027,7 +2095,7 @@ export default class Database {
                 console.warn("HouseholdGetExtended: stale KV cache for", cache_key, "- invalidating");
                 await this.deleteKey(cache_key);
             }
-            const sql_household = await this._db.selectFrom("households").select("name").where("id", "==", id).executeTakeFirstOrThrow();
+            const sql_household = await this._db.selectFrom("households").select(["name", "telegram_notifications"]).where("id", "==", id).executeTakeFirstOrThrow();
             // next we need to query the database
             const members: DbHouseholdExtendedMemberRaw[] = [];
             const sql_members = await this._db.selectFrom("users").selectAll().where("household", "==", id).execute();
@@ -2060,6 +2128,7 @@ export default class Database {
                 current_project,
                 choreAssignHour: autoAssign?.choreAssignHour ?? null,
                 outfitHour: autoAssign?.outfitHour ?? null,
+                telegram_notifications: sql_household.telegram_notifications ?? 1,
             }
             const result = DbHouseholdExtendedZ.parse(extended_household);
             await this.CacheSet(cache_key, result);

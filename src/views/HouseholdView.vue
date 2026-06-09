@@ -66,6 +66,17 @@
             </label>
         </div>
         <div class="box block">
+            Telegram Notifications
+            <label class="checkbox is-block">
+                <input type="checkbox" v-model="household_telegram_enabled" @change="toggleHouseholdTelegram" />
+                Enable Telegram notifications for the whole household
+            </label>
+            <label class="checkbox is-block">
+                <input type="checkbox" v-model="telegram_opted_in" @change="toggleTelegramNotifications" />
+                Receive Telegram notifications for me
+            </label>
+        </div>
+        <div class="box block">
             Expecting? When did it start?
             <input class="input" type="date" :max="max_expecting_date" v-model="expecting_date" />
             <button class="button is-round" @click="setExpectingDate">Set Expecting Time</button>
@@ -93,6 +104,8 @@ export default defineComponent({
             autoassign_hour: 8,
             outfit_hour: "",
             outfit_opted_in: store._user != null ? store._user.outfit_reminders === 1 : true,
+            telegram_opted_in: store._user != null ? store._user.telegram_notifications === 1 : true,
+            household_telegram_enabled: store._user != null && store._user.household != null ? store._user.household.telegram_notifications === 1 : true,
             expecting_date: "",
             max_expecting_date: new Date().toISOString().split("T")[0],
         }
@@ -160,6 +173,22 @@ export default defineComponent({
             }
             else {
                 this.error = invite.message;
+            }
+        },
+        toggleTelegramNotifications: async function () {
+            this.error = "";
+            const result = await useUserStore().SetTelegramNotifications(this.telegram_opted_in);
+            if (result.success == false) {
+                this.error = result.message;
+                this.telegram_opted_in = !this.telegram_opted_in;
+            }
+        },
+        toggleHouseholdTelegram: async function () {
+            this.error = "";
+            const result = await useUserStore().HouseholdSetTelegramNotifications(this.household_telegram_enabled);
+            if (result.success == false) {
+                this.error = result.message;
+                this.household_telegram_enabled = !this.household_telegram_enabled;
             }
         },
         toggleOutfitReminders: async function () {

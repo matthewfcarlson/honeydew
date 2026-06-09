@@ -273,6 +273,25 @@ const HoneydewVersion12 = {
     }
 }
 
+const HoneydewVersion13 = {
+    async up(db: Kysely<any>): Promise<void> {
+        {
+            const table_name = "USERS"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('telegram_notifications', "integer", (col)=>col.defaultTo(1).notNull()) // 1 = receive telegram notifications, 0 = opted out
+                .execute()
+        }
+        {
+            const table_name = "HOUSEHOLDS"
+            await db.schema
+                .alterTable(table_name)
+                .addColumn('telegram_notifications', "integer", (col)=>col.defaultTo(1).notNull()) // 1 = household telegram notifications enabled, 0 = disabled for everyone
+                .execute()
+        }
+    }
+}
+
 export const HoneydewMigrations: Migration[] = [
     HoneydewVersion1,
     HoneydewVersion2,
@@ -285,6 +304,7 @@ export const HoneydewMigrations: Migration[] = [
     HoneydewVersion9,
     HoneydewVersion10,
     HoneydewVersion11,
-    HoneydewVersion12
+    HoneydewVersion12,
+    HoneydewVersion13
 ]
 export const LatestHoneydewDBVersion = HoneydewMigrations.length;

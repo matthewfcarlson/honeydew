@@ -85,6 +85,25 @@ const Router = router({
     const result = await db.HouseOutfitSetHour(user.household, hour);
     return result;
   }),
+  setTelegramNotifications: protectedProcedure.input(z.boolean()).query(async (ctx) => {
+
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    if (user.household == null) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        cause: "User does not have household assigned"
+      })
+    }
+    const db = ctx.ctx.data.db;
+    const result = await db.HouseholdSetTelegramNotifications(user.household, ctx.input);
+    return result;
+  }),
   setExpectingDate: protectedProcedure.input(DbHouseholdRawZ.pick({expecting:true})).query(async (ctx) => {
 
     if (ctx.ctx.data.user == null) {

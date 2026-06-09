@@ -139,6 +139,7 @@ export const DbUserZRaw = z.object({
     last_active_date: z.number().nullable(), // Julian day number of last chore completion
     current_streak: z.number().nonnegative().default(0), // Current consecutive days streak
     outfit_reminders: z.number().nonnegative(), // 1 = opted in, 0 = opted out of outfit reminders
+    telegram_notifications: z.number().nonnegative().default(1), // 1 = receive telegram notifications, 0 = opted out
 })
 export const DbUserZ = DbUserZRaw.brand<"User">()
 export type DbUser = z.infer<typeof DbUserZ>;
@@ -150,6 +151,7 @@ export const DbHouseholdRawZ = z.object({
     name: z.string().max(255),
     members: z.array(UserIdZ),
     expecting: z.string().max(25).nullable(),
+    telegram_notifications: z.number().nonnegative().default(1), // 1 = household telegram notifications enabled, 0 = disabled for everyone
 })
 export const DbHouseholdZ = DbHouseholdRawZ.brand<"Household">();
 export type DbHouseholdRaw = z.infer<typeof DbHouseholdRawZ>;
@@ -270,6 +272,7 @@ export const DbHouseholdExtendedRawZ = z.object({
     members: z.array(DbHouseholdExtendedMemberRawZ),
     choreAssignHour: z.number().lt(24).nonnegative().nullable().default(null),
     outfitHour: z.number().lt(24).nonnegative().nullable().default(null),
+    telegram_notifications: z.number().nonnegative().default(1),
 });
 export const DbHouseholdExtendedZ = DbHouseholdExtendedRawZ.brand<"DbHouseholdExtended">()
 export type DbHouseholdExtendedRaw = z.infer<typeof DbHouseholdExtendedRawZ>;
