@@ -349,6 +349,36 @@ export const useUserStore = defineStore("user", {
                 return handleError(err);
             }
         },
+        async SetTelegramNotifications(enabled: boolean): APIResult<boolean> {
+            try {
+                const result = await client.me.setTelegramNotifications.query(enabled);
+                if (this._user != null) {
+                    this._user.telegram_notifications = enabled ? 1 : 0;
+                }
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
+        async HouseholdSetTelegramNotifications(enabled: boolean): APIResult<boolean> {
+            try {
+                const result = await client.household.setTelegramNotifications.query(enabled);
+                if (this._user != null && this._user.household != null) {
+                    this._user.household.telegram_notifications = enabled ? 1 : 0;
+                }
+                return {
+                    success: true,
+                    data: result
+                }
+            }
+            catch (err) {
+                return handleError(err);
+            }
+        },
         async HouseholdSetOutfitHour(hour: number | null): APIResult<boolean> {
             try {
                 const result = await client.household.setOutfitHour.query(hour);

@@ -17,6 +17,18 @@ const Router = router({
     const result = await db.UserSetOutfitReminders(user.id, ctx.input);
     return result;
   }),
+  setTelegramNotifications: protectedProcedure.input(z.boolean()).query(async (ctx) => {
+    if (ctx.ctx.data.user == null) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        cause: "User was not found"
+      })
+    }
+    const user = ctx.ctx.data.user;
+    const db = ctx.ctx.data.db;
+    const result = await db.UserSetTelegramNotifications(user.id, ctx.input);
+    return result;
+  }),
   magic_link: protectedProcedure.query(async (ctx)=> {
     if (ctx.ctx.data.user == null) {
       throw new TRPCError({
@@ -75,6 +87,7 @@ const Router = router({
       household,
       task: null,
       outfit_reminders: user.outfit_reminders,
+      telegram_notifications: user.telegram_notifications,
     };
     return AuthCheckZ.parse(result);
   }),
